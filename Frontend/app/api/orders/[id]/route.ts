@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
 
 export async function GET(
@@ -11,32 +11,24 @@ export async function GET(
     if (!user) return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
 
     const { id } = await params;
-    const order = await prisma.order.findUnique({
-      where: { id },
-      include: {
-        orderItems: true,
-        user: { select: { name: true, email: true } },
-      },
-    });
+    const { data: order, error } = await supabase
+      .from('Order')
+      .select('*, orderItems:OrderItem(*)')
+      .eq('id', id)
+      .single();
 
-    if (!order) return NextResponse.json({ message: 'Order not found' }, { status: 404 });
-    if (order.userId !== user.id && !user.isAdmin) {
+    if (error || !order) return NextResponse.json({ message: 'Order not found' }, { status: 404 });
+    if (order.userId !== user.id && !user.isAdmin)
       return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
-    }
 
-    // Shape to match what the frontend expects
-    const shaped = {
+    return NextResponse.json({
       ...toClient(order),
       shippingAddress: {
-        address: order.address,
-        city: order.city,
-        postalCode: order.postalCode,
-        country: order.country,
+        address: order.address, city: order.city,
+        postalCode: order.postalCode, country: order.country,
       },
-      orderItems: order.orderItems.map(toClient),
-    };
-
-    return NextResponse.json(shaped);
+      orderItems: (order.orderItems || []).map(toClient),
+    });
   } catch {
     return NextResponse.json({ message: 'Server error' }, { status: 500 });
   }

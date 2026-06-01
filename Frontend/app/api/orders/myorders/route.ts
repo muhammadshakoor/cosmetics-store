@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -7,14 +7,15 @@ export async function GET(request: NextRequest) {
     const user = await getAuthUser(request);
     if (!user) return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
 
-    const orders = await prisma.order.findMany({
-      where: { userId: user.id },
-      include: { orderItems: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const { data, error } = await supabase
+      .from('Order')
+      .select('*, orderItems:OrderItem(*)')
+      .eq('userId', user.id)
+      .order('createdAt', { ascending: false });
 
-    return NextResponse.json(orders.map(toClient));
-  } catch {
-    return NextResponse.json({ message: 'Server error' }, { status: 500 });
+    if (error) throw new Error(error.message);
+    return NextResponse.json((data || []).map(toClient));
+  } catch (e) {
+    return NextResponse.json({ message: e instanceof Error ? e.message : 'Server error' }, { status: 500 });
   }
 }

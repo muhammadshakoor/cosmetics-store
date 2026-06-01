@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
-import { prisma } from './prisma';
+import { supabase } from './supabase';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -14,13 +14,17 @@ export async function getAuthUser(request: NextRequest) {
   try {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    return await prisma.user.findUnique({ where: { id: decoded.userId } });
+    const { data: user } = await supabase
+      .from('User')
+      .select('*')
+      .eq('id', decoded.userId)
+      .single();
+    return user;
   } catch {
     return null;
   }
 }
 
-// Converts Prisma's { id, ...rest } to { _id, ...rest } for frontend compatibility
 export function toClient<T extends { id: string }>(obj: T) {
   const { id, ...rest } = obj;
   return { _id: id, ...rest };
