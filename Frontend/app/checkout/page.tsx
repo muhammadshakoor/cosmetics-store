@@ -60,6 +60,12 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     setLoading(true);
     try {
+      // Read coupon from sessionStorage if user applied one in cart
+      const couponRaw = typeof window !== 'undefined' ? sessionStorage.getItem('coupon') : null;
+      const coupon = couponRaw ? JSON.parse(couponRaw) : null;
+      const discountAmount = coupon?.discount || 0;
+      const finalTotal = parseFloat((grandTotal - discountAmount).toFixed(2));
+
       const order = await apiFetch<{ _id: string }>('/orders', {
         method: 'POST',
         body: JSON.stringify({
@@ -75,9 +81,12 @@ export default function CheckoutPage() {
           itemsPrice: totalPrice,
           taxPrice: parseFloat(tax.toFixed(2)),
           shippingPrice: parseFloat(shippingCost.toFixed(2)),
-          totalPrice: parseFloat(grandTotal.toFixed(2)),
+          totalPrice: finalTotal,
+          couponCode: coupon?.code || null,
+          discountAmount,
         }),
       }, user!.token);
+      sessionStorage.removeItem('coupon');
 
       clearCart();
       router.push(`/order/${order._id}`);

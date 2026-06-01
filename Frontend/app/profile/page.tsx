@@ -5,21 +5,30 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { User, Package, ArrowRight, CheckCircle, Clock } from 'lucide-react';
+import { User, Package, ArrowRight, CheckCircle, Clock, XCircle, Truck, MapPin } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-interface OrderItem {
-  name: string;
-  qty: number;
-  image: string;
-  price: number;
-}
+type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
 
+const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
+  placed:     { label: 'Order Placed',      color: 'text-blue-700',   bg: 'bg-blue-50',   icon: <Package size={12} /> },
+  confirmed:  { label: 'Confirmed',         color: 'text-purple-700', bg: 'bg-purple-50', icon: <CheckCircle size={12} /> },
+  picked_up:  { label: 'Picked Up',         color: 'text-amber-700',  bg: 'bg-amber-50',  icon: <Truck size={12} /> },
+  on_the_way: { label: 'Out for Delivery',  color: 'text-orange-700', bg: 'bg-orange-50', icon: <MapPin size={12} /> },
+  delivered:  { label: 'Delivered',         color: 'text-green-700',  bg: 'bg-green-50',  icon: <CheckCircle size={12} /> },
+  cancelled:  { label: 'Cancelled',         color: 'text-red-700',    bg: 'bg-red-50',    icon: <XCircle size={12} /> },
+};
+
+interface OrderItem { name: string; qty: number; image: string; price: number; }
 interface Order {
   _id: string;
   orderItems: OrderItem[];
   totalPrice: number;
   isPaid: boolean;
   isDelivered: boolean;
+  status: OrderStatus;
+  trackingNumber?: string;
+  courierService?: string;
   createdAt: string;
 }
 
@@ -28,6 +37,22 @@ export default function ProfilePage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancel = async (orderId: string) => {
+    if (!user) return;
+    if (!confirm('Are you sure you want to cancel this order?')) return;
+    setCancellingId(orderId);
+    try {
+      await apiFetch(`/orders/${orderId}/cancel`, { method: 'PUT', body: JSON.stringify({ reason: 'Cancelled by customer' }) }, user.token);
+      toast.success('Order cancelled successfully');
+      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: 'cancelled' as OrderStatus } : o));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel order');
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!user) { router.replace('/login'); return; }
@@ -108,29 +133,28 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {orders.map((order) => (
-                  <Link key={order._id} href={`/order/${order._id}`} className="block">
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 hover:border-rose-100 hover:shadow-md transition-all">
+                {orders.map((order) => {
+                  const statusKey = (order.status || (order.isDelivered ? 'delivered' : 'confirmed')) as OrderStatus;
+                  const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.confirmed;
+                  const canCancel = ['placed', 'confirmed'].includes(statusKey);
+                  return (
+                  <div key={order._id} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 hover:border-rose-100 hover:shadow-md transition-all">
+                    <Link href={`/order/${order._id}`} className="block">
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div>
                           <p className="text-xs font-mono text-gray-400">#{order._id.slice(-8).toUpperCase()}</p>
                           <p className="text-xs text-gray-400 mt-0.5">
                             {new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </p>
+                          {order.trackingNumber && (
+                            <p className="text-xs text-gray-400 mt-0.5 font-mono">{order.courierService}: {order.trackingNumber}</p>
+                          )}
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-900">${order.totalPrice.toFixed(2)}</p>
-                          <div className="flex items-center gap-1.5 mt-1 justify-end">
-                            {order.isDelivered ? (
-                              <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                                <CheckCircle size={10} /> Delivered
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                                <Clock size={10} /> Processing
-                              </span>
-                            )}
-                          </div>
+                          <p className="font-bold text-[#1A0A0E]">${order.totalPrice.toFixed(2)}</p>
+                          <span className={`inline-flex items-center gap-1 mt-1 text-xs font-bold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+                            {cfg.icon} {cfg.label}
+                          </span>
                         </div>
                       </div>
                       <div className="flex -space-x-2">
@@ -151,9 +175,22 @@ export default function ProfilePage() {
                           {order.orderItems.length} item{order.orderItems.length !== 1 ? 's' : ''}
                         </span>
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                    {canCancel && (
+                      <div className="border-t border-gray-50 mt-3 pt-3">
+                        <button
+                          onClick={() => handleCancel(order._id)}
+                          disabled={cancellingId === order._id}
+                          className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 disabled:opacity-50"
+                        >
+                          <XCircle size={12} />
+                          {cancellingId === order._id ? 'Cancelling...' : 'Cancel Order'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  );
+                })}
               </div>
             )}
           </div>

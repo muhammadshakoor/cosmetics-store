@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
-import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -211,6 +211,15 @@ export default function AdminPage() {
             <p className="text-xs text-white/80 font-medium mt-0.5">Pending Orders</p>
             <Link href="/admin/orders" className="flex items-center gap-1 text-white text-xs font-bold mt-3 hover:gap-2 transition-all">
               View All Orders <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm col-span-2 sm:col-span-3">
+            <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center mb-3">
+              <Tag size={20} className="text-[#C2185B]" />
+            </div>
+            <p className="text-sm font-semibold text-gray-700 mb-1">Manage discount coupons for your store</p>
+            <Link href="/admin/coupons" className="flex items-center gap-1 text-[#C2185B] text-xs font-bold hover:gap-2 transition-all">
+              Manage Coupons <ArrowRight size={12} />
             </Link>
           </div>
         </div>
