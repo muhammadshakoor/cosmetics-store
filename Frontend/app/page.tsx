@@ -1,124 +1,146 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Shield, Leaf, Star } from 'lucide-react';
+import { ArrowRight, Star, ShieldCheck, Leaf, Truck, RefreshCw, ChevronRight, Quote } from 'lucide-react';
 import ProductCard, { type ProductType } from '@/components/ProductCard';
 import { API_URL } from '@/lib/api';
 
-const mockProducts: ProductType[] = [
-  { _id: 'm1', name: 'Rose Petal Glow Serum', image: 'https://picsum.photos/seed/rose/400/400', brand: 'Lumina', category: 'skincare', description: '', rating: 4.8, numReviews: 124, price: 48, countInStock: 15 },
-  { _id: 'm2', name: 'Velvet Matte Lipstick', image: 'https://picsum.photos/seed/lipstick/400/400', brand: 'Lumina', category: 'makeup', description: '', rating: 4.6, numReviews: 87, price: 24, countInStock: 30 },
-  { _id: 'm3', name: 'Hydra-Boost Moisturizer', image: 'https://picsum.photos/seed/moisturizer/400/400', brand: 'Lumina', category: 'skincare', description: '', rating: 4.9, numReviews: 203, price: 62, countInStock: 8 },
-  { _id: 'm4', name: 'Golden Hour Highlighter', image: 'https://picsum.photos/seed/highlight/400/400', brand: 'Lumina', category: 'makeup', description: '', rating: 4.7, numReviews: 56, price: 35, countInStock: 20 },
+const categories = [
+  { name: 'Skincare',  slug: 'skincare',  image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&h=700&fit=crop&auto=format', desc: 'Glow from within' },
+  { name: 'Makeup',    slug: 'makeup',    image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=700&fit=crop&auto=format', desc: 'Define your look' },
+  { name: 'Fragrance', slug: 'fragrance', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&h=700&fit=crop&auto=format', desc: 'Captivate & inspire' },
+  { name: 'Hair Care', slug: 'haircare',  image: 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=600&h=700&fit=crop&auto=format', desc: 'Revive & shine' },
 ];
 
-const categories = [
-  { name: 'Skincare', slug: 'skincare', color: 'from-emerald-400 to-teal-500', desc: 'Nourish & Protect' },
-  { name: 'Makeup', slug: 'makeup', color: 'from-rose-400 to-pink-500', desc: 'Define & Enhance' },
-  { name: 'Fragrance', slug: 'fragrance', color: 'from-purple-400 to-violet-500', desc: 'Captivate & Inspire' },
-  { name: 'Hair Care', slug: 'haircare', color: 'from-amber-400 to-orange-500', desc: 'Revive & Shine' },
+const testimonials = [
+  { name: 'Ayesha K.',  city: 'Lahore',     text: 'The Rose Serum transformed my skin in just 2 weeks. Delivery was fast and packaging was beautiful!',               stars: 5, product: 'Rose Petal Glow Serum' },
+  { name: 'Sana M.',    city: 'Karachi',     text: 'Finally a store with international quality! The Hydra-Boost Moisturizer is my new holy grail. Highly recommend!', stars: 5, product: 'Hydra-Boost Moisturizer' },
+  { name: 'Fatima R.',  city: 'Islamabad',   text: 'Ordered the lipstick and it arrived same day. The matte formula stays on all day, absolutely love it!',            stars: 5, product: 'Velvet Matte Lipstick' },
 ];
+
+const marqueeItems = ['✦ FREE DELIVERY', '✦ CASH ON DELIVERY', '✦ JAZZCASH & EASYPAISA', '✦ 100% CRUELTY FREE', '✦ HALAL CERTIFIED', '✦ AUTHENTIC PRODUCTS', '✦ NATIONWIDE SHIPPING', '✦ 5-STAR REVIEWS'];
 
 export default function HomePage() {
-  const [products, setProducts] = useState<ProductType[]>(mockProducts);
+  const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch(`${API_URL}/products?limit=4`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.length > 0) setProducts(data);
-        }
-      } catch {
-        // use mock data
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
+    fetch(`${API_URL}/products?limit=4`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 py-24 px-4">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-rose-200 rounded-full blur-3xl opacity-30" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-pink-200 rounded-full blur-3xl opacity-30" />
+    <div className="min-h-screen bg-[#FFF8F5]">
+
+      {/* ── Announcement Bar ── */}
+      <div className="bg-[#C2185B] text-white text-xs font-medium text-center py-2.5 px-4 tracking-wide">
+        🎉 FREE delivery on orders over PKR 2,000 &nbsp;·&nbsp; Cash on Delivery available nationwide &nbsp;·&nbsp; Use code <span className="font-bold underline">LUMINA10</span> for 10% off
+      </div>
+
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden bg-[#FFF8F5] min-h-[88vh] flex items-center">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-[55%] h-full bg-linear-to-bl from-rose-100/60 via-pink-50/40 to-transparent" />
+          <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-rose-200/20 blur-3xl" />
         </div>
 
-        <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-rose-600 text-sm font-medium shadow-sm mb-6">
-            <Sparkles size={14} />
-            New Spring Collection 2025
-          </div>
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 leading-tight mb-6">
-            Reveal Your{' '}
-            <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">
-              Natural Glow
-            </span>
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-            Premium cosmetics crafted with love. Cruelty-free, sustainably sourced, and made for every skin type.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/products"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-2xl transition-all shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5"
-            >
-              Shop Now <ArrowRight size={18} />
-            </Link>
-            <Link
-              href="/products?category=skincare"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-gray-50 text-gray-800 font-semibold rounded-2xl transition-all shadow-sm border border-gray-200 hover:-translate-y-0.5"
-            >
-              Explore Skincare
-            </Link>
-          </div>
-        </div>
-      </section>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-16 lg:py-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left */}
+            <div className="space-y-7">
+              <div className="inline-flex items-center gap-2 bg-white border border-rose-100 px-4 py-2 rounded-full shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-[#C2185B] animate-pulse" />
+                <span className="text-xs font-semibold text-[#C2185B] tracking-widest uppercase">New Spring Collection 2025</span>
+              </div>
 
-      {/* Features */}
-      <section className="py-12 bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {[
-            { icon: <Leaf size={20} />, label: 'Cruelty-Free', desc: '100% not tested on animals' },
-            { icon: <Shield size={20} />, label: 'Dermatologist Tested', desc: 'Safe for all skin types' },
-            { icon: <Star size={20} />, label: '5-Star Reviews', desc: 'Loved by 50,000+ customers' },
-          ].map((f) => (
-            <div key={f.label} className="flex items-center gap-4 p-4 rounded-2xl bg-rose-50">
-              <div className="p-3 bg-rose-100 rounded-xl text-rose-600">{f.icon}</div>
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">{f.label}</p>
-                <p className="text-xs text-gray-500">{f.desc}</p>
+              <h1 className="text-5xl sm:text-6xl xl:text-7xl font-extrabold text-[#1A0A0E] leading-[1.05] tracking-tight">
+                Beauty Is Your{' '}
+                <span className="relative inline-block">
+                  <span className="bg-linear-to-r from-[#C2185B] to-pink-500 bg-clip-text text-transparent">Superpower</span>
+                  <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 10" fill="none">
+                    <path d="M2 7 Q75 2 150 7 Q225 12 298 7" stroke="#C2185B" strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.4"/>
+                  </svg>
+                </span>
+              </h1>
+
+              <p className="text-lg text-gray-500 max-w-md leading-relaxed">
+                Premium cosmetics crafted with care — cruelty-free, halal certified, and made for every skin type. Delivered across Pakistan.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/products" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-lg shadow-rose-200 hover:-translate-y-0.5 transition-all text-sm">
+                  Shop Now <ArrowRight size={16} />
+                </Link>
+                <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-rose-50 text-[#1A0A0E] font-semibold rounded-2xl shadow-sm border border-gray-100 transition-all text-sm">
+                  Explore Skincare <ChevronRight size={16} />
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2">
+                {[
+                  { icon: <ShieldCheck size={14} className="text-green-600" />, text: '100% Authentic' },
+                  { icon: <Leaf size={14} className="text-green-600" />, text: 'Cruelty-Free' },
+                  { icon: <Truck size={14} className="text-blue-500" />, text: 'Nationwide Delivery' },
+                  { icon: <RefreshCw size={14} className="text-purple-500" />, text: '7-Day Returns' },
+                ].map(({ icon, text }) => (
+                  <div key={text} className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">{icon} {text}</div>
+                ))}
               </div>
             </div>
-          ))}
+
+            {/* Right — Product collage */}
+            <div className="relative hidden lg:block h-[520px]">
+              <div className="absolute top-0 right-0 w-72 h-72 rounded-3xl overflow-hidden shadow-2xl shadow-rose-100 rotate-3">
+                <img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop&auto=format" alt="Serum" className="w-full h-full object-cover" />
+              </div>
+              <div className="absolute bottom-0 left-8 w-64 h-64 rounded-3xl overflow-hidden shadow-2xl shadow-pink-100 -rotate-2">
+                <img src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop&auto=format" alt="Makeup" className="w-full h-full object-cover" />
+              </div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-3xl overflow-hidden shadow-xl shadow-rose-200 rotate-1 border-4 border-white">
+                <img src="https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300&h=300&fit=crop&auto=format" alt="Moisturizer" className="w-full h-full object-cover" />
+              </div>
+              <div className="absolute top-6 left-4 bg-white rounded-2xl shadow-lg px-4 py-3 flex items-center gap-2 border border-rose-50">
+                <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} size={11} className="fill-amber-400 text-amber-400" />)}</div>
+                <span className="text-xs font-bold text-gray-700">50K+ Happy Customers</span>
+              </div>
+              <div className="absolute bottom-16 right-4 bg-white rounded-2xl shadow-lg px-4 py-3 border border-rose-50">
+                <p className="text-xs font-bold text-gray-800">🚚 Cash on Delivery</p>
+                <p className="text-xs text-gray-400 mt-0.5">Available Nationwide</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="py-16 px-4 bg-gray-50">
+      {/* ── Marquee Strip ── */}
+      <div className="bg-[#1A0A0E] text-white py-3 overflow-hidden">
+        <div className="flex gap-12 animate-marquee text-xs font-semibold tracking-widest uppercase whitespace-nowrap">
+          {[...marqueeItems, ...marqueeItems, ...marqueeItems].map((item, i) => (
+            <span key={i} className="shrink-0">{item}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Categories ── */}
+      <section className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Shop by Category</h2>
-            <p className="text-gray-500">Find exactly what you need for your beauty routine.</p>
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Explore Our Range</p>
+            <h2 className="text-4xl font-extrabold text-[#1A0A0E]">Shop by Category</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/products?category=${cat.slug}`}
-                className="group relative overflow-hidden rounded-3xl aspect-square"
-              >
-                <div className={`absolute inset-0 bg-linear-to-br ${cat.color} opacity-90 group-hover:opacity-100 transition-opacity`} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
-                  <h3 className="text-xl font-bold mb-1">{cat.name}</h3>
-                  <p className="text-sm opacity-80">{cat.desc}</p>
-                  <div className="mt-3 flex items-center gap-1 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+              <Link key={cat.slug} href={`/products?category=${cat.slug}`} className="group relative overflow-hidden rounded-3xl aspect-[3/4] block">
+                <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <p className="text-xs text-rose-300 font-medium mb-1">{cat.desc}</p>
+                  <h3 className="text-xl font-extrabold text-white">{cat.name}</h3>
+                  <div className="flex items-center gap-1 mt-2 text-white/70 text-xs font-medium group-hover:gap-2 transition-all">
                     Shop Now <ArrowRight size={12} />
                   </div>
                 </div>
@@ -128,38 +150,98 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products */}
-      <section className="py-16 px-4 bg-white">
+      {/* ── Best Sellers ── */}
+      <section className="py-20 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-10">
+          <div className="flex items-end justify-between mb-12">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-1">New Arrivals</h2>
-              <p className="text-gray-500">Freshly curated for the season</p>
+              <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Hand-picked for you</p>
+              <h2 className="text-4xl font-extrabold text-[#1A0A0E]">Best Sellers</h2>
             </div>
-            <Link href="/products" className="hidden sm:flex items-center gap-2 text-rose-600 hover:text-rose-700 font-medium transition-colors">
-              View all <ArrowRight size={16} />
+            <Link href="/products" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-[#C2185B] hover:gap-2.5 transition-all">
+              View All <ArrowRight size={14} />
             </Link>
           </div>
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-gray-100 rounded-3xl h-80 animate-pulse" />
-              ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-3xl h-80 bg-gray-100 animate-pulse" />)}
+            </div>
+          ) : products.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+              {products.map((p) => <ProductCard key={p._id} product={p} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {products.slice(0, 4).map((p) => (
-                <ProductCard key={p._id} product={p} />
-              ))}
-            </div>
+            <p className="text-center text-gray-400 py-16">
+              Visit <a href="/api/seed" className="text-rose-500 underline">/api/seed</a> to add sample products
+            </p>
           )}
           <div className="text-center mt-10 sm:hidden">
-            <Link href="/products" className="inline-flex items-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-2xl font-semibold shadow-sm">
-              View All <ArrowRight size={16} />
+            <Link href="/products" className="inline-flex items-center gap-2 px-8 py-3 bg-[#C2185B] text-white font-bold rounded-2xl text-sm">
+              View All Products <ArrowRight size={14} />
             </Link>
           </div>
         </div>
       </section>
+
+      {/* ── Brand Values ── */}
+      <section className="py-16 px-4 bg-[#FFF8F5]">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-5">
+          {[
+            { icon: '🌿', title: 'Cruelty-Free', desc: '100% never tested on animals' },
+            { icon: '☪️', title: 'Halal Certified', desc: 'Safe and permissible ingredients' },
+            { icon: '🚚', title: 'Free Delivery', desc: 'On orders over PKR 2,000' },
+            { icon: '💳', title: 'Easy Payments', desc: 'JazzCash · EasyPaisa · COD' },
+          ].map(({ icon, title, desc }) => (
+            <div key={title} className="bg-white rounded-3xl p-6 text-center shadow-sm border border-rose-50 hover:shadow-md hover:-translate-y-1 transition-all">
+              <div className="text-3xl mb-3">{icon}</div>
+              <h3 className="font-bold text-[#1A0A0E] text-sm mb-1">{title}</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Testimonials ── */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Real Reviews</p>
+            <h2 className="text-4xl font-extrabold text-[#1A0A0E]">What Our Customers Say</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map((t) => (
+              <div key={t.name} className="bg-[#FFF8F5] rounded-3xl p-7 border border-rose-50 hover:shadow-lg transition-shadow">
+                <Quote size={24} className="text-rose-200 mb-4" />
+                <p className="text-gray-600 text-sm leading-relaxed mb-6 italic">&ldquo;{t.text}&rdquo;</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-[#1A0A0E] text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.city} · {t.product}</p>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: t.stars }).map((_, i) => <Star key={i} size={12} className="fill-amber-400 text-amber-400" />)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Newsletter ── */}
+      <section className="py-20 px-4 bg-linear-to-r from-[#C2185B] to-pink-500">
+        <div className="max-w-xl mx-auto text-center">
+          <h2 className="text-3xl font-extrabold text-white mb-3">Get 10% Off Your First Order</h2>
+          <p className="text-rose-100 text-sm mb-8">Subscribe for beauty tips, new arrivals, and exclusive offers.</p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input type="email" placeholder="Enter your email address" className="flex-1 px-5 py-3.5 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-white" />
+            <button className="px-6 py-3.5 bg-[#1A0A0E] hover:bg-black text-white font-bold rounded-2xl text-sm transition-colors whitespace-nowrap">
+              Subscribe
+            </button>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
