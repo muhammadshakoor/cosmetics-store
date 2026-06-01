@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Star, ShoppingCart, ArrowLeft, Heart, Shield, Truck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
@@ -179,6 +179,70 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Reviews Section ── */}
+        <ReviewsSection productId={id} />
+      </div>
+    </div>
+  );
+}
+
+interface Review { _id: string; name: string; rating: number; comment: string; createdAt: string; }
+
+function ReviewsSection({ productId }: { productId: string }) {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/reviews/${productId}`);
+      if (res.ok) setReviews(await res.json());
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  }, [productId]);
+
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+
+  if (loading) return null;
+  if (reviews.length === 0) return (
+    <div className="mt-12 pt-8 border-t border-gray-100">
+      <h2 className="text-2xl font-bold text-[#1A0A0E] mb-2">Customer Reviews</h2>
+      <p className="text-gray-400 text-sm">No reviews yet. Be the first to review after purchasing!</p>
+    </div>
+  );
+
+  const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+
+  return (
+    <div className="mt-12 pt-8 border-t border-gray-100">
+      <div className="flex items-center gap-4 mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-[#1A0A0E]">Customer Reviews</h2>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map(s => (
+                <Star key={s} size={16} className={s <= Math.round(avg) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'} />
+              ))}
+            </div>
+            <span className="text-sm text-gray-500 font-medium">{avg.toFixed(1)} out of 5 · {reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {reviews.map(r => (
+          <div key={r._id} className="bg-[#FFF8F5] rounded-2xl p-5 border border-rose-50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="font-bold text-sm text-[#1A0A0E]">{r.name}</p>
+                <p className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              </div>
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(s => <Star key={s} size={12} className={s <= r.rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'} />)}
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">{r.comment}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

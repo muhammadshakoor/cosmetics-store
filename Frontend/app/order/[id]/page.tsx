@@ -4,35 +4,46 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
-import { CheckCircle, Package, MapPin, CreditCard, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { CheckCircle, Package, Truck, MapPin, CreditCard, ArrowRight, Star, ExternalLink } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-interface OrderItem {
-  name: string;
-  qty: number;
-  image: string;
-  price: number;
-  product: string;
-}
+type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered';
 
+interface OrderItem { _id: string; name: string; qty: number; image: string; price: number; productId: string; }
 interface Order {
   _id: string;
   orderItems: OrderItem[];
-  shippingAddress: {
-    address: string;
-    city: string;
-    postalCode: string;
-    country: string;
-  };
+  shippingAddress: { address: string; city: string; postalCode: string; country: string };
   paymentMethod: string;
-  itemsPrice: number;
-  taxPrice: number;
-  shippingPrice: number;
-  totalPrice: number;
-  isPaid: boolean;
-  isDelivered: boolean;
+  itemsPrice: number; taxPrice: number; shippingPrice: number; totalPrice: number;
+  isPaid: boolean; isDelivered: boolean;
+  status: OrderStatus;
+  trackingNumber?: string;
+  courierService?: string;
+  deliveredAt?: string;
   createdAt: string;
 }
+
+const STEPS: { key: OrderStatus; label: string; desc: string; icon: React.ReactNode }[] = [
+  { key: 'placed',     label: 'Order Placed',           desc: 'We received your order',            icon: <Package size={18} /> },
+  { key: 'confirmed',  label: 'Order Confirmed',         desc: 'Admin confirmed your order',        icon: <CheckCircle size={18} /> },
+  { key: 'picked_up',  label: 'Picked Up by Courier',    desc: 'Courier collected your package',    icon: <Truck size={18} /> },
+  { key: 'on_the_way', label: 'Out for Delivery',        desc: 'Your order is on the way!',         icon: <MapPin size={18} /> },
+  { key: 'delivered',  label: 'Delivered',               desc: 'Package delivered successfully',    icon: <CheckCircle size={18} /> },
+];
+
+const STATUS_ORDER: OrderStatus[] = ['placed', 'confirmed', 'picked_up', 'on_the_way', 'delivered'];
+
+const COURIER_LINKS: Record<string, string> = {
+  'PostEx':        'https://postex.pk/tracking/',
+  'Leopards':      'https://www.leopardscourier.com/leopards-courier/index.php?id=tracking&cn=',
+  'TCS':           'https://www.tcsexpress.com/track/',
+  'M&P':           'https://mpex.pk/track-consignment?number=',
+  'Swyft':         'https://swyftlogistics.com/tracking?trackingNumber=',
+  'CallCourier':   'https://www.callcourier.com.pk/tracking?tracking_number=',
+  'Pakistan Post': 'https://www.pakpost.gov.pk/tracking.php?trackingnumber=',
+};
 
 export default function OrderPage() {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +51,13 @@ export default function OrderPage() {
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewProductId, setReviewProductId] = useState('');
+  const [reviewProductName, setReviewProductName] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) { router.replace('/login'); return; }
@@ -49,117 +67,215 @@ export default function OrderPage() {
       .finally(() => setLoading(false));
   }, [id, user, router]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const openReview = (productId: string, productName: string) => {
+    setReviewProductId(productId);
+    setReviewProductName(productName);
+    setReviewRating(5);
+    setReviewComment('');
+    setShowReview(true);
+  };
 
+  const handleReview = async (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    if (!user || !order) return;
+    setSubmittingReview(true);
+    try {
+      await apiFetch('/reviews', {
+        method: 'POST',
+        body: JSON.stringify({ productId: reviewProductId, orderId: order._id, rating: reviewRating, comment: reviewComment }),
+      }, user.token);
+      toast.success('Review submitted! Thank you 🌟');
+      setReviewedProducts(prev => new Set([...prev, reviewProductId]));
+      setShowReview(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#FFF8F5] flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-[#C2185B] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
   if (!order) return null;
 
+  const currentStepIndex = STATUS_ORDER.indexOf(order.status || 'placed');
+  const trackingUrl = order.courierService && order.trackingNumber
+    ? (COURIER_LINKS[order.courierService] || '') + order.trackingNumber
+    : null;
+
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-[#FFF8F5] py-10 px-4">
       <div className="max-w-3xl mx-auto">
-        {/* Success Banner */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-3xl p-6 sm:p-8 mb-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle size={32} className="text-green-500" />
+
+        {/* Top banner */}
+        <div className={`rounded-3xl p-6 mb-8 text-center ${order.status === 'delivered' ? 'bg-green-50 border border-green-200' : 'bg-white border border-rose-100 shadow-sm'}`}>
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${order.status === 'delivered' ? 'bg-green-100' : 'bg-rose-50'}`}>
+            {order.status === 'delivered' ? <CheckCircle size={32} className="text-green-500" /> : <Package size={32} className="text-[#C2185B]" />}
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Order Placed!</h1>
-          <p className="text-gray-500 text-sm mb-3">Thank you for your purchase. We&apos;ll get it ready for you.</p>
-          <p className="text-xs font-mono text-gray-400 bg-white inline-block px-3 py-1 rounded-full border border-gray-100">
-            Order ID: {order._id}
+          <h1 className="text-2xl font-extrabold text-[#1A0A0E] mb-1">
+            {order.status === 'delivered'  ? 'Order Delivered!' :
+             order.status === 'on_the_way' ? 'Your Order is On the Way! 🚚' :
+             order.status === 'picked_up'  ? 'Picked Up by Courier' :
+             order.status === 'confirmed'  ? 'Order Confirmed ✓' :
+             'Order Placed Successfully!'}
+          </h1>
+          <p className="text-gray-500 text-sm mb-4">
+            Order ID: <span className="font-mono font-semibold">#{order._id.slice(-10).toUpperCase()}</span>
           </p>
+          {order.trackingNumber && (
+            <div className="inline-flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm">
+              <Truck size={14} className="text-[#C2185B]" />
+              <span className="text-sm font-semibold text-gray-700">{order.courierService}: <span className="font-mono">{order.trackingNumber}</span></span>
+              {trackingUrl && (
+                <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[#C2185B] font-bold hover:underline ml-1">
+                  Track <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {/* Shipping */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-              <MapPin size={12} /> Shipping Address
-            </p>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              {order.shippingAddress.address}<br />
-              {order.shippingAddress.city}, {order.shippingAddress.postalCode}<br />
-              {order.shippingAddress.country}
-            </p>
-            <div className="mt-3">
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${order.isDelivered ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
-                {order.isDelivered ? 'Delivered' : 'Not yet delivered'}
-              </span>
-            </div>
-          </div>
-
-          {/* Payment */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-              <CreditCard size={12} /> Payment
-            </p>
-            <p className="text-sm text-gray-700">{order.paymentMethod}</p>
-            <div className="mt-3">
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${order.isPaid ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
-                {order.isPaid ? 'Paid' : 'Pending payment'}
-              </span>
+        {/* ── Status Timeline ── */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 mb-6">
+          <h2 className="text-lg font-bold text-[#1A0A0E] mb-8">Live Order Tracking</h2>
+          <div className="relative">
+            <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-gray-100" />
+            <div className="space-y-0">
+              {STEPS.map((step, i) => {
+                const done    = i <= currentStepIndex;
+                const current = i === currentStepIndex;
+                return (
+                  <div key={step.key} className="relative flex items-start gap-5 pb-7 last:pb-0">
+                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                      done ? current ? 'bg-[#C2185B] text-white shadow-lg shadow-rose-200' : 'bg-green-500 text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
+                    }`}>
+                      {done && !current ? <CheckCircle size={18} /> : step.icon}
+                    </div>
+                    <div className="pt-1.5 flex-1">
+                      <p className={`text-sm font-bold ${done ? 'text-[#1A0A0E]' : 'text-gray-400'}`}>{step.label}</p>
+                      <p className={`text-xs mt-0.5 ${done ? 'text-gray-500' : 'text-gray-300'}`}>{step.desc}</p>
+                      {step.key === 'delivered' && order.deliveredAt && (
+                        <p className="text-xs text-green-600 font-semibold mt-0.5">
+                          {new Date(order.deliveredAt).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </p>
+                      )}
+                      {step.key === 'picked_up' && order.trackingNumber && done && (
+                        <p className="text-xs text-gray-400 mt-0.5 font-mono">{order.courierService} · {order.trackingNumber}</p>
+                      )}
+                    </div>
+                    {current && (
+                      <span className="shrink-0 mt-1.5 text-[10px] font-bold text-[#C2185B] bg-rose-50 px-2.5 py-1 rounded-full animate-pulse">
+                        Current Status
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Order Items */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 sm:p-6 mb-6">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4 flex items-center gap-1.5">
-            <Package size={12} /> Order Items
-          </p>
+        {/* ── Order Items ── */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-bold text-[#1A0A0E] mb-5">Order Items</h2>
           <div className="space-y-4">
-            {order.orderItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-14 h-14 rounded-xl object-cover bg-gray-100 flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
-                  <p className="text-xs text-gray-400">{item.qty} × ${item.price.toFixed(2)}</p>
+            {order.orderItems.map((item) => {
+              const pid = item.productId || item._id;
+              const reviewed = reviewedProducts.has(pid);
+              return (
+                <div key={item._id} className="flex items-center gap-4">
+                  <img src={item.image} alt={item.name} className="w-16 h-16 rounded-2xl object-cover bg-gray-100 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#1A0A0E] truncate">{item.name}</p>
+                    <p className="text-xs text-gray-400">{item.qty} × ${item.price.toFixed(2)}</p>
+                  </div>
+                  <div className="text-right shrink-0 space-y-1">
+                    <p className="text-sm font-bold text-[#1A0A0E]">${(item.qty * item.price).toFixed(2)}</p>
+                    {order.status === 'delivered' && (
+                      reviewed
+                        ? <p className="text-xs text-green-600 font-semibold">✓ Reviewed</p>
+                        : <button onClick={() => openReview(pid, item.name)} className="flex items-center gap-1 text-xs text-[#C2185B] font-bold hover:underline ml-auto">
+                            <Star size={11} /> Rate Product
+                          </button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-sm font-semibold text-gray-900">${(item.qty * item.price).toFixed(2)}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Price Summary */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 sm:p-6 mb-8">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Price Summary</p>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-gray-500"><span>Items</span><span>${order.itemsPrice.toFixed(2)}</span></div>
-            <div className="flex justify-between text-gray-500">
-              <span>Shipping</span>
-              <span className={order.shippingPrice === 0 ? 'text-green-600' : ''}>{order.shippingPrice === 0 ? 'FREE' : `$${order.shippingPrice.toFixed(2)}`}</span>
-            </div>
-            <div className="flex justify-between text-gray-500"><span>Tax</span><span>${order.taxPrice.toFixed(2)}</span></div>
-            <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-3 mt-1">
-              <span>Total</span><span>${order.totalPrice.toFixed(2)}</span>
+        {/* ── Shipping + Prices ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><MapPin size={12} /> Shipping Address</p>
+            <p className="text-sm font-semibold text-[#1A0A0E]">{order.shippingAddress?.address}</p>
+            <p className="text-xs text-gray-500">{order.shippingAddress?.city}, {order.shippingAddress?.postalCode}</p>
+            <p className="text-xs text-gray-500">{order.shippingAddress?.country}</p>
+          </div>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><CreditCard size={12} /> Payment & Summary</p>
+            <p className="text-sm font-semibold text-[#1A0A0E] mb-3">{order.paymentMethod}</p>
+            <div className="space-y-1 text-xs text-gray-500">
+              <div className="flex justify-between"><span>Items</span><span>${order.itemsPrice?.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Shipping</span><span className={order.shippingPrice === 0 ? 'text-green-600' : ''}>{order.shippingPrice === 0 ? 'FREE' : `$${order.shippingPrice?.toFixed(2)}`}</span></div>
+              <div className="flex justify-between"><span>Tax</span><span>${order.taxPrice?.toFixed(2)}</span></div>
+              <div className="flex justify-between font-bold text-[#1A0A0E] text-sm border-t border-gray-100 pt-2 mt-1"><span>Total</span><span>${order.totalPrice?.toFixed(2)}</span></div>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Link
-            href="/products"
-            className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-rose-200 text-rose-600 font-semibold rounded-2xl hover:bg-rose-50 transition-colors"
-          >
+          <Link href="/products" className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-rose-200 text-[#C2185B] font-semibold rounded-2xl hover:bg-rose-50 transition-colors text-sm">
             Continue Shopping
           </Link>
-          <Link
-            href="/profile"
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 transition-all"
-          >
-            View My Orders <ArrowRight size={14} />
+          <Link href="/profile" className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#C2185B] text-white font-semibold rounded-2xl hover:bg-[#A31555] transition-colors text-sm">
+            My Orders <ArrowRight size={14} />
           </Link>
         </div>
       </div>
+
+      {/* ── Review Modal ── */}
+      {showReview && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-[#1A0A0E] mb-1">Rate Your Purchase</h2>
+            <p className="text-sm text-gray-400 mb-5">{reviewProductName}</p>
+            <form onSubmit={handleReview} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Your Rating *</label>
+                <div className="flex items-center gap-2">
+                  {[1,2,3,4,5].map(s => (
+                    <button key={s} type="button" onClick={() => setReviewRating(s)} className="hover:scale-110 transition-transform">
+                      <Star size={30} className={s <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'} />
+                    </button>
+                  ))}
+                  <span className="text-sm text-gray-500 ml-1 font-medium">
+                    {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][reviewRating]}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Your Review *</label>
+                <textarea
+                  required rows={4} value={reviewComment} onChange={e => setReviewComment(e.target.value)}
+                  placeholder="Share your experience — quality, packaging, results on your skin..."
+                  className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowReview(false)} className="flex-1 py-3 border border-gray-200 text-gray-600 font-medium rounded-2xl hover:bg-gray-50">Cancel</button>
+                <button type="submit" disabled={submittingReview} className="flex-1 py-3 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl disabled:opacity-60">
+                  {submittingReview ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
