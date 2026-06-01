@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -44,7 +44,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 py-24 px-4">
+      <section className="relative overflow-hidden bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 py-24 px-4">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-rose-200 rounded-full blur-3xl opacity-30" />
           <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-pink-200 rounded-full blur-3xl opacity-30" />
@@ -57,7 +57,7 @@ export default function HomePage() {
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 leading-tight mb-6">
             Reveal Your{' '}
-            <span className="bg-gradient-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">
               Natural Glow
             </span>
           </h1>
@@ -114,7 +114,7 @@ export default function HomePage() {
                 href={`/products?category=${cat.slug}`}
                 className="group relative overflow-hidden rounded-3xl aspect-square"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${cat.color} opacity-90 group-hover:opacity-100 transition-opacity`} />
+                <div className={`absolute inset-0 bg-linear-to-br ${cat.color} opacity-90 group-hover:opacity-100 transition-opacity`} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
                   <h3 className="text-xl font-bold mb-1">{cat.name}</h3>
                   <p className="text-sm opacity-80">{cat.desc}</p>

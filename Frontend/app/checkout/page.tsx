@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -175,7 +175,7 @@ export default function CheckoutPage() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
+                    className="w-full py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
                   >
                     Continue to Payment
                   </button>
@@ -189,31 +189,36 @@ export default function CheckoutPage() {
                   <CreditCard size={20} className="text-rose-500" /> Payment Method
                 </h2>
                 <div className="space-y-3 mb-8">
-                  {['Cash on Delivery', 'Credit / Debit Card (coming soon)', 'PayPal (coming soon)'].map((method) => {
-                    const disabled = method.includes('coming soon');
-                    return (
-                      <label
-                        key={method}
-                        className={`flex items-center gap-3 p-4 border-2 rounded-2xl transition-all ${
-                          paymentMethod === method ? 'border-rose-400 bg-rose-50' : 'border-gray-200 hover:border-gray-300'
-                        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        <input
-                          type="radio" name="payment" value={method} disabled={disabled}
-                          checked={paymentMethod === method}
-                          onChange={() => !disabled && setPaymentMethod(method)}
-                          className="accent-rose-500"
-                        />
-                        <span className="text-sm font-medium text-gray-700">{method}</span>
-                      </label>
-                    );
-                  })}
+                  {[
+                    { label: 'Cash on Delivery (COD)', desc: 'Pay when your order arrives', available: true },
+                    { label: 'JazzCash', desc: 'Pay via JazzCash mobile wallet', available: true },
+                    { label: 'EasyPaisa', desc: 'Pay via EasyPaisa mobile wallet', available: true },
+                    { label: 'Credit / Debit Card', desc: 'Coming soon', available: false },
+                  ].map(({ label, desc, available }) => (
+                    <label
+                      key={label}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-2xl transition-all ${
+                        paymentMethod === label ? 'border-rose-400 bg-rose-50' : 'border-gray-200 hover:border-gray-300'
+                      } ${!available ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <input
+                        type="radio" name="payment" value={label} disabled={!available}
+                        checked={paymentMethod === label}
+                        onChange={() => available && setPaymentMethod(label)}
+                        className="accent-rose-500"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">{label}</p>
+                        <p className="text-xs text-gray-400">{desc}</p>
+                      </div>
+                    </label>
+                  ))}
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setStep('shipping')} className="flex-1 py-3 border border-gray-200 text-gray-600 font-medium rounded-2xl hover:bg-gray-50 transition-colors">
                     Back
                   </button>
-                  <button onClick={() => setStep('review')} className="flex-1 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all">
+                  <button onClick={() => setStep('review')} className="flex-1 py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all">
                     Review Order
                   </button>
                 </div>
@@ -248,7 +253,7 @@ export default function CheckoutPage() {
                 <div className="space-y-3 mb-6">
                   {cartItems.map((item) => (
                     <div key={item.product} className="flex items-center gap-3">
-                      <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-xl bg-gray-100 flex-shrink-0" />
+                      <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-xl bg-gray-100 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
                         <p className="text-xs text-gray-400">Qty: {item.qty}</p>
@@ -263,7 +268,7 @@ export default function CheckoutPage() {
                   </button>
                   <button
                     onClick={handlePlaceOrder} disabled={loading}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <Lock size={14} />
                     {loading ? 'Placing Order...' : 'Place Order'}
@@ -281,7 +286,7 @@ export default function CheckoutPage() {
                 {cartItems.map((item) => (
                   <div key={item.product} className="flex justify-between text-gray-600">
                     <span className="truncate mr-2">{item.name} × {item.qty}</span>
-                    <span className="font-medium flex-shrink-0">${(item.price * item.qty).toFixed(2)}</span>
+                    <span className="font-medium shrink-0">${(item.price * item.qty).toFixed(2)}</span>
                   </div>
                 ))}
               </div>

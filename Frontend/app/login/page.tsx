@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
@@ -41,11 +41,11 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 flex items-center justify-center px-4 py-16">
+    <div className="min-h-screen bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-3xl shadow-xl p-8 sm:p-10 border border-gray-100">
           <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center mx-auto mb-4 shadow-md">
+            <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center mx-auto mb-4 shadow-md">
               <span className="text-white font-bold text-xl">L</span>
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900">Welcome back</h1>

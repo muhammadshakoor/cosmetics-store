@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
@@ -66,11 +66,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-md group-hover:shadow-rose-200 transition-shadow">
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
+            <div className="w-8 h-8 rounded-full bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-md group-hover:shadow-rose-200 transition-shadow">
               <span className="text-white text-xs font-bold">L</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent">
               Lumina
             </span>
           </Link>

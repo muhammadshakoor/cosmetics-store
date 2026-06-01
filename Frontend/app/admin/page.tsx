@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
-import { Plus, Pencil, Trash2, X, Save, ShieldAlert } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const EMPTY_FORM = {
@@ -31,6 +31,7 @@ export default function AdminPage() {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -66,6 +67,29 @@ export default function AdminPage() {
     );
   }
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const data = new FormData();
+      data.append('file', file);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${user!.token}` },
+        body: data,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message);
+      setForm((prev) => ({ ...prev, image: json.url }));
+      toast.success('Image uploaded!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const openAddForm = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
@@ -90,6 +114,11 @@ export default function AdminPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      if (!form.image) {
+        toast.error('Please upload an image or paste a URL');
+        setSaving(false);
+        return;
+      }
       const payload = {
         name: form.name,
         brand: form.brand,
@@ -142,7 +171,7 @@ export default function AdminPage() {
           </div>
           <button
             onClick={openAddForm}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
           >
             <Plus size={16} /> Add Product
           </button>
@@ -186,7 +215,7 @@ export default function AdminPage() {
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="w-10 h-10 rounded-xl object-cover bg-gray-100 flex-shrink-0"
+                            className="w-10 h-10 rounded-xl object-cover bg-gray-100 shrink-0"
                           />
                           <div>
                             <p className="text-sm font-semibold text-gray-900 line-clamp-1">{product.name}</p>
@@ -232,7 +261,7 @@ export default function AdminPage() {
             <div className="sm:hidden divide-y divide-gray-50">
               {products.map((product) => (
                 <div key={product._id} className="p-4 flex items-start gap-3">
-                  <img src={product.image} alt={product.name} className="w-14 h-14 rounded-xl object-cover bg-gray-100 flex-shrink-0" />
+                  <img src={product.image} alt={product.name} className="w-14 h-14 rounded-xl object-cover bg-gray-100 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
                     <p className="text-xs text-gray-400 mb-1">{product.brand} · {product.category}</p>
@@ -325,16 +354,26 @@ export default function AdminPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL *</label>
-                <input
-                  type="url" required value={form.image}
-                  onChange={(e) => setForm({ ...form, image: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent"
-                />
-                {form.image && (
-                  <img src={form.image} alt="preview" className="mt-2 h-20 w-20 object-cover rounded-xl border border-gray-100" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Image *</label>
+                <div className="space-y-2">
+                  {/* Upload from device */}
+                  <label className={`flex items-center gap-2 px-4 py-2.5 border-2 border-dashed rounded-2xl cursor-pointer transition-colors ${uploading ? 'border-rose-300 bg-rose-50' : 'border-gray-200 hover:border-rose-300'}`}>
+                    <Upload size={14} className="text-rose-500" />
+                    <span className="text-sm text-gray-600">{uploading ? 'Uploading...' : 'Upload from device'}</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  </label>
+                  {/* Or paste URL */}
+                  <input
+                    type="url"
+                    value={form.image}
+                    onChange={(e) => setForm({ ...form, image: e.target.value })}
+                    placeholder="Or paste an image URL..."
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent"
+                  />
+                  {form.image && (
+                    <img src={form.image} alt="preview" className="h-24 w-24 object-cover rounded-xl border border-gray-100" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Description *</label>
@@ -355,7 +394,7 @@ export default function AdminPage() {
                 </button>
                 <button
                   type="submit" disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-md hover:shadow-rose-200 transition-all disabled:opacity-60"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-md hover:shadow-rose-200 transition-all disabled:opacity-60"
                 >
                   <Save size={14} />
                   {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Product'}

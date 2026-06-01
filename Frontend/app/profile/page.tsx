@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -47,7 +47,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {/* Profile Card */}
           <div className="md:col-span-1 bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-md">
+            <div className="w-16 h-16 rounded-full bg-linear-to-br from-rose-400 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-md">
               <User size={28} className="text-white" />
             </div>
             <div className="text-center mb-6">

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -53,7 +53,7 @@ export default function CartPage() {
                 <img
                   src={item.image || `https://picsum.photos/seed/${item.product}/160/160`}
                   alt={item.name}
-                  className="w-24 h-24 object-cover rounded-2xl flex-shrink-0 bg-gray-100"
+                  className="w-24 h-24 object-cover rounded-2xl shrink-0 bg-gray-100"
                 />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1 line-clamp-2">{item.name}</h3>
@@ -114,7 +114,7 @@ export default function CartPage() {
               </div>
               <button
                 onClick={() => router.push(user ? '/checkout' : '/login?redirect=checkout')}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
               >
                 Checkout <ArrowRight size={16} />
               </button>

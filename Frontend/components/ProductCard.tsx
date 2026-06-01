@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { Star, ShoppingCart, Heart } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function ProductCard({ product }: { product: ProductType }) {
     <Link href={`/products/${product._id}`} className="group block">
       <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-rose-100 hover:-translate-y-1">
         {/* Image */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-rose-50 to-pink-50 h-64">
+        <div className="relative overflow-hidden bg-linear-to-br from-rose-50 to-pink-50 h-64">
           <img
             src={product.image || `https://picsum.photos/seed/${product._id}/400/400`}
             alt={product.name}
