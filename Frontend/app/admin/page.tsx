@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
-import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 
 const EMPTY_FORM = {
@@ -25,6 +26,8 @@ export default function AdminPage() {
   const router = useRouter();
 
   const [products, setProducts] = useState<ProductType[]>([]);
+  const [orderCount, setOrderCount] = useState<number | null>(null);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -49,6 +52,12 @@ export default function AdminPage() {
     if (!user) { router.replace('/login'); return; }
     if (!user.isAdmin) { return; }
     fetchProducts();
+    apiFetch<{ _id: string; isDelivered: boolean }[]>('/orders/all', {}, user.token)
+      .then(orders => {
+        setOrderCount(orders.length);
+        setPendingCount(orders.filter(o => !o.isDelivered).length);
+      })
+      .catch(() => {});
   }, [user, router, fetchProducts]);
 
   if (!user) return null;
@@ -161,20 +170,54 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-[#FFF8F5] py-10 px-4">
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900">Admin Panel</h1>
-            <p className="text-gray-500 text-sm mt-1">{products.length} products in your store</p>
+            <h1 className="text-3xl font-extrabold text-[#1A0A0E]">Admin Panel</h1>
+            <p className="text-gray-500 text-sm mt-1">Manage your store</p>
           </div>
           <button
             onClick={openAddForm}
-            className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl shadow-md transition-all"
           >
             <Plus size={16} /> Add Product
           </button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
+            <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-3">
+              <Package size={20} className="text-blue-600" />
+            </div>
+            <p className="text-2xl font-extrabold text-[#1A0A0E]">{products.length}</p>
+            <p className="text-xs text-gray-400 font-medium mt-0.5">Total Products</p>
+          </div>
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
+            <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center mb-3">
+              <ShoppingBag size={20} className="text-[#C2185B]" />
+            </div>
+            <p className="text-2xl font-extrabold text-[#1A0A0E]">{orderCount ?? '—'}</p>
+            <p className="text-xs text-gray-400 font-medium mt-0.5">Total Orders</p>
+          </div>
+          <div className="col-span-2 sm:col-span-1 bg-[#C2185B] rounded-3xl p-5 shadow-md">
+            <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+              <ShoppingBag size={20} className="text-white" />
+            </div>
+            <p className="text-2xl font-extrabold text-white">{pendingCount ?? '—'}</p>
+            <p className="text-xs text-white/80 font-medium mt-0.5">Pending Orders</p>
+            <Link href="/admin/orders" className="flex items-center gap-1 text-white text-xs font-bold mt-3 hover:gap-2 transition-all">
+              View All Orders <ArrowRight size={12} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Products Section Header */}
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-bold text-[#1A0A0E]">Products ({products.length})</h2>
         </div>
 
         {/* Products Table */}
