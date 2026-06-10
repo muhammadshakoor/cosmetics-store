@@ -128,7 +128,7 @@ export default function ProductDetailPage() {
 
             {/* Price */}
             <div className="flex items-baseline gap-3 mb-6">
-              <span className="text-4xl font-black text-gray-900">${product.price.toFixed(2)}</span>
+              <span className="text-4xl font-black text-gray-900">Rs. {Math.round(product.price).toLocaleString()}</span>
               <span className={`text-sm px-3 py-1 rounded-full font-medium ${product.countInStock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
                 {product.countInStock > 0 ? `${product.countInStock} in stock` : 'Out of Stock'}
               </span>
@@ -174,7 +174,7 @@ export default function ProductDetailPage() {
                 <Shield size={14} className="text-green-500" /> Secure Checkout
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Truck size={14} className="text-blue-500" /> Free shipping $50+
+                <Truck size={14} className="text-blue-500" /> Free shipping Rs. 2,000+
               </div>
             </div>
           </div>

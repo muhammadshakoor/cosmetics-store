@@ -1,141 +1,77 @@
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import User from './models/user.model';
-import Product from './models/product.model';
-import Order from './models/order.model';
+import bcrypt from 'bcryptjs';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/cosmetics-store';
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const sampleProducts = [
-  {
-    name: 'Rose Petal Glow Serum',
-    image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop',
-    brand: 'Lumina',
-    category: 'skincare',
-    description: 'A luxurious facial serum infused with rose extract and hyaluronic acid. Brightens skin tone and locks in moisture for a radiant, dewy glow all day long.',
-    price: 48.00,
-    countInStock: 15,
-    rating: 4.8,
-    numReviews: 124,
-  },
-  {
-    name: 'Velvet Matte Lipstick – Ruby Red',
-    image: 'https://images.unsplash.com/photo-1586495777744-4e6af5dbaee8?w=400&h=400&fit=crop',
-    brand: 'Lumina',
-    category: 'makeup',
-    description: 'Long-lasting matte lipstick that stays vibrant for up to 12 hours. Formulated with vitamin E to keep lips moisturized and smooth.',
-    price: 24.00,
-    countInStock: 30,
-    rating: 4.6,
-    numReviews: 87,
-  },
-  {
-    name: 'Hydra-Boost Moisturizer',
-    image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=400&fit=crop',
-    brand: 'Lumina',
-    category: 'skincare',
-    description: 'Intense 72-hour hydration moisturizer with ceramides and niacinamide. Suitable for all skin types, absorbs quickly without greasiness.',
-    price: 62.00,
-    countInStock: 8,
-    rating: 4.9,
-    numReviews: 203,
-  },
-  {
-    name: 'Golden Hour Highlighter',
-    image: 'https://images.unsplash.com/photo-1599733589046-833deccfe7de?w=400&h=400&fit=crop',
-    brand: 'Lumina',
-    category: 'makeup',
-    description: 'Buildable, blendable highlighter with a warm golden glow. Perfect for cheekbones, brow bones, and inner corners for a sun-kissed look.',
-    price: 35.00,
-    countInStock: 20,
-    rating: 4.7,
-    numReviews: 56,
-  },
-  {
-    name: 'Midnight Bloom Eau de Parfum',
-    image: 'https://images.unsplash.com/photo-1541643600914-78b084683702?w=400&h=400&fit=crop',
-    brand: 'Lumina',
-    category: 'fragrance',
-    description: 'A captivating floral-musk fragrance with top notes of jasmine and bergamot. Long-lasting 8+ hour wear. 50ml bottle.',
-    price: 89.00,
-    countInStock: 12,
-    rating: 4.9,
-    numReviews: 178,
-  },
-  {
-    name: 'Argan Oil Hair Mask',
-    image: 'https://images.unsplash.com/photo-1607006344380-b6775a0824a7?w=400&h=400&fit=crop',
-    brand: 'Lumina',
-    category: 'haircare',
-    description: 'Deep conditioning hair mask with pure Moroccan argan oil. Restores shine, reduces frizz, and repairs damaged hair in just 10 minutes.',
-    price: 38.00,
-    countInStock: 25,
-    rating: 4.7,
-    numReviews: 92,
-  },
-  {
-    name: 'Vitamin C Brightening Toner',
-    image: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400&h=400&fit=crop',
-    brand: 'Lumina',
-    category: 'skincare',
-    description: 'Alcohol-free toner with 10% Vitamin C and green tea extract. Evens skin tone, minimizes pores, and preps skin for serums.',
-    price: 32.00,
-    countInStock: 18,
-    rating: 4.6,
-    numReviews: 65,
-  },
-  {
-    name: 'Volumizing Mascara – Black',
-    image: 'https://images.unsplash.com/photo-1512207736890-6ffed8a84e8d?w=400&h=400&fit=crop',
-    brand: 'Lumina',
-    category: 'makeup',
-    description: 'Buildable, clump-free mascara that volumizes and lengthens lashes. Smudge-proof formula lasts all day. Removes easily with warm water.',
-    price: 22.00,
-    countInStock: 40,
-    rating: 4.5,
-    numReviews: 134,
-  },
+  { name: 'Rose Petal Glow Serum',        image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop', brand: 'Lumina', category: 'skincare',   description: 'A luxurious facial serum infused with rose extract and hyaluronic acid. Brightens skin tone and locks in moisture for a radiant, dewy glow all day long.',    price: 2499, countInStock: 15, rating: 4.8, numReviews: 124 },
+  { name: 'Velvet Matte Lipstick',         image: 'https://images.unsplash.com/photo-1586495777744-4e6af5dbaee8?w=400&h=400&fit=crop', brand: 'Lumina', category: 'makeup',     description: 'Long-lasting matte lipstick that stays vibrant for up to 12 hours. Formulated with vitamin E to keep lips moisturized and smooth.',                          price: 1199, countInStock: 30, rating: 4.6, numReviews: 87  },
+  { name: 'Hydra-Boost Moisturizer',       image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=400&fit=crop', brand: 'Lumina', category: 'skincare',   description: 'Intense 72-hour hydration moisturizer with ceramides and niacinamide. Suitable for all skin types, absorbs quickly without greasiness.',                     price: 3299, countInStock: 8,  rating: 4.9, numReviews: 203 },
+  { name: 'Golden Hour Highlighter',       image: 'https://images.unsplash.com/photo-1599733589046-833deccfe7de?w=400&h=400&fit=crop', brand: 'Lumina', category: 'makeup',     description: 'Buildable, blendable highlighter with a warm golden glow. Perfect for cheekbones, brow bones, and inner corners for a sun-kissed look.',                    price: 1799, countInStock: 20, rating: 4.7, numReviews: 56  },
+  { name: 'Midnight Bloom Eau de Parfum',  image: 'https://images.unsplash.com/photo-1541643600914-78b084683702?w=400&h=400&fit=crop', brand: 'Lumina', category: 'fragrance', description: 'A captivating floral-musk fragrance with top notes of jasmine and bergamot. Long-lasting 8+ hour wear. 50ml bottle.',                                         price: 4999, countInStock: 12, rating: 4.9, numReviews: 178 },
+  { name: 'Argan Oil Hair Mask',           image: 'https://images.unsplash.com/photo-1607006344380-b6775a0824a7?w=400&h=400&fit=crop', brand: 'Lumina', category: 'haircare',  description: 'Deep conditioning hair mask with pure Moroccan argan oil. Restores shine, reduces frizz, and repairs damaged hair in just 10 minutes.',                     price: 1999, countInStock: 25, rating: 4.7, numReviews: 92  },
+  { name: 'Vitamin C Brightening Toner',   image: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400&h=400&fit=crop', brand: 'Lumina', category: 'skincare',   description: 'Alcohol-free toner with 10% Vitamin C and green tea extract. Evens skin tone, minimizes pores, and preps skin for serums.',                                price: 1599, countInStock: 18, rating: 4.6, numReviews: 65  },
+  { name: 'Volumizing Mascara',            image: 'https://images.unsplash.com/photo-1512207736890-6ffed8a84e8d?w=400&h=400&fit=crop', brand: 'Lumina', category: 'makeup',     description: 'Buildable, clump-free mascara that volumizes and lengthens lashes. Smudge-proof formula lasts all day. Removes easily with warm water.',                   price: 1099, countInStock: 40, rating: 4.5, numReviews: 134 },
+  { name: 'Pearl Drop Earrings',           image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=400&fit=crop', brand: 'Lumina', category: 'jewelry',    description: 'Elegant freshwater pearl drop earrings with gold-plated hooks. Lightweight and versatile — perfect for everyday wear or special occasions.',                price: 899,  countInStock: 35, rating: 4.7, numReviews: 48  },
+  { name: 'Kundan Choker Set',             image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop', brand: 'Lumina', category: 'jewelry',    description: 'Traditional Kundan choker necklace with matching earrings. Intricate stone work set in gold-tone metal. Ideal for weddings and festive occasions.',          price: 2499, countInStock: 15, rating: 4.8, numReviews: 62  },
+  { name: 'Gold-Plated Bangles Set',       image: 'https://images.unsplash.com/photo-1573408301185-9519f94bf0a5?w=400&h=400&fit=crop', brand: 'Lumina', category: 'jewelry',    description: 'Set of 6 gold-plated bangles with intricate carved patterns. Tarnish-resistant coating for long-lasting shine.',                                            price: 1299, countInStock: 28, rating: 4.5, numReviews: 73  },
+  { name: 'Crystal Jhumka Earrings',       image: 'https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=400&h=400&fit=crop', brand: 'Lumina', category: 'jewelry',    description: 'Classic Pakistani jhumka earrings adorned with sparkling crystals and beaded tassels. Lightweight design with secure screw backs.',                          price: 999,  countInStock: 42, rating: 4.6, numReviews: 91  },
+  { name: 'Stone-Studded Ring Set',        image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop', brand: 'Lumina', category: 'jewelry',    description: 'Set of 3 stackable rings with colourful semi-precious stones. Adjustable size fits most fingers.',                                                            price: 699,  countInStock: 50, rating: 4.4, numReviews: 38  },
 ];
 
 const seedData = async () => {
   try {
-    await mongoose.connect(MONGO_URI);
-    console.log('MongoDB Connected');
+    const now = new Date().toISOString();
 
     // Clear existing data
-    await Order.deleteMany({});
-    await Product.deleteMany({});
-    await User.deleteMany({});
+    await supabase.from('OrderItem').delete().neq('id', '');
+    await supabase.from('Order').delete().neq('id', '');
+    await supabase.from('Product').delete().neq('id', '');
+    await supabase.from('User').delete().neq('id', '');
     console.log('Cleared existing data');
 
     // Create admin user
-    const adminUser = await User.create({
+    const adminId = crypto.randomUUID();
+    const { error: adminError } = await supabase.from('User').insert({
+      id: adminId,
       name: 'Admin User',
       email: 'admin@lumina.com',
-      password: 'admin123',
+      password: await bcrypt.hash('admin123', 10),
       isAdmin: true,
+      createdAt: now, updatedAt: now,
     });
-    console.log(`Admin user created: ${adminUser.email}`);
+    if (adminError) throw new Error(adminError.message);
+    console.log('Admin user created: admin@lumina.com');
 
     // Create regular test user
-    await User.create({
+    const { error: userError } = await supabase.from('User').insert({
+      id: crypto.randomUUID(),
       name: 'Test User',
       email: 'user@lumina.com',
-      password: 'user123',
+      password: await bcrypt.hash('user123', 10),
       isAdmin: false,
+      createdAt: now, updatedAt: now,
     });
+    if (userError) throw new Error(userError.message);
     console.log('Test user created: user@lumina.com');
 
     // Create products linked to admin user
-    const productsWithUser = sampleProducts.map((p) => ({
+    const products = sampleProducts.map((p) => ({
+      id: crypto.randomUUID(),
       ...p,
-      user: adminUser._id,
+      userId: adminId,
+      createdAt: now, updatedAt: now,
     }));
 
-    await Product.insertMany(productsWithUser);
-    console.log(`${sampleProducts.length} products seeded`);
+    const { error: productsError } = await supabase.from('Product').insert(products);
+    if (productsError) throw new Error(productsError.message);
+    console.log(`${products.length} products seeded`);
 
     console.log('\n=== SEEDING COMPLETE ===');
     console.log('Admin login: admin@lumina.com / admin123');

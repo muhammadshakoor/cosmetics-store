@@ -10,6 +10,7 @@ import type { User } from '@/context/AuthContext';
 function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +32,7 @@ function LoginForm() {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      login(data);
+      login(data, rememberMe);
       router.push(`/${redirect}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -85,6 +86,20 @@ function LoginForm() {
                 placeholder="••••••••"
                 className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
               />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded accent-rose-500 cursor-pointer"
+                />
+                <span className="text-xs text-gray-600 font-medium">Remember me</span>
+              </label>
+              <Link href="/forgot-password" className="text-xs text-rose-600 hover:text-rose-700 font-medium">
+                Forgot password?
+              </Link>
             </div>
             <button
               type="submit"

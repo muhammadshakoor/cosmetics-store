@@ -14,7 +14,7 @@ export default function Footer() {
               <span className="text-xl font-bold text-white">Lumina</span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Premium cosmetics for every skin type. Cruelty-free, sustainably sourced.
+              Premium cosmetics for every skin type. Cruelty-free, halal certified, delivered across Pakistan.
             </p>
           </div>
 
@@ -26,6 +26,7 @@ export default function Footer() {
               <li><Link href="/products?category=skincare" className="hover:text-rose-400 transition-colors">Skincare</Link></li>
               <li><Link href="/products?category=makeup" className="hover:text-rose-400 transition-colors">Makeup</Link></li>
               <li><Link href="/products?category=fragrance" className="hover:text-rose-400 transition-colors">Fragrance</Link></li>
+              <li><Link href="/products?category=jewelry" className="hover:text-rose-400 transition-colors">Jewellery</Link></li>
             </ul>
           </div>
 
@@ -36,6 +37,7 @@ export default function Footer() {
               <li><Link href="/login" className="hover:text-rose-400 transition-colors">Sign In</Link></li>
               <li><Link href="/register" className="hover:text-rose-400 transition-colors">Create Account</Link></li>
               <li><Link href="/cart" className="hover:text-rose-400 transition-colors">View Cart</Link></li>
+              <li><Link href="/profile" className="hover:text-rose-400 transition-colors">My Orders</Link></li>
             </ul>
           </div>
 
@@ -43,9 +45,10 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-white mb-4">Info</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-rose-400 transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-rose-400 transition-colors">Contact</a></li>
-              <li><a href="#" className="hover:text-rose-400 transition-colors">Privacy Policy</a></li>
+              <li><Link href="/about" className="hover:text-rose-400 transition-colors">About Us</Link></li>
+              <li><Link href="/contact" className="hover:text-rose-400 transition-colors">Contact Us</Link></li>
+              <li><Link href="/faq" className="hover:text-rose-400 transition-colors">FAQ</Link></li>
+              <li><Link href="/privacy" className="hover:text-rose-400 transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
         </div>
@@ -53,7 +56,7 @@ export default function Footer() {
         <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-gray-500">© {new Date().getFullYear()} Lumina. All rights reserved.</p>
           <div className="flex gap-4 text-sm text-gray-500">
-            <span>Made with ♥ using Next.js</span>
+            <span>Made with ♥ in Pakistan 🇵🇰</span>
           </div>
         </div>
       </div>

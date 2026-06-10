@@ -22,13 +22,12 @@ export default function CartPage() {
   const [coupon, setCoupon] = useState<CouponResult | null>(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
-  const shipping = totalPrice > 50 ? 0 : 9.99;
-  const tax = totalPrice * 0.08;
+  const shipping = totalPrice >= 2000 ? 0 : 200;
   const discount = coupon?.discount || 0;
-  const grandTotal = totalPrice + shipping + tax - discount;
+  const grandTotal = totalPrice + shipping - discount;
 
   // Free shipping progress
-  const freeShippingThreshold = 50;
+  const freeShippingThreshold = 2000;
   const progressPct = Math.min((totalPrice / freeShippingThreshold) * 100, 100);
 
   const handleApplyCoupon = async () => {
@@ -99,14 +98,14 @@ export default function CartPage() {
                   <Link href={`/products/${item.product}`}>
                     <h3 className="font-semibold text-[#1A0A0E] text-sm leading-tight mb-1 line-clamp-2 hover:text-[#C2185B] transition-colors">{item.name}</h3>
                   </Link>
-                  <p className="text-[#C2185B] font-bold text-lg mb-3">${item.price.toFixed(2)}</p>
+                  <p className="text-[#C2185B] font-bold text-lg mb-3">Rs. {Math.round(item.price).toLocaleString()}</p>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                       <button onClick={() => updateQty(item.product, Math.max(1, item.qty - 1))} className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 font-bold">−</button>
                       <span className="px-3 py-1.5 text-sm font-semibold border-x border-gray-200">{item.qty}</span>
                       <button onClick={() => updateQty(item.product, Math.min(item.countInStock, item.qty + 1))} className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 font-bold">+</button>
                     </div>
-                    <span className="text-sm text-gray-400 font-medium">= ${(item.price * item.qty).toFixed(2)}</span>
+                    <span className="text-sm text-gray-400 font-medium">= Rs. {Math.round(item.price * item.qty).toLocaleString()}</span>
                   </div>
                 </div>
                 <button onClick={() => removeFromCart(item.product)} className="p-2 text-gray-300 hover:text-red-500 transition-colors self-start">
@@ -125,7 +124,7 @@ export default function CartPage() {
               {totalPrice < freeShippingThreshold && (
                 <div className="bg-rose-50 rounded-2xl px-4 py-3">
                   <p className="text-xs text-[#C2185B] font-semibold mb-2">
-                    Add ${(freeShippingThreshold - totalPrice).toFixed(2)} more for FREE shipping! 🚚
+                    Add Rs. {Math.round(freeShippingThreshold - totalPrice).toLocaleString()} more for FREE shipping! 🚚
                   </p>
                   <div className="h-2 bg-rose-100 rounded-full overflow-hidden">
                     <div className="h-full bg-[#C2185B] rounded-full transition-all" style={{ width: `${progressPct}%` }} />
@@ -179,22 +178,19 @@ export default function CartPage() {
               {/* Price Breakdown */}
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
-                  <span>Subtotal ({itemCount} items)</span><span>${totalPrice.toFixed(2)}</span>
+                  <span>Subtotal ({itemCount} items)</span><span>Rs. {Math.round(totalPrice).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Tax (8%)</span><span>${tax.toFixed(2)}</span>
+                  <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>{shipping === 0 ? 'FREE' : `Rs. ${shipping}`}</span>
                 </div>
                 {coupon && (
                   <div className="flex justify-between text-green-600 font-semibold">
-                    <span>Discount ({coupon.code})</span><span>-${discount.toFixed(2)}</span>
+                    <span>Discount ({coupon.code})</span><span>-Rs. {Math.round(discount).toLocaleString()}</span>
                   </div>
                 )}
                 <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-[#1A0A0E] text-base">
-                  <span>Total</span><span>${grandTotal.toFixed(2)}</span>
+                  <span>Total</span><span>Rs. {Math.round(grandTotal).toLocaleString()}</span>
                 </div>
               </div>
 

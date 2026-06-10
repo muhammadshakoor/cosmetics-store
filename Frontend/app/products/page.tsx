@@ -6,7 +6,7 @@ import { Filter, Search, X } from 'lucide-react';
 import ProductCard, { type ProductType } from '@/components/ProductCard';
 import { API_URL } from '@/lib/api';
 
-const CATEGORIES = ['All', 'Skincare', 'Makeup', 'Fragrance', 'Hair Care'];
+const CATEGORIES = ['All', 'Skincare', 'Makeup', 'Fragrance', 'Hair Care', 'Jewelry'];
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();

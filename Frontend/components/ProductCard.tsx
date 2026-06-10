@@ -24,6 +24,7 @@ const categoryColors: Record<string, string> = {
   makeup:    'bg-pink-50 text-pink-700',
   fragrance: 'bg-purple-50 text-purple-700',
   haircare:  'bg-amber-50 text-amber-700',
+  jewelry:   'bg-yellow-50 text-yellow-700',
 };
 
 export default function ProductCard({ product }: { product: ProductType }) {
@@ -117,7 +118,7 @@ export default function ProductCard({ product }: { product: ProductType }) {
 
           {/* Price row */}
           <div className="flex items-center justify-between">
-            <span className="text-lg font-extrabold text-[#1A0A0E]">${product.price.toFixed(2)}</span>
+            <span className="text-lg font-extrabold text-[#1A0A0E]">Rs. {Math.round(product.price).toLocaleString()}</span>
             <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold tracking-wide ${
               product.countInStock > 5  ? 'bg-green-50 text-green-700' :
               product.countInStock > 0  ? 'bg-amber-50 text-amber-700' :

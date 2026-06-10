@@ -9,6 +9,7 @@ import { API_URL } from '@/lib/api';
 const categories = [
   { name: 'Skincare',  slug: 'skincare',  image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&h=700&fit=crop&auto=format', desc: 'Glow from within' },
   { name: 'Makeup',    slug: 'makeup',    image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=700&fit=crop&auto=format', desc: 'Define your look' },
+  { name: 'Jewellery', slug: 'jewelry',   image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600&h=700&fit=crop&auto=format', desc: 'Shine & sparkle' },
   { name: 'Fragrance', slug: 'fragrance', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&h=700&fit=crop&auto=format', desc: 'Captivate & inspire' },
   { name: 'Hair Care', slug: 'haircare',  image: 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=600&h=700&fit=crop&auto=format', desc: 'Revive & shine' },
 ];
@@ -24,6 +25,29 @@ const marqueeItems = ['✦ FREE DELIVERY', '✦ CASH ON DELIVERY', '✦ JAZZCASH
 export default function HomePage() {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail.trim()) return;
+    setNewsletterStatus('loading');
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail }),
+      });
+      if (res.ok) {
+        setNewsletterStatus('success');
+        setNewsletterEmail('');
+      } else {
+        setNewsletterStatus('error');
+      }
+    } catch {
+      setNewsletterStatus('error');
+    }
+  };
 
   useEffect(() => {
     fetch(`${API_URL}/products?limit=4`)
@@ -132,7 +156,7 @@ export default function HomePage() {
             <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Explore Our Range</p>
             <h2 className="text-4xl font-extrabold text-[#1A0A0E]">Shop by Category</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {categories.map((cat) => (
               <Link key={cat.slug} href={`/products?category=${cat.slug}`} className="group relative overflow-hidden rounded-3xl aspect-[3/4] block">
                 <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -233,12 +257,32 @@ export default function HomePage() {
         <div className="max-w-xl mx-auto text-center">
           <h2 className="text-3xl font-extrabold text-white mb-3">Get 10% Off Your First Order</h2>
           <p className="text-rose-100 text-sm mb-8">Subscribe for beauty tips, new arrivals, and exclusive offers.</p>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input type="email" placeholder="Enter your email address" className="flex-1 px-5 py-3.5 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-white" />
-            <button className="px-6 py-3.5 bg-[#1A0A0E] hover:bg-black text-white font-bold rounded-2xl text-sm transition-colors whitespace-nowrap">
-              Subscribe
-            </button>
-          </div>
+          {newsletterStatus === 'success' ? (
+            <div className="bg-white/20 border border-white/30 rounded-2xl px-6 py-4 text-white font-semibold">
+              🎉 You&apos;re subscribed! Check your inbox for your 10% off code.
+            </div>
+          ) : (
+            <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="email"
+                required
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                placeholder="Enter your email address"
+                className="flex-1 px-5 py-3.5 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-white"
+              />
+              <button
+                type="submit"
+                disabled={newsletterStatus === 'loading'}
+                className="px-6 py-3.5 bg-[#1A0A0E] hover:bg-black text-white font-bold rounded-2xl text-sm transition-colors whitespace-nowrap disabled:opacity-60"
+              >
+                {newsletterStatus === 'loading' ? 'Subscribing...' : 'Subscribe'}
+              </button>
+            </form>
+          )}
+          {newsletterStatus === 'error' && (
+            <p className="text-red-200 text-xs mt-2">Something went wrong. Please try again.</p>
+          )}
         </div>
       </section>
 

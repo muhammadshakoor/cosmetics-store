@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -17,6 +18,7 @@ model User {
   updatedAt DateTime  @updatedAt
   orders    Order[]
   products  Product[]
+  reviews   Review[]
 }
 
 model Product {
@@ -35,6 +37,7 @@ model Product {
   user         User        @relation(fields: [userId], references: [id])
   userId       String
   orderItems   OrderItem[]
+  reviews      Review[]
 }
 
 model Order {
@@ -42,6 +45,7 @@ model Order {
   user          User        @relation(fields: [userId], references: [id])
   userId        String
   orderItems    OrderItem[]
+  reviews       Review[]
   address       String
   city          String
   postalCode    String
@@ -55,8 +59,16 @@ model Order {
   paidAt        DateTime?
   isDelivered   Boolean     @default(false)
   deliveredAt   DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  isCancelled   Boolean     @default(false)
+  cancelledAt   DateTime?
+  cancelReason  String?
+  status          String      @default("confirmed")
+  couponCode      String?
+  discountAmount  Float       @default(0)
+  trackingNumber  String?
+  courierService  String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 model OrderItem {
@@ -69,4 +81,31 @@ model OrderItem {
   qty       Int
   image     String
   price     Float
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
+  rating    Float
+  comment   String
+  name      String
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  type        String    @default("percent")
+  value       Float
+  minOrder    Float     @default(0)
+  usageLimit  Int       @default(100)
+  usedCount   Int       @default(0)
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
 }

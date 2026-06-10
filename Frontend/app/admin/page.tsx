@@ -278,7 +278,7 @@ export default function AdminPage() {
                       <td className="px-6 py-4">
                         <span className="text-xs px-2 py-1 rounded-full bg-rose-50 text-rose-600 font-medium capitalize">{product.category}</span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">${product.price.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">Rs. {Math.round(product.price).toLocaleString()}</td>
                       <td className="px-6 py-4">
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${product.countInStock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
                           {product.countInStock > 0 ? `${product.countInStock} left` : 'Out of stock'}
@@ -382,12 +382,13 @@ export default function AdminPage() {
                     <option value="makeup">Makeup</option>
                     <option value="fragrance">Fragrance</option>
                     <option value="haircare">Hair Care</option>
+                    <option value="jewelry">Jewellery</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Price ($) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (Rs.) *</label>
                   <input
                     type="number" required min="0" step="0.01" value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}

@@ -36,9 +36,8 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
 
-  const shippingCost = totalPrice > 50 ? 0 : 9.99;
-  const tax = totalPrice * 0.08;
-  const grandTotal = totalPrice + shippingCost + tax;
+  const shippingCost = totalPrice >= 2000 ? 0 : 200;
+  const grandTotal = totalPrice + shippingCost;
 
   useEffect(() => {
     if (!user) {
@@ -79,8 +78,8 @@ export default function CheckoutPage() {
           shippingAddress: shipping,
           paymentMethod,
           itemsPrice: totalPrice,
-          taxPrice: parseFloat(tax.toFixed(2)),
-          shippingPrice: parseFloat(shippingCost.toFixed(2)),
+          taxPrice: 0,
+          shippingPrice: shippingCost,
           totalPrice: finalTotal,
           couponCode: coupon?.code || null,
           discountAmount,
@@ -267,7 +266,7 @@ export default function CheckoutPage() {
                         <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
                         <p className="text-xs text-gray-400">Qty: {item.qty}</p>
                       </div>
-                      <p className="text-sm font-semibold text-gray-900">${(item.price * item.qty).toFixed(2)}</p>
+                      <p className="text-sm font-semibold text-gray-900">Rs. {Math.round(item.price * item.qty).toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
@@ -295,21 +294,20 @@ export default function CheckoutPage() {
                 {cartItems.map((item) => (
                   <div key={item.product} className="flex justify-between text-gray-600">
                     <span className="truncate mr-2">{item.name} × {item.qty}</span>
-                    <span className="font-medium shrink-0">${(item.price * item.qty).toFixed(2)}</span>
+                    <span className="font-medium shrink-0">Rs. {Math.round(item.price * item.qty).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
-                <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>${totalPrice.toFixed(2)}</span></div>
+                <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>Rs. {Math.round(totalPrice).toLocaleString()}</span></div>
                 <div className="flex justify-between text-gray-500">
                   <span>Shipping</span>
                   <span className={shippingCost === 0 ? 'text-green-600 font-medium' : ''}>
-                    {shippingCost === 0 ? 'FREE' : `$${shippingCost.toFixed(2)}`}
+                    {shippingCost === 0 ? 'FREE' : `Rs. ${shippingCost}`}
                   </span>
                 </div>
-                <div className="flex justify-between text-gray-500"><span>Tax (8%)</span><span>${tax.toFixed(2)}</span></div>
                 <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-3 mt-1">
-                  <span>Total</span><span>${grandTotal.toFixed(2)}</span>
+                  <span>Total</span><span>Rs. {Math.round(grandTotal).toLocaleString()}</span>
                 </div>
               </div>
               <div className="mt-5 flex items-center gap-2 text-xs text-gray-400 justify-center">

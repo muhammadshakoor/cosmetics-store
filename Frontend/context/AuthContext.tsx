@@ -12,7 +12,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (userData: User) => void;
+  login: (userData: User, remember?: boolean) => void;
   logout: () => void;
 }
 
@@ -21,20 +21,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('userInfo');
+      const stored = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
       return stored ? JSON.parse(stored) : null;
     }
     return null;
   });
 
-  const login = (userData: User) => {
+  const login = (userData: User, remember = true) => {
     setUser(userData);
-    localStorage.setItem('userInfo', JSON.stringify(userData));
+    if (remember) {
+      localStorage.setItem('userInfo', JSON.stringify(userData));
+      sessionStorage.removeItem('userInfo');
+    } else {
+      sessionStorage.setItem('userInfo', JSON.stringify(userData));
+      localStorage.removeItem('userInfo');
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('userInfo');
+    sessionStorage.removeItem('userInfo');
   };
 
   return (

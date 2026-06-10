@@ -1,31 +1,41 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../models/user.model';
+import { supabase } from '../config/supabase';
 
 interface AuthRequest extends Request {
   user?: any;
 }
 
 const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  let token;
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      token = req.headers.authorization.split(' ')[1];
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
-      req.user = await User.findById(decoded.userId).select('-password');
-      next();
-    } catch (error) {
-      res.status(401).json({ message: 'Not authorized, token failed' });
-    }
+  if (!req.headers.authorization?.startsWith('Bearer')) {
+    res.status(401).json({ message: 'Not authorized, no token' });
+    return;
   }
 
-  if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+  try {
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+
+    const { data: user } = await supabase
+      .from('User')
+      .select('id, name, email, isAdmin')
+      .eq('id', decoded.userId)
+      .single();
+
+    if (!user) {
+      res.status(401).json({ message: 'Not authorized, user not found' });
+      return;
+    }
+
+    req.user = user;
+    next();
+  } catch {
+    res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
 
 const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
-  if (req.user && req.user.isAdmin) {
+  if (req.user?.isAdmin) {
     next();
   } else {
     res.status(401).json({ message: 'Not authorized as an admin' });

@@ -151,7 +151,7 @@ export default function ProfilePage() {
                           )}
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-[#1A0A0E]">${order.totalPrice.toFixed(2)}</p>
+                          <p className="font-bold text-[#1A0A0E]">Rs. {Math.round(order.totalPrice).toLocaleString()}</p>
                           <span className={`inline-flex items-center gap-1 mt-1 text-xs font-bold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
                             {cfg.icon} {cfg.label}
                           </span>

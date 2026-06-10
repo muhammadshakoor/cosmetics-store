@@ -10,10 +10,13 @@ import { useRouter, usePathname } from 'next/navigation';
 export default function Navbar() {
   const { itemCount } = useCart();
   const { user, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
   const router = useRouter();
   const pathname = usePathname();
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -76,11 +79,12 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             <Link href="/" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">Home</Link>
             <Link href="/products" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">Shop</Link>
             <Link href="/products?category=skincare" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">Skincare</Link>
             <Link href="/products?category=makeup" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">Makeup</Link>
+            <Link href="/products?category=jewelry" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">Jewellery</Link>
           </nav>
 
           {/* Right: Search + Cart + User */}
@@ -111,8 +115,10 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* User Menu */}
-            {user ? (
+            {/* User Menu — only render after mount to avoid hydration mismatch */}
+            {!mounted ? (
+              <div className="w-20 h-8" />
+            ) : user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -176,6 +182,7 @@ export default function Navbar() {
             <Link href="/products" className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-rose-50 rounded-xl">Shop All</Link>
             <Link href="/products?category=skincare" className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-rose-50 rounded-xl">Skincare</Link>
             <Link href="/products?category=makeup" className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-rose-50 rounded-xl">Makeup</Link>
+            <Link href="/products?category=jewelry" className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-rose-50 rounded-xl">Jewellery</Link>
             <Link href="/products?category=fragrance" className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-rose-50 rounded-xl">Fragrance</Link>
             <Link href="/products?category=haircare" className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-rose-50 rounded-xl">Hair Care</Link>
             {user && (

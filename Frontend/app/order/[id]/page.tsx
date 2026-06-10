@@ -190,10 +190,10 @@ export default function OrderPage() {
                   <img src={item.image} alt={item.name} className="w-16 h-16 rounded-2xl object-cover bg-gray-100 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-[#1A0A0E] truncate">{item.name}</p>
-                    <p className="text-xs text-gray-400">{item.qty} × ${item.price.toFixed(2)}</p>
+                    <p className="text-xs text-gray-400">{item.qty} × Rs. {Math.round(item.price).toLocaleString()}</p>
                   </div>
                   <div className="text-right shrink-0 space-y-1">
-                    <p className="text-sm font-bold text-[#1A0A0E]">${(item.qty * item.price).toFixed(2)}</p>
+                    <p className="text-sm font-bold text-[#1A0A0E]">Rs. {Math.round(item.qty * item.price).toLocaleString()}</p>
                     {order.status === 'delivered' && (
                       reviewed
                         ? <p className="text-xs text-green-600 font-semibold">✓ Reviewed</p>
@@ -220,10 +220,9 @@ export default function OrderPage() {
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><CreditCard size={12} /> Payment & Summary</p>
             <p className="text-sm font-semibold text-[#1A0A0E] mb-3">{order.paymentMethod}</p>
             <div className="space-y-1 text-xs text-gray-500">
-              <div className="flex justify-between"><span>Items</span><span>${order.itemsPrice?.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Shipping</span><span className={order.shippingPrice === 0 ? 'text-green-600' : ''}>{order.shippingPrice === 0 ? 'FREE' : `$${order.shippingPrice?.toFixed(2)}`}</span></div>
-              <div className="flex justify-between"><span>Tax</span><span>${order.taxPrice?.toFixed(2)}</span></div>
-              <div className="flex justify-between font-bold text-[#1A0A0E] text-sm border-t border-gray-100 pt-2 mt-1"><span>Total</span><span>${order.totalPrice?.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Items</span><span>Rs. {Math.round(order.itemsPrice || 0).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span>Shipping</span><span className={order.shippingPrice === 0 ? 'text-green-600' : ''}>{order.shippingPrice === 0 ? 'FREE' : `Rs. ${Math.round(order.shippingPrice || 0).toLocaleString()}`}</span></div>
+              <div className="flex justify-between font-bold text-[#1A0A0E] text-sm border-t border-gray-100 pt-2 mt-1"><span>Total</span><span>Rs. {Math.round(order.totalPrice || 0).toLocaleString()}</span></div>
             </div>
           </div>
         </div>
