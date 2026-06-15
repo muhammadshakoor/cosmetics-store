@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
-import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag, BarChart2, MessageSquareWarning } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -213,13 +213,31 @@ export default function AdminPage() {
               View All Orders <ArrowRight size={12} />
             </Link>
           </div>
-          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm col-span-2 sm:col-span-3">
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
             <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center mb-3">
               <Tag size={20} className="text-[#C2185B]" />
             </div>
-            <p className="text-sm font-semibold text-gray-700 mb-1">Manage discount coupons for your store</p>
+            <p className="text-sm font-semibold text-gray-700 mb-1">Manage discount coupons</p>
             <Link href="/admin/coupons" className="flex items-center gap-1 text-[#C2185B] text-xs font-bold hover:gap-2 transition-all">
               Manage Coupons <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="bg-[#C2185B] rounded-3xl p-5 shadow-md">
+            <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+              <BarChart2 size={20} className="text-white" />
+            </div>
+            <p className="text-sm font-semibold text-white mb-1">Revenue, top products &amp; charts</p>
+            <Link href="/admin/dashboard" className="flex items-center gap-1 text-white text-xs font-bold mt-1 hover:gap-2 transition-all">
+              Sales Dashboard <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
+            <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center mb-3">
+              <MessageSquareWarning size={20} className="text-[#C2185B]" />
+            </div>
+            <p className="text-sm font-semibold text-gray-700 mb-1">Review customer complaints</p>
+            <Link href="/admin/complaints" className="flex items-center gap-1 text-[#C2185B] text-xs font-bold hover:gap-2 transition-all">
+              View Complaints <ArrowRight size={12} />
             </Link>
           </div>
         </div>
@@ -318,7 +336,7 @@ export default function AdminPage() {
                     <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
                     <p className="text-xs text-gray-400 mb-1">{product.brand} · {product.category}</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gray-900">${product.price.toFixed(2)}</span>
+                      <span className="text-sm font-bold text-gray-900">Rs. {Math.round(product.price).toLocaleString()}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${product.countInStock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
                         {product.countInStock > 0 ? `${product.countInStock} left` : 'Out of stock'}
                       </span>

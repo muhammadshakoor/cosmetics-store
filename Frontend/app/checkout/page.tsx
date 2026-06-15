@@ -16,6 +16,7 @@ interface ShippingAddress {
   city: string;
   postalCode: string;
   country: string;
+  phone: string;
 }
 
 export default function CheckoutPage() {
@@ -32,6 +33,7 @@ export default function CheckoutPage() {
     city: '',
     postalCode: '',
     country: '',
+    phone: '',
   });
 
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
@@ -50,6 +52,31 @@ export default function CheckoutPage() {
   }, [user, cartItems.length, router]);
 
   if (!ready) return null;
+
+  if (user?.isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10 max-w-md w-full text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-5">
+            <Lock size={24} className="text-amber-500" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Admin accounts can&apos;t place orders</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-6">
+            To test checkout, sign in with a customer account (e.g. <strong>user@lumina.com</strong>).
+            This keeps your sales dashboard stats accurate.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/" className="px-5 py-2.5 border border-gray-200 text-gray-600 font-medium rounded-2xl hover:bg-gray-50 transition-colors text-sm">
+              Back to Store
+            </Link>
+            <Link href="/admin" className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-2xl transition-colors text-sm">
+              Go to Admin Panel
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleShippingSubmit = (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -75,7 +102,13 @@ export default function CheckoutPage() {
             price: item.price,
             _id: item.product,
           })),
-          shippingAddress: shipping,
+          shippingAddress: {
+            address: shipping.address,
+            city: shipping.city,
+            postalCode: shipping.postalCode,
+            country: shipping.country,
+          },
+          phone: shipping.phone,
           paymentMethod,
           itemsPrice: totalPrice,
           taxPrice: 0,
@@ -144,11 +177,20 @@ export default function CheckoutPage() {
                 </h2>
                 <form onSubmit={handleShippingSubmit} className="space-y-5">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number *</label>
+                    <input
+                      type="tel" required value={shipping.phone}
+                      onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
+                      placeholder="03xx-xxxxxxx"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Street Address</label>
                     <input
                       type="text" required value={shipping.address}
                       onChange={(e) => setShipping({ ...shipping, address: e.target.value })}
-                      placeholder="123 Main Street, Apt 4B"
+                      placeholder="House #, Street, Area"
                       className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm"
                     />
                   </div>
@@ -158,7 +200,7 @@ export default function CheckoutPage() {
                       <input
                         type="text" required value={shipping.city}
                         onChange={(e) => setShipping({ ...shipping, city: e.target.value })}
-                        placeholder="New York"
+                        placeholder="Karachi, Lahore, Islamabad..."
                         className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm"
                       />
                     </div>
@@ -177,7 +219,7 @@ export default function CheckoutPage() {
                     <input
                       type="text" required value={shipping.country}
                       onChange={(e) => setShipping({ ...shipping, country: e.target.value })}
-                      placeholder="United States"
+                      placeholder="Pakistan"
                       className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm"
                     />
                   </div>
@@ -245,6 +287,9 @@ export default function CheckoutPage() {
                       <p className="text-sm text-gray-700">
                         {shipping.address}, {shipping.city}, {shipping.postalCode}, {shipping.country}
                       </p>
+                      {shipping.phone && (
+                        <p className="text-sm text-gray-500 mt-0.5">📱 {shipping.phone}</p>
+                      )}
                     </div>
                     <button onClick={() => setStep('shipping')} className="text-xs text-rose-500 hover:text-rose-700 font-medium">Edit</button>
                   </div>

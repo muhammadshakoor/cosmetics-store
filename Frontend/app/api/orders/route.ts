@@ -6,11 +6,12 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
     if (!user) return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
+    if (user.isAdmin) return NextResponse.json({ message: 'Admin accounts cannot place orders. Use a customer account.' }, { status: 403 });
 
     const {
       orderItems, shippingAddress, paymentMethod,
       itemsPrice, taxPrice, shippingPrice, totalPrice,
-      couponCode, discountAmount,
+      couponCode, discountAmount, phone,
     } = await request.json();
 
     if (!orderItems?.length) return NextResponse.json({ message: 'No order items' }, { status: 400 });
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
         id: orderId, userId: user.id,
         address: shippingAddress.address, city: shippingAddress.city,
         postalCode: shippingAddress.postalCode, country: shippingAddress.country,
+        phone: phone || null,
         paymentMethod, itemsPrice, taxPrice, shippingPrice, totalPrice,
         discountAmount: discountAmount || 0,
         couponCode: couponCode || null,
@@ -56,12 +58,11 @@ export async function POST(request: NextRequest) {
 
     // Mark coupon as used
     if (couponCode) {
-      await supabase.rpc('increment_coupon_usage', { coupon_code: couponCode }).catch(() => {
-        supabase.from('Coupon').select('usedCount').eq('code', couponCode).single()
-          .then(({ data }) => {
-            if (data) supabase.from('Coupon').update({ usedCount: data.usedCount + 1 }).eq('code', couponCode);
-          });
-      });
+      const { error: rpcError } = await supabase.rpc('increment_coupon_usage', { coupon_code: couponCode });
+      if (rpcError) {
+        const { data: c } = await supabase.from('Coupon').select('usedCount').eq('code', couponCode).single();
+        if (c) await supabase.from('Coupon').update({ usedCount: c.usedCount + 1 }).eq('code', couponCode);
+      }
     }
 
     // Send emails non-blocking
@@ -81,7 +82,7 @@ function buildItemsHtml(items: Item[]) {
     `<tr>
       <td style="padding:8px 0;border-bottom:1px solid #f0f0f0">${i.name}</td>
       <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:center">${i.qty}</td>
-      <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right">$${(i.price * i.qty).toFixed(2)}</td>
+      <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right">Rs. ${Math.round(i.price * i.qty).toLocaleString()}</td>
     </tr>`
   ).join('');
 }
@@ -126,7 +127,7 @@ async function sendCustomerConfirmation(
           <tbody>${buildItemsHtml(items)}</tbody>
         </table>
         <div style="text-align:right;font-weight:bold;font-size:16px;color:#1A0A0E">
-          Total: $${total.toFixed(2)}
+          Total: Rs. ${Math.round(total).toLocaleString()}
         </div>
         <div style="margin-top:24px;text-align:center">
           <a href="${siteUrl}/order/${order.id}" style="background:#C2185B;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block">
@@ -155,12 +156,12 @@ async function sendAdminNotification(
 
   await resendEmail(
     adminEmail,
-    `New Order #${orderId} — $${total.toFixed(2)}`,
+    `New Order #${orderId} — Rs. ${Math.round(total).toLocaleString()}`,
     `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
       <h2 style="color:#C2185B">New Order Received!</h2>
       <p><strong>Customer:</strong> ${customerName} (${customerEmail})</p>
       <p><strong>Order ID:</strong> ${order.id}</p>
-      <p><strong>Total:</strong> $${total.toFixed(2)}</p>
+      <p><strong>Total:</strong> Rs. ${Math.round(total).toLocaleString()}</p>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:#fdf2f6">
           <th style="padding:8px;text-align:left">Item</th>

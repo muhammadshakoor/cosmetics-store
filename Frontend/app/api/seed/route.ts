@@ -36,14 +36,14 @@ export async function GET() {
     await supabase.from('User').insert({
       id: adminId, name: 'Admin User', email: 'admin@lumina.com',
       password: await bcrypt.hash('admin123', 10),
-      isAdmin: true, createdAt: now, updatedAt: now,
+      isAdmin: true, emailVerified: true, createdAt: now, updatedAt: now,
     });
 
-    // Create test user
+    // Create test user (pre-verified for development)
     await supabase.from('User').insert({
       id: crypto.randomUUID(), name: 'Test User', email: 'user@lumina.com',
       password: await bcrypt.hash('user123', 10),
-      isAdmin: false, createdAt: now, updatedAt: now,
+      isAdmin: false, emailVerified: true, createdAt: now, updatedAt: now,
     });
 
     // Create products

@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Star, ShoppingCart, Heart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import toast from 'react-hot-toast';
-import { useState } from 'react';
 
 export interface ProductType {
   _id: string;
@@ -29,7 +30,8 @@ const categoryColors: Record<string, string> = {
 
 export default function ProductCard({ product }: { product: ProductType }) {
   const { addToCart } = useCart();
-  const [wishlisted, setWishlisted] = useState(false);
+  const { isWishlisted, toggle } = useWishlist();
+  const wishlisted = isWishlisted(product._id);
   const [added, setAdded] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -79,7 +81,7 @@ export default function ProductCard({ product }: { product: ProductType }) {
 
           {/* Wishlist */}
           <button
-            onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
+            onClick={(e) => { e.preventDefault(); toggle(product._id); }}
             className="absolute top-3 right-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-transform"
           >
             <Heart size={13} className={wishlisted ? 'fill-[#C2185B] text-[#C2185B]' : 'text-gray-400'} />

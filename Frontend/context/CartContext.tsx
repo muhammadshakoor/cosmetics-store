@@ -1,6 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import toast from 'react-hot-toast';
+import { useAuth } from './AuthContext';
 
 export interface CartItem {
   product: string;
@@ -24,6 +26,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
@@ -36,6 +39,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [cartItems]);
 
   const addToCart = (item: CartItem) => {
+    if (user?.isAdmin) {
+      toast.error('Admin accounts cannot add items to cart.');
+      return;
+    }
     setCartItems((prev) => {
       const existing = prev.find((x) => x.product === item.product);
       if (existing) {

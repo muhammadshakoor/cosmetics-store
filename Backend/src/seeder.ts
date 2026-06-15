@@ -44,6 +44,7 @@ const seedData = async () => {
       email: 'admin@lumina.com',
       password: await bcrypt.hash('admin123', 10),
       isAdmin: true,
+      emailVerified: true,
       createdAt: now, updatedAt: now,
     });
     if (adminError) throw new Error(adminError.message);
@@ -56,6 +57,7 @@ const seedData = async () => {
       email: 'user@lumina.com',
       password: await bcrypt.hash('user123', 10),
       isAdmin: false,
+      emailVerified: true,
       createdAt: now, updatedAt: now,
     });
     if (userError) throw new Error(userError.message);

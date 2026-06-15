@@ -4,16 +4,20 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Star, ShoppingCart, ArrowLeft, Heart, Shield, Truck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { API_URL } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
+import ProductCard from '@/components/ProductCard';
 import toast from 'react-hot-toast';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { addToCart } = useCart();
+  const { isWishlisted, toggle } = useWishlist();
 
   const [product, setProduct] = useState<ProductType | null>(null);
+  const [related, setRelated] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
@@ -23,7 +27,14 @@ export default function ProductDetailPage() {
       try {
         const res = await fetch(`${API_URL}/products/${id}`);
         if (res.ok) {
-          setProduct(await res.json());
+          const p: ProductType = await res.json();
+          setProduct(p);
+          // Fetch related products (same category, exclude current)
+          const relRes = await fetch(`${API_URL}/products?category=${p.category}&limit=4`);
+          if (relRes.ok) {
+            const all: ProductType[] = await relRes.json();
+            setRelated(all.filter((r) => r._id !== id).slice(0, 4));
+          }
         }
       } catch {
         // failed
@@ -100,8 +111,14 @@ export default function ProductDetailPage() {
                 className="w-full h-full object-cover"
               />
             </div>
-            <button className="absolute top-4 right-4 p-3 bg-white rounded-full shadow-md hover:scale-110 transition-transform">
-              <Heart size={18} className="text-rose-400" />
+            <button
+              onClick={() => toggle(product._id)}
+              className="absolute top-4 right-4 p-3 bg-white rounded-full shadow-md hover:scale-110 transition-transform"
+            >
+              <Heart
+                size={18}
+                className={isWishlisted(product._id) ? 'fill-[#C2185B] text-[#C2185B]' : 'text-gray-400'}
+              />
             </button>
           </div>
 
@@ -182,6 +199,18 @@ export default function ProductDetailPage() {
 
         {/* ── Reviews Section ── */}
         <ReviewsSection productId={id} />
+
+        {/* ── Related Products ── */}
+        {related.length > 0 && (
+          <div className="mt-16 pt-8 border-t border-gray-100">
+            <h2 className="text-2xl font-bold text-[#1A0A0E] mb-6">You May Also Like</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {related.map((p) => (
+                <ProductCard key={p._id} product={p} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,15 +1,17 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
+import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, BarChart2, MessageSquareWarning } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const { itemCount } = useCart();
   const { user, logout } = useAuth();
+  const { count: wishlistCount } = useWishlist();
   const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -105,6 +107,16 @@ export default function Navbar() {
               </div>
             </form>
 
+            {/* Wishlist */}
+            <Link href="/wishlist" className="relative p-2 rounded-full hover:bg-rose-50 transition-colors group">
+              <Heart size={20} className="text-gray-600 group-hover:text-rose-500 transition-colors" />
+              {mounted && wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full text-white text-xs flex items-center justify-center font-bold shadow">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
+            </Link>
+
             {/* Cart */}
             <Link href="/cart" className="relative p-2 rounded-full hover:bg-rose-50 transition-colors group">
               <ShoppingBag size={20} className="text-gray-600 group-hover:text-rose-500 transition-colors" />
@@ -136,12 +148,36 @@ export default function Navbar() {
                       <User size={14} /> My Profile
                     </Link>
                     {user.isAdmin && (
-                      <Link
-                        href="/admin"
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                      >
-                        <LayoutDashboard size={14} /> Admin Panel
-                      </Link>
+                      <>
+                        <Link
+                          href="/admin"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                        >
+                          <LayoutDashboard size={14} /> Admin Panel
+                        </Link>
+                        <Link
+                          href="/admin/dashboard"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                        >
+                          <BarChart2 size={14} /> Sales Dashboard
+                        </Link>
+                      </>
+                    )}
+                    {!user.isAdmin && (
+                      <>
+                        <Link
+                          href="/complaints/my"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                        >
+                          <MessageSquareWarning size={14} /> My Complaints
+                        </Link>
+                        <Link
+                          href="/complaints"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                        >
+                          <MessageSquareWarning size={14} /> Submit Complaint
+                        </Link>
+                      </>
                     )}
                     <div className="border-t border-gray-100 mt-1 pt-1">
                       <button
