@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     if (!productRevenue[item.productId]) {
       productRevenue[item.productId] = {
         name: item.name,
-        image: (item.Product as { image: string } | null)?.image || '',
+        image: (item.Product as unknown as Array<{ image: string }>)?.[0]?.image ?? '',
         revenue: 0,
         sold: 0,
       };
