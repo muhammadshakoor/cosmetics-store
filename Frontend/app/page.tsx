@@ -91,12 +91,21 @@ export default function HomePage() {
                 Premium cosmetics crafted with care — cruelty-free, halal certified, and made for every skin type. Delivered across Pakistan.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link href="/products" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-lg shadow-rose-200 hover:-translate-y-0.5 transition-all text-sm">
+              <div className="flex flex-wrap gap-3">
+                <Link href="/products" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-lg shadow-rose-200 hover:-translate-y-0.5 transition-all text-sm">
                   Shop Now <ArrowRight size={16} />
                 </Link>
-                <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
-                  Explore Skincare <ChevronRight size={16} />
+                <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                  Skincare <ChevronRight size={16} />
+                </Link>
+                <Link href="/products?category=makeup" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                  Makeup <ChevronRight size={16} />
+                </Link>
+                <Link href="/products?category=fragrance" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                  Fragrance <ChevronRight size={16} />
+                </Link>
+                <Link href="/products?category=jewelry" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                  Jewellery <ChevronRight size={16} />
                 </Link>
               </div>
 
