@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     const googleUser = await userInfoRes.json();
-    const { email, name } = googleUser as { email: string; name: string };
+    const { email, name, picture } = googleUser as { email: string; name: string; picture?: string };
 
     if (!email) {
       throw new Error('Google account has no email');
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     // Find or create user
     let { data: user } = await supabase
       .from('User')
-      .select('id, name, email, isAdmin')
+      .select('id, name, email, isAdmin, picture')
       .eq('email', normalizedEmail)
       .single();
 
@@ -73,20 +73,22 @@ export async function GET(request: NextRequest) {
           password: '',
           isAdmin: false,
           emailVerified: true,
+          picture: picture || null,
           createdAt: now,
           updatedAt: now,
         })
-        .select('id, name, email, isAdmin')
+        .select('id, name, email, isAdmin, picture')
         .single();
 
       if (createError) throw new Error(createError.message);
       user = created;
     } else {
-      // Ensure existing Google-linked users are verified
+      // Ensure existing Google-linked users are verified and picture is updated
       await supabase
         .from('User')
-        .update({ emailVerified: true, updatedAt: now })
+        .update({ emailVerified: true, picture: picture || null, updatedAt: now })
         .eq('id', user.id);
+      if (user && picture) (user as Record<string, unknown>).picture = picture;
     }
 
     if (!user) throw new Error('Failed to find or create user');

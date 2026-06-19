@@ -21,11 +21,11 @@ export interface ProductType {
 }
 
 const categoryColors: Record<string, string> = {
-  skincare:  'bg-emerald-50 text-emerald-700',
-  makeup:    'bg-pink-50 text-pink-700',
-  fragrance: 'bg-purple-50 text-purple-700',
-  haircare:  'bg-amber-50 text-amber-700',
-  jewelry:   'bg-yellow-50 text-yellow-700',
+  skincare:  'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400',
+  makeup:    'bg-pink-50 dark:bg-pink-950 text-pink-700 dark:text-pink-400',
+  fragrance: 'bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-400',
+  haircare:  'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400',
+  jewelry:   'bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400',
 };
 
 export default function ProductCard({ product }: { product: ProductType }) {
@@ -50,14 +50,14 @@ export default function ProductCard({ product }: { product: ProductType }) {
     setTimeout(() => setAdded(false), 1800);
   };
 
-  const catClass = categoryColors[product.category?.toLowerCase()] || 'bg-gray-50 text-gray-600';
+  const catClass = categoryColors[product.category?.toLowerCase()] || 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
 
   return (
     <Link href={`/products/${product._id}`} className="group block">
-      <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-rose-100 hover:-translate-y-1.5">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:border-rose-100 dark:hover:border-rose-900/40 hover:-translate-y-1.5">
 
         {/* Image */}
-        <div className="relative overflow-hidden bg-[#FFF8F5] aspect-square">
+        <div className="relative overflow-hidden bg-[#FFF8F5] dark:bg-gray-700 aspect-square">
           <img
             src={product.image || `https://picsum.photos/seed/${product._id}/400/400`}
             alt={product.name}
@@ -82,7 +82,7 @@ export default function ProductCard({ product }: { product: ProductType }) {
           {/* Wishlist */}
           <button
             onClick={(e) => { e.preventDefault(); toggle(product._id); }}
-            className="absolute top-3 right-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-transform"
+            className="absolute top-3 right-3 w-8 h-8 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-transform"
           >
             <Heart size={13} className={wishlisted ? 'fill-[#C2185B] text-[#C2185B]' : 'text-gray-400'} />
           </button>
@@ -106,25 +106,25 @@ export default function ProductCard({ product }: { product: ProductType }) {
         {/* Info */}
         <div className="p-4">
           <p className="text-[10px] text-[#C2185B] font-bold uppercase tracking-widest mb-1">{product.brand}</p>
-          <h3 className="font-semibold text-[#1A0A0E] text-sm leading-snug mb-2.5 line-clamp-2 group-hover:text-[#C2185B] transition-colors">
+          <h3 className="font-semibold text-[#1A0A0E] dark:text-gray-100 text-sm leading-snug mb-2.5 line-clamp-2 group-hover:text-[#C2185B] transition-colors">
             {product.name}
           </h3>
 
           {/* Stars */}
           <div className="flex items-center gap-1 mb-3">
             {[1, 2, 3, 4, 5].map((s) => (
-              <Star key={s} size={11} className={s <= Math.round(product.rating) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'} />
+              <Star key={s} size={11} className={s <= Math.round(product.rating) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 dark:fill-gray-600 text-gray-200 dark:text-gray-600'} />
             ))}
-            <span className="text-[10px] text-gray-400 ml-0.5">({product.numReviews})</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-0.5">({product.numReviews})</span>
           </div>
 
           {/* Price row */}
           <div className="flex items-center justify-between">
-            <span className="text-lg font-extrabold text-[#1A0A0E]">Rs. {Math.round(product.price).toLocaleString()}</span>
+            <span className="text-lg font-extrabold text-[#1A0A0E] dark:text-gray-100">Rs. {Math.round(product.price).toLocaleString()}</span>
             <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold tracking-wide ${
-              product.countInStock > 5  ? 'bg-green-50 text-green-700' :
-              product.countInStock > 0  ? 'bg-amber-50 text-amber-700' :
-              'bg-red-50 text-red-600'
+              product.countInStock > 5  ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400' :
+              product.countInStock > 0  ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400' :
+              'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'
             }`}>
               {product.countInStock > 5 ? 'In Stock' : product.countInStock > 0 ? `${product.countInStock} left` : 'Sold Out'}
             </span>

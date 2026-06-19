@@ -1,13 +1,32 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode for Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #FFF8F5;
-  --foreground: #1A0A0E;
+  --background:    #FFF8F5;
+  --foreground:    #1A0A0E;
+  --surface:       #FFFFFF;
+  --surface-hover: #F9F0F2;
+  --border:        #E5E7EB;
+  --muted:         #6B7280;
+  --muted-bg:      #F9FAFB;
+}
+
+.dark {
+  --background:    #0F0A0B;
+  --foreground:    #F5ECF0;
+  --surface:       #1C1317;
+  --surface-hover: #251A1E;
+  --border:        #2D2025;
+  --muted:         #9CA3AF;
+  --muted-bg:      #1C1317;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 @keyframes marquee {
@@ -19,12 +38,10 @@ body {
   animation: marquee 28s linear infinite;
 }
 
-/* Smooth scroll */
 html {
   scroll-behavior: smooth;
 }
 
-/* Better focus styles */
 *:focus-visible {
   outline: 2px solid #C2185B;
   outline-offset: 2px;

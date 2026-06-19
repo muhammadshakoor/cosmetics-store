@@ -28,14 +28,17 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenRes.json();
     const accessToken: string = tokenData.access_token;
 
-    // Get Facebook user info
+    // Get Facebook user info including profile picture
     const userInfoRes = await fetch(
-      `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
+      `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
     );
     if (!userInfoRes.ok) throw new Error('Failed to get Facebook user info');
     const fbUser = await userInfoRes.json();
 
-    const { name, email } = fbUser as { name: string; email?: string };
+    const { name, email, id: fbId } = fbUser as { name: string; email?: string; id?: string };
+    const picture: string | null = fbId
+      ? `https://graph.facebook.com/${fbId}/picture?type=large`
+      : null;
 
     // Facebook may not return email if user hasn't granted it or has no email
     if (!email) {
@@ -48,7 +51,7 @@ export async function GET(request: NextRequest) {
     // Find or create user
     let { data: user } = await supabase
       .from('User')
-      .select('id, name, email, isAdmin')
+      .select('id, name, email, isAdmin, picture')
       .eq('email', normalizedEmail)
       .single();
 
@@ -63,10 +66,11 @@ export async function GET(request: NextRequest) {
           password: '',
           isAdmin: false,
           emailVerified: true,
+          picture: picture || null,
           createdAt: now,
           updatedAt: now,
         })
-        .select('id, name, email, isAdmin')
+        .select('id, name, email, isAdmin, picture')
         .single();
 
       if (createError) throw new Error(createError.message);
@@ -74,8 +78,9 @@ export async function GET(request: NextRequest) {
     } else {
       await supabase
         .from('User')
-        .update({ emailVerified: true, updatedAt: now })
+        .update({ emailVerified: true, picture: picture || null, updatedAt: now })
         .eq('id', user.id);
+      if (user && picture) (user as Record<string, unknown>).picture = picture;
     }
 
     if (!user) throw new Error('Failed to find or create user');

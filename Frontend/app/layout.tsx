@@ -14,10 +14,22 @@ export const metadata: Metadata = {
   keywords: 'cosmetics, beauty, skincare, makeup, fragrance',
 };
 
+// Runs before React hydrates to prevent theme flash
+const themeInitScript = `
+(function(){try{
+  var t=localStorage.getItem('lumina-theme');
+  if(!t)t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+  if(t==='dark')document.documentElement.classList.add('dark');
+}catch(e){}})();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col`}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className={`${inter.className} antialiased min-h-screen flex flex-col`}>
         <Providers>
           <Navbar />
           <main className="flex-1">

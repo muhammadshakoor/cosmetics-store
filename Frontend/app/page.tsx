@@ -15,9 +15,9 @@ const categories = [
 ];
 
 const testimonials = [
-  { name: 'Ayesha K.',  city: 'Lahore',     text: 'The Rose Serum transformed my skin in just 2 weeks. Delivery was fast and packaging was beautiful!',               stars: 5, product: 'Rose Petal Glow Serum' },
-  { name: 'Sana M.',    city: 'Karachi',     text: 'Finally a store with international quality! The Hydra-Boost Moisturizer is my new holy grail. Highly recommend!', stars: 5, product: 'Hydra-Boost Moisturizer' },
-  { name: 'Fatima R.',  city: 'Islamabad',   text: 'Ordered the lipstick and it arrived same day. The matte formula stays on all day, absolutely love it!',            stars: 5, product: 'Velvet Matte Lipstick' },
+  { name: 'Ayesha K.',  city: 'Lahore',   text: 'The Rose Serum transformed my skin in just 2 weeks. Delivery was fast and packaging was beautiful!',               stars: 5, product: 'Rose Petal Glow Serum' },
+  { name: 'Sana M.',    city: 'Karachi',   text: 'Finally a store with international quality! The Hydra-Boost Moisturizer is my new holy grail. Highly recommend!', stars: 5, product: 'Hydra-Boost Moisturizer' },
+  { name: 'Fatima R.',  city: 'Islamabad', text: 'Ordered the lipstick and it arrived same day. The matte formula stays on all day, absolutely love it!',            stars: 5, product: 'Velvet Matte Lipstick' },
 ];
 
 const marqueeItems = ['✦ FREE DELIVERY', '✦ CASH ON DELIVERY', '✦ JAZZCASH & EASYPAISA', '✦ 100% CRUELTY FREE', '✦ HALAL CERTIFIED', '✦ AUTHENTIC PRODUCTS', '✦ NATIONWIDE SHIPPING', '✦ 5-STAR REVIEWS'];
@@ -38,12 +38,8 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: newsletterEmail }),
       });
-      if (res.ok) {
-        setNewsletterStatus('success');
-        setNewsletterEmail('');
-      } else {
-        setNewsletterStatus('error');
-      }
+      if (res.ok) { setNewsletterStatus('success'); setNewsletterEmail(''); }
+      else setNewsletterStatus('error');
     } catch {
       setNewsletterStatus('error');
     }
@@ -58,7 +54,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FFF8F5]">
+    <div className="min-h-screen bg-[#FFF8F5] dark:bg-gray-950">
 
       {/* ── Announcement Bar ── */}
       <div className="bg-[#C2185B] text-white text-xs font-medium text-center py-2.5 px-4 tracking-wide">
@@ -66,22 +62,22 @@ export default function HomePage() {
       </div>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden bg-[#FFF8F5] min-h-[88vh] flex items-center">
+      <section className="relative overflow-hidden bg-[#FFF8F5] dark:bg-gray-950 min-h-[88vh] flex items-center">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[55%] h-full bg-linear-to-bl from-rose-100/60 via-pink-50/40 to-transparent" />
-          <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-rose-200/20 blur-3xl" />
+          <div className="absolute top-0 right-0 w-[55%] h-full bg-linear-to-bl from-rose-100/60 via-pink-50/40 to-transparent dark:from-rose-900/10 dark:via-transparent" />
+          <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-rose-200/20 dark:bg-rose-900/10 blur-3xl" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-16 lg:py-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left */}
             <div className="space-y-7">
-              <div className="inline-flex items-center gap-2 bg-white border border-rose-100 px-4 py-2 rounded-full shadow-sm">
+              <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-rose-100 dark:border-gray-700 px-4 py-2 rounded-full shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-[#C2185B] animate-pulse" />
                 <span className="text-xs font-semibold text-[#C2185B] tracking-widest uppercase">New Spring Collection 2025</span>
               </div>
 
-              <h1 className="text-5xl sm:text-6xl xl:text-7xl font-extrabold text-[#1A0A0E] leading-[1.05] tracking-tight">
+              <h1 className="text-5xl sm:text-6xl xl:text-7xl font-extrabold text-[#1A0A0E] dark:text-gray-100 leading-[1.05] tracking-tight">
                 Beauty Is Your{' '}
                 <span className="relative inline-block">
                   <span className="bg-linear-to-r from-[#C2185B] to-pink-500 bg-clip-text text-transparent">Superpower</span>
@@ -91,7 +87,7 @@ export default function HomePage() {
                 </span>
               </h1>
 
-              <p className="text-lg text-gray-500 max-w-md leading-relaxed">
+              <p className="text-lg text-gray-500 dark:text-gray-400 max-w-md leading-relaxed">
                 Premium cosmetics crafted with care — cruelty-free, halal certified, and made for every skin type. Delivered across Pakistan.
               </p>
 
@@ -99,7 +95,7 @@ export default function HomePage() {
                 <Link href="/products" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-lg shadow-rose-200 hover:-translate-y-0.5 transition-all text-sm">
                   Shop Now <ArrowRight size={16} />
                 </Link>
-                <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-rose-50 text-[#1A0A0E] font-semibold rounded-2xl shadow-sm border border-gray-100 transition-all text-sm">
+                <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
                   Explore Skincare <ChevronRight size={16} />
                 </Link>
               </div>
@@ -111,7 +107,7 @@ export default function HomePage() {
                   { icon: <Truck size={14} className="text-blue-500" />, text: 'Nationwide Delivery' },
                   { icon: <RefreshCw size={14} className="text-purple-500" />, text: '7-Day Returns' },
                 ].map(({ icon, text }) => (
-                  <div key={text} className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">{icon} {text}</div>
+                  <div key={text} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium">{icon} {text}</div>
                 ))}
               </div>
             </div>
@@ -124,16 +120,16 @@ export default function HomePage() {
               <div className="absolute bottom-0 left-8 w-64 h-64 rounded-3xl overflow-hidden shadow-2xl shadow-pink-100 -rotate-2">
                 <img src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop&auto=format" alt="Makeup" className="w-full h-full object-cover" />
               </div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-3xl overflow-hidden shadow-xl shadow-rose-200 rotate-1 border-4 border-white">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-3xl overflow-hidden shadow-xl shadow-rose-200 rotate-1 border-4 border-white dark:border-gray-800">
                 <img src="https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300&h=300&fit=crop&auto=format" alt="Moisturizer" className="w-full h-full object-cover" />
               </div>
-              <div className="absolute top-6 left-4 bg-white rounded-2xl shadow-lg px-4 py-3 flex items-center gap-2 border border-rose-50">
+              <div className="absolute top-6 left-4 bg-white dark:bg-gray-800 rounded-2xl shadow-lg px-4 py-3 flex items-center gap-2 border border-rose-50 dark:border-gray-700">
                 <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} size={11} className="fill-amber-400 text-amber-400" />)}</div>
-                <span className="text-xs font-bold text-gray-700">50K+ Happy Customers</span>
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-200">50K+ Happy Customers</span>
               </div>
-              <div className="absolute bottom-16 right-4 bg-white rounded-2xl shadow-lg px-4 py-3 border border-rose-50">
-                <p className="text-xs font-bold text-gray-800">🚚 Cash on Delivery</p>
-                <p className="text-xs text-gray-400 mt-0.5">Available Nationwide</p>
+              <div className="absolute bottom-16 right-4 bg-white dark:bg-gray-800 rounded-2xl shadow-lg px-4 py-3 border border-rose-50 dark:border-gray-700">
+                <p className="text-xs font-bold text-gray-800 dark:text-gray-200">🚚 Cash on Delivery</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Available Nationwide</p>
               </div>
             </div>
           </div>
@@ -150,11 +146,11 @@ export default function HomePage() {
       </div>
 
       {/* ── Categories ── */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-[#FFF8F5] dark:bg-gray-950">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Explore Our Range</p>
-            <h2 className="text-4xl font-extrabold text-[#1A0A0E]">Shop by Category</h2>
+            <h2 className="text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Shop by Category</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {categories.map((cat) => (
@@ -175,12 +171,12 @@ export default function HomePage() {
       </section>
 
       {/* ── Best Sellers ── */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-20 px-4 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-12">
             <div>
               <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Hand-picked for you</p>
-              <h2 className="text-4xl font-extrabold text-[#1A0A0E]">Best Sellers</h2>
+              <h2 className="text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Best Sellers</h2>
             </div>
             <Link href="/products" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-[#C2185B] hover:gap-2.5 transition-all">
               View All <ArrowRight size={14} />
@@ -188,14 +184,14 @@ export default function HomePage() {
           </div>
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-3xl h-80 bg-gray-100 animate-pulse" />)}
+              {Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-3xl h-80 bg-gray-100 dark:bg-gray-800 animate-pulse" />)}
             </div>
           ) : products.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
               {products.map((p) => <ProductCard key={p._id} product={p} />)}
             </div>
           ) : (
-            <p className="text-center text-gray-400 py-16">
+            <p className="text-center text-gray-400 dark:text-gray-500 py-16">
               Visit <a href="/api/seed" className="text-rose-500 underline">/api/seed</a> to add sample products
             </p>
           )}
@@ -208,7 +204,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Brand Values ── */}
-      <section className="py-16 px-4 bg-[#FFF8F5]">
+      <section className="py-16 px-4 bg-[#FFF8F5] dark:bg-gray-950">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-5">
           {[
             { icon: '🌿', title: 'Cruelty-Free', desc: '100% never tested on animals' },
@@ -216,31 +212,31 @@ export default function HomePage() {
             { icon: '🚚', title: 'Free Delivery', desc: 'On orders over PKR 2,000' },
             { icon: '💳', title: 'Easy Payments', desc: 'JazzCash · EasyPaisa · COD' },
           ].map(({ icon, title, desc }) => (
-            <div key={title} className="bg-white rounded-3xl p-6 text-center shadow-sm border border-rose-50 hover:shadow-md hover:-translate-y-1 transition-all">
+            <div key={title} className="bg-white dark:bg-gray-800 rounded-3xl p-6 text-center shadow-sm border border-rose-50 dark:border-gray-700 hover:shadow-md hover:-translate-y-1 transition-all">
               <div className="text-3xl mb-3">{icon}</div>
-              <h3 className="font-bold text-[#1A0A0E] text-sm mb-1">{title}</h3>
-              <p className="text-xs text-gray-400 leading-relaxed">{desc}</p>
+              <h3 className="font-bold text-[#1A0A0E] dark:text-gray-100 text-sm mb-1">{title}</h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Testimonials ── */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-20 px-4 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Real Reviews</p>
-            <h2 className="text-4xl font-extrabold text-[#1A0A0E]">What Our Customers Say</h2>
+            <h2 className="text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100">What Our Customers Say</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
-              <div key={t.name} className="bg-[#FFF8F5] rounded-3xl p-7 border border-rose-50 hover:shadow-lg transition-shadow">
-                <Quote size={24} className="text-rose-200 mb-4" />
-                <p className="text-gray-600 text-sm leading-relaxed mb-6 italic">&ldquo;{t.text}&rdquo;</p>
+              <div key={t.name} className="bg-[#FFF8F5] dark:bg-gray-800 rounded-3xl p-7 border border-rose-50 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <Quote size={24} className="text-rose-200 dark:text-rose-900 mb-4" />
+                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-6 italic">&ldquo;{t.text}&rdquo;</p>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-[#1A0A0E] text-sm">{t.name}</p>
-                    <p className="text-xs text-gray-400">{t.city} · {t.product}</p>
+                    <p className="font-bold text-[#1A0A0E] dark:text-gray-100 text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{t.city} · {t.product}</p>
                   </div>
                   <div className="flex gap-0.5">
                     {Array.from({ length: t.stars }).map((_, i) => <Star key={i} size={12} className="fill-amber-400 text-amber-400" />)}
@@ -264,16 +260,14 @@ export default function HomePage() {
           ) : (
             <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-3">
               <input
-                type="email"
-                required
+                type="email" required
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="Enter your email address"
                 className="flex-1 px-5 py-3.5 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-white"
               />
               <button
-                type="submit"
-                disabled={newsletterStatus === 'loading'}
+                type="submit" disabled={newsletterStatus === 'loading'}
                 className="px-6 py-3.5 bg-[#1A0A0E] hover:bg-black text-white font-bold rounded-2xl text-sm transition-colors whitespace-nowrap disabled:opacity-60"
               >
                 {newsletterStatus === 'loading' ? 'Subscribing...' : 'Subscribe'}

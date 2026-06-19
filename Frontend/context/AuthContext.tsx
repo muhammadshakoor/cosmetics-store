@@ -8,6 +8,7 @@ export interface User {
   email: string;
   isAdmin: boolean;
   token: string;
+  picture?: string;
 }
 
 interface AuthContextType {

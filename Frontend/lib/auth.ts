@@ -24,7 +24,7 @@ export async function getAuthUser(request: NextRequest) {
 
     const { data: user, error } = await supabase
       .from('User')
-      .select('id, name, email, isAdmin')
+      .select('id, name, email, isAdmin, picture')
       .eq('id', decoded.userId)
       .single();
 

@@ -22,14 +22,9 @@ export default function ProductsPage() {
       const params = new URLSearchParams();
       if (search) params.set('keyword', search);
       if (activeCategory !== 'All') params.set('category', activeCategory.toLowerCase());
-
       const res = await fetch(`${API_URL}/products?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProducts(data);
-      } else {
-        setProducts([]);
-      }
+      if (res.ok) setProducts(await res.json());
+      else setProducts([]);
     } catch {
       setProducts([]);
     } finally {
@@ -43,12 +38,12 @@ export default function ProductsPage() {
   }, [fetchProducts]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">All Products</h1>
-          <p className="text-gray-500">Discover our full range of premium cosmetics</p>
+          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">All Products</h1>
+          <p className="text-gray-500 dark:text-gray-400">Discover our full range of premium cosmetics</p>
         </div>
 
         {/* Search + Filter Bar */}
@@ -60,7 +55,7 @@ export default function ProductsPage() {
               placeholder="Search products..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 bg-white rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm shadow-sm"
+              className="w-full pl-10 pr-10 py-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm shadow-sm"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -70,7 +65,7 @@ export default function ProductsPage() {
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 hover:border-rose-300 hover:text-rose-600 transition-colors shadow-sm sm:hidden"
+            className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-rose-300 hover:text-rose-600 transition-colors shadow-sm sm:hidden"
           >
             <Filter size={14} /> Filters
           </button>
@@ -85,7 +80,7 @@ export default function ProductsPage() {
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 activeCategory === cat
                   ? 'bg-rose-500 text-white shadow-md shadow-rose-200'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-rose-300 hover:text-rose-600'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-rose-300 hover:text-rose-600'
               }`}
             >
               {cat}
@@ -95,7 +90,7 @@ export default function ProductsPage() {
 
         {/* Results Summary */}
         {!loading && (
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             {products.length} product{products.length !== 1 ? 's' : ''} found
             {activeCategory !== 'All' && ` in "${activeCategory}"`}
             {search && ` for "${search}"`}
@@ -106,14 +101,14 @@ export default function ProductsPage() {
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-3xl h-80 animate-pulse" />
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl h-80 animate-pulse" />
             ))}
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-24">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">No products found</h3>
-            <p className="text-gray-400">Try adjusting your search or filter criteria</p>
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No products found</h3>
+            <p className="text-gray-400 dark:text-gray-500">Try adjusting your search or filter criteria</p>
             <button
               onClick={() => { setSearch(''); setActiveCategory('All'); }}
               className="mt-6 px-6 py-2 bg-rose-500 text-white rounded-2xl text-sm font-medium hover:bg-rose-600 transition-colors"
