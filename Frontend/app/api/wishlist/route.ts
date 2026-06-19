@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(
     data?.map((w) => {
-      const p = w.Product as Record<string, unknown> | null;
+      const arr = w.Product as unknown as Record<string, unknown>[] | null;
+      const p = Array.isArray(arr) ? arr[0] ?? null : null;
       return {
         id: w.id,
         productId: w.productId,

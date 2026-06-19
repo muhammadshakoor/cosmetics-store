@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
       .eq('orderId', orderId)
       .single();
 
-    const order = orderItem?.order as { userId: string; isDelivered: boolean } | undefined;
+    const orderRaw = orderItem?.order as unknown as { userId: string; isDelivered: boolean } | { userId: string; isDelivered: boolean }[] | undefined;
+    const order = Array.isArray(orderRaw) ? orderRaw[0] : orderRaw;
     if (!order?.isDelivered || order.userId !== user.id) {
       return NextResponse.json({ message: 'You can only review products from delivered orders' }, { status: 400 });
     }
