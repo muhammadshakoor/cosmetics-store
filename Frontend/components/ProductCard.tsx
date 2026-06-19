@@ -87,9 +87,9 @@ export default function ProductCard({ product }: { product: ProductType }) {
             <Heart size={13} className={wishlisted ? 'fill-[#C2185B] text-[#C2185B]' : 'text-gray-400'} />
           </button>
 
-          {/* Add to Cart — always visible on mobile, slides up on hover on desktop */}
+          {/* Add to Cart — always visible */}
           {product.countInStock > 0 && (
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/20 to-transparent translate-y-0 sm:translate-y-full sm:group-hover:translate-y-0 transition-transform duration-300">
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/20 to-transparent">
               <button
                 onClick={handleAddToCart}
                 className={`w-full flex items-center justify-center gap-2 py-2.5 text-white text-xs font-bold rounded-2xl transition-all ${
