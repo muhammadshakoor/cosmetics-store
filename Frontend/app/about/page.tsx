@@ -73,12 +73,38 @@ export default function AboutPage() {
       <section className="py-16 px-4 text-center">
         <h2 className="text-2xl font-extrabold text-[#1A0A0E] dark:text-gray-100 mb-4">Ready to Glow?</h2>
         <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">Explore our full range of premium cosmetics.</p>
-        <Link
-          href="/products"
-          className="inline-flex items-center gap-2 px-8 py-4 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition-all hover:-translate-y-0.5 text-sm"
-        >
-          Shop Now
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-md shadow-rose-200 dark:shadow-rose-900/30 transition-all hover:-translate-y-0.5 text-sm"
+          >
+            Shop Now
+          </Link>
+          <Link
+            href="/products?category=skincare"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-md shadow-rose-100 dark:shadow-rose-900/20 transition-all hover:-translate-y-0.5 text-sm"
+          >
+            Explore Skincare
+          </Link>
+          <Link
+            href="/products?category=makeup"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-md shadow-rose-100 dark:shadow-rose-900/20 transition-all hover:-translate-y-0.5 text-sm"
+          >
+            Explore Makeup
+          </Link>
+          <Link
+            href="/products?category=fragrance"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-md shadow-rose-100 dark:shadow-rose-900/20 transition-all hover:-translate-y-0.5 text-sm"
+          >
+            Explore Fragrance
+          </Link>
+          <Link
+            href="/products?category=jewelry"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-md shadow-rose-100 dark:shadow-rose-900/20 transition-all hover:-translate-y-0.5 text-sm"
+          >
+            Explore Jewellery
+          </Link>
+        </div>
       </section>
     </div>
   );
