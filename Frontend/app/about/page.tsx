@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Leaf, ShieldCheck, Truck, Star, Heart } from 'lucide-react';
 
