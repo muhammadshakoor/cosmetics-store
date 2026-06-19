@@ -74,7 +74,7 @@ export default function AboutPage() {
       {/* CTA */}
       <section className="py-16 px-4 text-center">
         <h2 className="text-2xl font-extrabold text-[#1A0A0E] dark:text-gray-100 mb-4">Ready to Glow?</h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">Explore our full range of premium cosmetics and beauty essentials.</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">Explore our full range of premium cosmetics.</p>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <Link
             href="/products"
