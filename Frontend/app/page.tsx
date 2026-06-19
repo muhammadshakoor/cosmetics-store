@@ -92,19 +92,19 @@ export default function HomePage() {
               </p>
 
               <div className="flex flex-wrap gap-3">
-                <Link href="/products" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-lg shadow-rose-200 hover:-translate-y-0.5 transition-all text-sm">
+                <Link href="/products" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-md shadow-rose-200 dark:shadow-rose-900/30 hover:-translate-y-0.5 transition-all text-sm">
                   Shop Now <ArrowRight size={16} />
                 </Link>
-                <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
                   Skincare <ChevronRight size={16} />
                 </Link>
-                <Link href="/products?category=makeup" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                <Link href="/products?category=makeup" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
                   Makeup <ChevronRight size={16} />
                 </Link>
-                <Link href="/products?category=fragrance" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                <Link href="/products?category=fragrance" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
                   Fragrance <ChevronRight size={16} />
                 </Link>
-                <Link href="/products?category=jewelry" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                <Link href="/products?category=jewelry" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
                   Jewellery <ChevronRight size={16} />
                 </Link>
               </div>
