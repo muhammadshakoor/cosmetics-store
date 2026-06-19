@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, BarChart2, MessageSquareWarning } from 'lucide-react';
+import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, BarChart2, MessageSquareWarning, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -125,11 +125,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link href="/" className="flex flex-col items-center group shrink-0 sm:flex-row sm:gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-md group-hover:shadow-rose-200 transition-shadow">
-              <span className="text-white text-[10px] sm:text-xs font-bold">L</span>
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
+            <div className="w-8 h-8 rounded-full bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-md group-hover:shadow-rose-200 transition-shadow">
+              <span className="text-white text-xs font-bold">L</span>
             </div>
-            <span className="text-[10px] xs:text-xs sm:text-xl font-bold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent leading-tight">
+            <span className="hidden sm:inline text-xl font-bold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent leading-tight">
               Lumina
             </span>
           </Link>
@@ -183,6 +183,15 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
+
+            {/* Mobile Search Icon */}
+            <button
+              className="sm:hidden p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setMobileOpen(false); }}
+              aria-label="Search"
+            >
+              <Search size={20} className="text-gray-600 dark:text-gray-300" />
+            </button>
 
             {/* User Menu — AFTER wishlist/cart, BEFORE hamburger */}
             {!mounted ? (
@@ -293,9 +302,10 @@ export default function Navbar() {
               </div>
               <button
                 type="submit"
-                className="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold rounded-2xl transition-colors shrink-0"
+                className="p-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl transition-colors shrink-0 flex items-center justify-center"
+                aria-label="Search"
               >
-                Search
+                <ArrowRight size={18} />
               </button>
               <button
                 type="button"
@@ -343,7 +353,7 @@ export default function Navbar() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300"
                 />
-                <button type="submit" className="px-4 py-2 bg-rose-500 text-white rounded-full text-sm font-medium">Go</button>
+                <button type="submit" className="p-2.5 bg-rose-500 text-white rounded-full flex items-center justify-center" aria-label="Search"><ArrowRight size={16} /></button>
               </form>
             </div>
           </div>
