@@ -143,8 +143,8 @@ export default function Navbar() {
             <Link href="/products?category=jewelry" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Jewellery</Link>
           </nav>
 
-          {/* Right: Search + Theme + Cart + User */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          {/* Right icons — order: Search(desktop) | Theme | Wishlist | Cart | Search(mobile) | Profile | Hamburger */}
+          <div className="flex items-center gap-0.5 sm:gap-2">
             {/* Desktop Search */}
             <form onSubmit={handleSearch} className="hidden sm:flex items-center">
               <div className="relative">
@@ -165,33 +165,42 @@ export default function Navbar() {
             <ThemeToggle />
 
             {/* Wishlist */}
-            <Link href="/wishlist" className="relative p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
+            <Link href="/wishlist" className="relative p-1.5 sm:p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
               <Heart size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
               {mounted && wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full text-white text-xs flex items-center justify-center font-bold shadow">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
                   {wishlistCount > 9 ? '9+' : wishlistCount}
                 </span>
               )}
             </Link>
 
             {/* Cart */}
-            <Link href="/cart" className="relative p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
+            <Link href="/cart" className="relative p-1.5 sm:p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
               <ShoppingBag size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
               {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full text-white text-xs flex items-center justify-center font-bold shadow">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
                   {itemCount > 9 ? '9+' : itemCount}
                 </span>
               )}
             </Link>
 
-            {/* User Menu — only render after mount to avoid hydration mismatch */}
+            {/* Mobile Search — BEFORE profile */}
+            <button
+              className="sm:hidden p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setMobileOpen(false); }}
+              aria-label="Search"
+            >
+              <Search size={20} className="text-gray-600 dark:text-gray-300" />
+            </button>
+
+            {/* User Menu — AFTER search, BEFORE hamburger */}
             {!mounted ? (
-              <div className="w-24 h-8" />
+              <div className="w-9 h-9 rounded-full" />
             ) : user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-1 sm:pl-1 sm:pr-3 sm:py-1 rounded-full bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
+                  className="flex items-center gap-2 p-1.5 sm:pr-3 rounded-full bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
                 >
                   <UserAvatar name={user.name} picture={user.picture} />
                   <span className="text-sm font-semibold text-rose-700 dark:text-rose-300 hidden sm:block max-w-20 truncate">{user.name.split(' ')[0]}</span>
@@ -265,18 +274,9 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Mobile Search Icon */}
+            {/* Hamburger — last on mobile */}
             <button
-              className="sm:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setMobileOpen(false); }}
-              aria-label="Search"
-            >
-              <Search size={20} className="text-gray-600 dark:text-gray-300" />
-            </button>
-
-            {/* Hamburger (mobile only) */}
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={() => { setMobileOpen(!mobileOpen); setMobileSearchOpen(false); }}
               aria-label="Toggle menu"
             >

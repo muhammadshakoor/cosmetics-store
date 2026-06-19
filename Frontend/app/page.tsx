@@ -91,25 +91,29 @@ export default function HomePage() {
                 Premium cosmetics crafted with care — cruelty-free, halal certified, and made for every skin type. Delivered across Pakistan.
               </p>
 
-              <div className="flex flex-wrap gap-3">
-                <Link href="/products" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-md shadow-rose-200 dark:shadow-rose-900/30 hover:-translate-y-0.5 transition-all text-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                {/* Shop Now — full width on mobile */}
+                <Link href="/products" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-md shadow-rose-200 dark:shadow-rose-900/30 hover:-translate-y-0.5 transition-all text-sm w-full sm:w-auto">
                   Shop Now <ArrowRight size={16} />
                 </Link>
-                <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
-                  Skincare <ChevronRight size={16} />
-                </Link>
-                <Link href="/products?category=makeup" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
-                  Makeup <ChevronRight size={16} />
-                </Link>
-                <Link href="/products?category=fragrance" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
-                  Fragrance <ChevronRight size={16} />
-                </Link>
-                <Link href="/products?category=jewelry" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
-                  Jewellery <ChevronRight size={16} />
-                </Link>
+                {/* Category buttons — 2 per row on mobile */}
+                <div className="grid grid-cols-2 gap-3 sm:contents">
+                  <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                    Skincare <ChevronRight size={15} />
+                  </Link>
+                  <Link href="/products?category=makeup" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                    Makeup <ChevronRight size={15} />
+                  </Link>
+                  <Link href="/products?category=fragrance" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                    Fragrance <ChevronRight size={15} />
+                  </Link>
+                  <Link href="/products?category=jewelry" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                    Jewellery <ChevronRight size={15} />
+                  </Link>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 sm:flex sm:flex-wrap sm:gap-x-6">
                 {[
                   { icon: <ShieldCheck size={14} className="text-green-600" />, text: '100% Authentic' },
                   { icon: <Leaf size={14} className="text-green-600" />, text: 'Cruelty-Free' },
