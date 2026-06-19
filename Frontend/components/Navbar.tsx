@@ -115,7 +115,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
           ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-md dark:shadow-gray-900'
           : 'bg-white dark:bg-gray-900 shadow-sm'
@@ -144,7 +144,7 @@ export default function Navbar() {
           </nav>
 
           {/* Right: Search + Theme + Cart + User */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Desktop Search */}
             <form onSubmit={handleSearch} className="hidden sm:flex items-center">
               <div className="relative">
@@ -153,7 +153,7 @@ export default function Navbar() {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-44 pl-3 pr-8 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all focus:w-52"
+                  className="w-56 pl-3 pr-8 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all focus:w-72"
                 />
                 <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-rose-500">
                   <Search size={14} />
@@ -191,7 +191,7 @@ export default function Navbar() {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
+                  className="flex items-center gap-2 p-1 sm:pl-1 sm:pr-3 sm:py-1 rounded-full bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
                 >
                   <UserAvatar name={user.name} picture={user.picture} />
                   <span className="text-sm font-semibold text-rose-700 dark:text-rose-300 hidden sm:block max-w-20 truncate">{user.name.split(' ')[0]}</span>
