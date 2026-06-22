@@ -58,27 +58,16 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const mobileSearchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
   const router = useRouter();
   const pathname = usePathname();
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMobileOpen(false);
     setUserMenuOpen(false);
-    setMobileSearchOpen(false);
   }, [pathname]);
-
-  // Auto-focus mobile search input when opened
-  useEffect(() => {
-    if (mobileSearchOpen) {
-      setTimeout(() => mobileSearchRef.current?.focus(), 50);
-    }
-  }, [mobileSearchOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -86,7 +75,6 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -103,7 +91,6 @@ export default function Navbar() {
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
       setMobileOpen(false);
-      setMobileSearchOpen(false);
     }
   };
 
@@ -122,7 +109,9 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+
+        {/* Main row: Logo | Nav | Icons */}
+        <div className="flex items-center justify-between h-14">
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
@@ -143,25 +132,8 @@ export default function Navbar() {
             <Link href="/products?category=jewelry" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Jewellery</Link>
           </nav>
 
-          {/* Right icons — order: Search(desktop) | Theme | Wishlist | Cart | Profile | Hamburger */}
+          {/* Right icons */}
           <div className="flex items-center gap-0.5 sm:gap-2">
-            {/* Desktop Search */}
-            <form onSubmit={handleSearch} className="hidden sm:flex items-center">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-56 pl-3 pr-8 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all focus:w-72"
-                />
-                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-rose-500">
-                  <Search size={14} />
-                </button>
-              </div>
-            </form>
-
-            {/* Theme Toggle */}
             <ThemeToggle />
 
             {/* Wishlist */}
@@ -184,16 +156,7 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Mobile Search Icon */}
-            <button
-              className="sm:hidden p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={() => { setMobileSearchOpen(!mobileSearchOpen); setMobileOpen(false); }}
-              aria-label="Search"
-            >
-              <Search size={20} className="text-gray-600 dark:text-gray-300" />
-            </button>
-
-            {/* User Menu — AFTER wishlist/cart, BEFORE hamburger */}
+            {/* User Menu */}
             {!mounted ? (
               <div className="w-9 h-9 rounded-full" />
             ) : user ? (
@@ -207,7 +170,6 @@ export default function Navbar() {
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 z-50">
-                    {/* Profile header */}
                     <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                       <UserAvatar name={user.name} picture={user.picture} size="md" />
                       <div className="min-w-0">
@@ -274,10 +236,10 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Hamburger — last on mobile */}
+            {/* Hamburger */}
             <button
               className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={() => { setMobileOpen(!mobileOpen); setMobileSearchOpen(false); }}
+              onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
               {mobileOpen ? <X size={20} className="text-gray-700 dark:text-gray-200" /> : <Menu size={20} className="text-gray-700 dark:text-gray-200" />}
@@ -285,38 +247,26 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Search Bar */}
-        {mobileSearchOpen && (
-          <div className="sm:hidden border-t border-gray-100 dark:border-gray-700 px-4 py-3">
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input
-                  ref={mobileSearchRef}
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent"
-                />
-              </div>
-              <button
-                type="submit"
-                className="p-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl transition-colors shrink-0 flex items-center justify-center"
-                aria-label="Search"
-              >
-                <ArrowRight size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setMobileSearchOpen(false)}
-                className="p-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors shrink-0"
-              >
-                <X size={18} />
-              </button>
-            </form>
-          </div>
-        )}
+        {/* Persistent Search Bar — always visible, both mobile and desktop */}
+        <div className="border-t border-gray-100 dark:border-gray-700 py-2">
+          <form onSubmit={handleSearch} className="relative">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search for skincare, makeup, fragrance, jewellery..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-14 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent focus:bg-white dark:focus:bg-gray-700 transition-all"
+            />
+            <button
+              type="submit"
+              aria-label="Search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-colors flex items-center justify-center"
+            >
+              <ArrowRight size={16} />
+            </button>
+          </form>
+        </div>
 
         {/* Mobile Nav Drawer */}
         {mobileOpen && (
@@ -344,18 +294,6 @@ export default function Navbar() {
                 )}
               </>
             )}
-            <div className="border-t border-gray-100 dark:border-gray-700 pt-3 px-3">
-              <form onSubmit={handleSearch} className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                />
-                <button type="submit" className="p-2.5 bg-rose-500 text-white rounded-full flex items-center justify-center" aria-label="Search"><ArrowRight size={16} /></button>
-              </form>
-            </div>
           </div>
         )}
       </div>
