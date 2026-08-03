@@ -280,6 +280,7 @@ Blocking inline script in `<head>` reads `lumina-theme` from localStorage and ad
 | Admin: complaints management | ✅ |
 | Customer complaints form + my complaints | ✅ |
 | WhatsApp floating button | ✅ |
+| Zanderio AI chat widget (loaded via `next/script` in `layout.tsx`) | ✅ |
 | Newsletter signup | ✅ |
 | Jewelry category | ✅ |
 | Mobile search in navbar | ✅ |
