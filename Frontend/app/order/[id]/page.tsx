@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { CheckCircle, Package, Truck, MapPin, CreditCard, ArrowRight, Star, ExternalLink } from 'lucide-react';
+import { CheckCircle, Package, Truck, MapPin, CreditCard, ArrowRight, Star, ExternalLink, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered';
@@ -229,6 +229,12 @@ export default function OrderPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => window.print()}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-900 dark:bg-gray-800 text-white font-semibold rounded-2xl hover:bg-black transition-colors text-sm print:hidden"
+          >
+            <Printer size={15} /> Print Receipt
+          </button>
           <Link href="/products" className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-rose-200 dark:border-rose-900/40 text-[#C2185B] font-semibold rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm">
             Continue Shopping
           </Link>

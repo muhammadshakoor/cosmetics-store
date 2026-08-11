@@ -61,6 +61,8 @@ export default function ProductCard({ product }: { product: ProductType }) {
           <img
             src={product.image || `https://picsum.photos/seed/${product._id}/400/400`}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700"
             onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${product._id}/400/400`; }}
           />
@@ -123,10 +125,10 @@ export default function ProductCard({ product }: { product: ProductType }) {
             <span className="text-lg font-extrabold text-[#1A0A0E] dark:text-gray-100">Rs. {Math.round(product.price).toLocaleString()}</span>
             <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold tracking-wide ${
               product.countInStock > 5  ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400' :
-              product.countInStock > 0  ? 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400' :
+              product.countInStock > 0  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-extrabold animate-pulse' :
               'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'
             }`}>
-              {product.countInStock > 5 ? 'In Stock' : product.countInStock > 0 ? `${product.countInStock} left` : 'Sold Out'}
+              {product.countInStock > 5 ? 'In Stock' : product.countInStock > 0 ? `🔥 ${product.countInStock} left` : 'Sold Out'}
             </span>
           </div>
         </div>

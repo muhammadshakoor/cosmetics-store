@@ -8,6 +8,8 @@ import { useWishlist } from '@/context/WishlistContext';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
+import { API_URL } from '@/lib/api';
+import type { ProductType } from '@/components/ProductCard';
 
 const AVATAR_GRADIENTS = [
   'from-rose-400 to-pink-600',
@@ -57,16 +59,21 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<ProductType[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
   const router = useRouter();
   const pathname = usePathname();
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMobileOpen(false);
     setUserMenuOpen(false);
+    setShowSuggestions(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -76,19 +83,50 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSuggestions([]);
+      setIsSearching(false);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`${API_URL}/products?keyword=${encodeURIComponent(searchQuery.trim())}&limit=5`);
+        if (res.ok) {
+          const data = await res.json();
+          setSuggestions(Array.isArray(data) ? data : []);
+          setShowSuggestions(true);
+        }
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearch = (e: { preventDefault(): void }) => {
-    e.preventDefault();
+  const handleSearch = (e?: { preventDefault(): void }) => {
+    if (e) e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setShowSuggestions(false);
       setSearchQuery('');
       setMobileOpen(false);
     }
@@ -247,8 +285,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Persistent Search Bar — always visible, both mobile and desktop */}
-        <div className="border-t border-gray-100 dark:border-gray-700 py-2">
+        {/* Persistent Search Bar with Live Autocomplete */}
+        <div className="border-t border-gray-100 dark:border-gray-700 py-2 relative" ref={searchContainerRef}>
           <form onSubmit={handleSearch} className="relative">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
@@ -256,6 +294,7 @@ export default function Navbar() {
               placeholder="Search for skincare, makeup, fragrance, jewellery..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
               className="w-full pl-10 pr-14 py-2.5 text-sm border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent focus:bg-white dark:focus:bg-gray-700 transition-all"
             />
             <button
@@ -266,6 +305,49 @@ export default function Navbar() {
               <ArrowRight size={16} />
             </button>
           </form>
+
+          {/* Autocomplete Dropdown Overlay */}
+          {showSuggestions && searchQuery.trim().length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
+              {isSearching ? (
+                <div className="p-4 text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-2">
+                  <div className="w-3.5 h-3.5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                  Searching products...
+                </div>
+              ) : suggestions.length > 0 ? (
+                <div className="py-2">
+                  <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                    Suggested Products
+                  </div>
+                  {suggestions.map((item) => (
+                    <Link
+                      key={item._id}
+                      href={`/products/${item._id}`}
+                      onClick={() => { setShowSuggestions(false); setSearchQuery(''); }}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-rose-50 dark:hover:bg-gray-700/60 transition-colors"
+                    >
+                      <img src={item.image || `https://picsum.photos/seed/${item._id}/80/80`} alt={item.name} className="w-9 h-9 rounded-xl object-cover shrink-0 bg-gray-100 dark:bg-gray-700" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 capitalize">{item.category} · {item.brand}</p>
+                      </div>
+                      <span className="text-xs font-bold text-[#C2185B]">Rs. {Math.round(item.price).toLocaleString()}</span>
+                    </Link>
+                  ))}
+                  <button
+                    onClick={() => handleSearch()}
+                    className="w-full text-center py-2.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 border-t border-gray-100 dark:border-gray-700 transition-colors"
+                  >
+                    View all results for &ldquo;{searchQuery}&rdquo; →
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 text-xs text-gray-400 dark:text-gray-500 text-center">
+                  No products found matching &ldquo;{searchQuery}&rdquo;
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Mobile Nav Drawer */}

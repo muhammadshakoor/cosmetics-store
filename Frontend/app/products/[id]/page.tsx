@@ -129,12 +129,23 @@ export default function ProductDetailPage() {
               <span className="text-sm text-gray-500 dark:text-gray-400">{product.rating.toFixed(1)} ({product.numReviews} reviews)</span>
             </div>
 
-            <div className="flex items-baseline gap-3 mb-6">
+            <div className="flex items-baseline gap-3 mb-4">
               <span className="text-4xl font-black text-gray-900 dark:text-gray-100">Rs. {Math.round(product.price).toLocaleString()}</span>
-              <span className={`text-sm px-3 py-1 rounded-full font-medium ${product.countInStock > 0 ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400'}`}>
-                {product.countInStock > 0 ? `${product.countInStock} in stock` : 'Out of Stock'}
+              <span className={`text-sm px-3 py-1 rounded-full font-medium ${
+                product.countInStock > 5 ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                product.countInStock > 0 ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold' :
+                'bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400'
+              }`}>
+                {product.countInStock > 5 ? 'In Stock' : product.countInStock > 0 ? `${product.countInStock} Left!` : 'Out of Stock'}
               </span>
             </div>
+
+            {product.countInStock > 0 && product.countInStock <= 5 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-bold mb-4 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                🔥 High Demand: Only {product.countInStock} remaining in stock!
+              </p>
+            )}
 
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-8">{product.description || 'A premium cosmetic product crafted for your beauty routine.'}</p>
 
@@ -167,6 +178,25 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Sticky Mobile Purchase Bar */}
+        {product.countInStock > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 p-3 flex items-center justify-between gap-3 shadow-2xl">
+            <div>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-bold">Total Price</p>
+              <p className="text-lg font-black text-[#1A0A0E] dark:text-gray-100">Rs. {Math.round(product.price * qty).toLocaleString()}</p>
+            </div>
+            <button
+              onClick={handleAddToCart}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs transition-all ${
+                added ? 'bg-green-500 text-white' : 'bg-[#C2185B] text-white shadow-lg shadow-rose-200 dark:shadow-none'
+              }`}
+            >
+              <ShoppingCart size={14} />
+              {added ? 'Added!' : 'Add to Cart'}
+            </button>
+          </div>
+        )}
 
         {/* ── Reviews Section ── */}
         <ReviewsSection productId={id} />

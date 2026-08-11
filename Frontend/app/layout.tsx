@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} antialiased min-h-screen flex flex-col`}>
         <Providers>
           <Navbar />
-          <main className="flex-1 pt-27">
+          <main className="flex-1 pt-24 sm:pt-28">
             {children}
           </main>
           <Footer />
