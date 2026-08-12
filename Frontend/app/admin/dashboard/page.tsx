@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
@@ -35,23 +35,30 @@ const CAT_META: Record<string, { label: string; color: string }> = {
   jewelry:   { label: 'Jewellery', color: 'bg-yellow-400' },
 };
 
+const emptySubscribe = () => () => {};
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
+  const isClient = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isClient) return;
     if (!user) { router.replace('/login'); return; }
     if (!user.isAdmin) return;
     fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${user.token}` } })
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error('Failed to fetch stats');
+        return r.json();
+      })
       .then(setStats)
-      .catch(() => {})
+      .catch(() => setStats(null))
       .finally(() => setLoading(false));
-  }, [user, router]);
+  }, [user, router, isClient]);
 
-  if (!user) return null;
+  if (!isClient || !user) return null;
 
   if (!user.isAdmin) {
     return (
@@ -66,19 +73,19 @@ export default function AdminDashboard() {
     );
   }
 
-  const months = stats
+  const months = stats?.monthlyRevenue
     ? Object.entries(stats.monthlyRevenue)
         .sort((a, b) => a[0].localeCompare(b[0]))
         .slice(-6)
     : [];
   const maxMonthRevenue = Math.max(...months.map(([, v]) => v), 1);
 
-  const catEntries = stats
+  const catEntries = stats?.categoryRevenue
     ? Object.entries(stats.categoryRevenue).sort((a, b) => b[1] - a[1])
     : [];
   const maxCatRevenue = Math.max(...catEntries.map(([, v]) => v), 1);
 
-  const totalOrders = stats
+  const totalOrders = stats?.statusCounts
     ? Object.values(stats.statusCounts).reduce((s, v) => s + v, 0)
     : 0;
 
@@ -174,7 +181,7 @@ export default function AdminDashboard() {
               <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
                 <h2 className="text-lg font-bold text-[#1A0A0E] dark:text-gray-100 mb-4">Order Status</h2>
                 <div className="space-y-3">
-                  {Object.entries(stats.statusCounts).map(([status, count]) => {
+                  {Object.entries(stats.statusCounts || {}).map(([status, count]) => {
                     const cfg = STATUS_META[status] || { label: status, color: 'bg-gray-400' };
                     const pct = totalOrders > 0 ? (count / totalOrders) * 100 : 0;
                     return (
@@ -192,7 +199,7 @@ export default function AdminDashboard() {
                       </div>
                     );
                   })}
-                  {Object.keys(stats.statusCounts).length === 0 && (
+                  {Object.keys(stats.statusCounts || {}).length === 0 && (
                     <p className="text-sm text-gray-400 dark:text-gray-500">No orders yet</p>
                   )}
                 </div>
@@ -230,7 +237,7 @@ export default function AdminDashboard() {
               <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
                 <h2 className="text-lg font-bold text-[#1A0A0E] dark:text-gray-100 mb-4">Top Products</h2>
                 <div className="space-y-3">
-                  {stats.topProducts.map((p, i) => (
+                  {(stats.topProducts || []).map((p, i) => (
                     <div key={p.id} className="flex items-center gap-3">
                       <span className="text-xs font-bold text-gray-300 dark:text-gray-600 w-4 shrink-0">{i + 1}</span>
                       <img
@@ -247,7 +254,7 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                   ))}
-                  {stats.topProducts.length === 0 && (
+                  {(stats.topProducts || []).length === 0 && (
                     <p className="text-sm text-gray-400 dark:text-gray-500">No sales data yet</p>
                   )}
                 </div>
