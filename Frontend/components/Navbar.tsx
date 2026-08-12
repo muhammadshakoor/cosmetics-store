@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, BarChart2, MessageSquareWarning, ArrowRight } from 'lucide-react';
+import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, BarChart2, MessageSquareWarning, ArrowRight, Sparkles } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
+import SkinQuizModal from '@/components/SkinQuizModal';
 import { API_URL } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
 
@@ -62,6 +63,7 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState<ProductType[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -168,6 +170,12 @@ export default function Navbar() {
             <Link href="/products?category=skincare" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Skincare</Link>
             <Link href="/products?category=makeup" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Makeup</Link>
             <Link href="/products?category=jewelry" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Jewellery</Link>
+            <button
+              onClick={() => setQuizOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-linear-to-r from-rose-500 to-pink-600 text-white text-xs font-bold rounded-full shadow-sm hover:opacity-90 transition-opacity"
+            >
+              <Sparkles size={12} className="text-amber-300 animate-pulse" /> Skin Quiz
+            </button>
           </nav>
 
           {/* Right icons */}
@@ -379,6 +387,8 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      <SkinQuizModal isOpen={quizOpen} onClose={() => setQuizOpen(false)} />
     </header>
   );
 }

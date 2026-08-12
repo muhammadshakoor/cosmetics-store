@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { User, Package, ArrowRight, CheckCircle, XCircle, Truck, MapPin } from 'lucide-react';
+import { User, Package, ArrowRight, CheckCircle, XCircle, Truck, MapPin, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
@@ -57,6 +57,8 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  const beautyPoints = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + Math.floor(o.totalPrice / 100), 0);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10 px-4">
       <div className="max-w-4xl mx-auto">
@@ -68,12 +70,28 @@ export default function ProfilePage() {
             <div className="w-16 h-16 rounded-full bg-linear-to-br from-rose-400 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-md">
               <User size={28} className="text-white" />
             </div>
-            <div className="text-center mb-6">
+            <div className="text-center mb-5">
               <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{user.name}</h2>
               <p className="text-sm text-gray-400 dark:text-gray-500">{user.email}</p>
               {user.isAdmin && (
                 <span className="mt-2 inline-block text-xs px-2 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-full font-medium">Admin</span>
               )}
+            </div>
+
+            {/* Lumina Beauty Points Card */}
+            <div className="mb-6 p-4 bg-linear-to-br from-amber-50 to-rose-50 dark:from-gray-700/60 dark:to-gray-700/40 border border-amber-200/60 dark:border-gray-600 rounded-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                    <Sparkles size={12} /> Lumina Beauty Club
+                  </p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-gray-100 mt-0.5">{beautyPoints} <span className="text-xs font-normal">PTS</span></p>
+                </div>
+                <span className="text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 font-bold px-2.5 py-1 rounded-xl">
+                  Rs. {beautyPoints} Value
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 leading-tight">Earn 1 point per PKR 100 spent. Redeem points for cash discounts!</p>
             </div>
             <div className="space-y-2">
               {user.isAdmin && (
