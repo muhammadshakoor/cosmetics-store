@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Script from 'next/script';
 import './globals.css';
 import Providers from '@/components/Providers';
 import Navbar from '@/components/Navbar';
@@ -33,17 +32,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} antialiased min-h-screen flex flex-col`}>
         <Providers>
           <Navbar />
-          <main className="flex-1 pt-24 sm:pt-28">
+          <main className="flex-1 pt-[116px]">
             {children}
           </main>
           <Footer />
           <WhatsAppButton />
         </Providers>
-        <Script
-          src="https://cdn.zanderio.ai/widget/loader.js"
-          data-id="wdg_VCdfgqUPA7V4MJgnGNZ3K1lE"
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   );

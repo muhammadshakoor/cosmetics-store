@@ -21,6 +21,33 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [selectedShade, setSelectedShade] = useState('Ruby Pink');
+  const [activeTab, setActiveTab] = useState('ingredients');
+  const [restockEmail, setRestockEmail] = useState('');
+  const [notifySubmitting, setNotifySubmitting] = useState(false);
+
+  const handleRestockNotify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restockEmail.trim()) return;
+    setNotifySubmitting(true);
+    try {
+      const res = await fetch('/api/notify-restock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: restockEmail, productId: id, productName: product?.name }),
+      });
+      if (res.ok) {
+        toast.success('🎉 Registered! We will email you when back in stock.');
+        setRestockEmail('');
+      } else {
+        toast.error('Failed to register notification.');
+      }
+    } catch {
+      toast.error('Failed to register notification.');
+    } finally {
+      setNotifySubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -140,6 +167,49 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
+            {/* BNPL Installment Banner */}
+            <div className="bg-rose-50/60 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/40 rounded-2xl p-3.5 mb-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Pay in 3 Interest-Free Monthly Installments</p>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
+                  Rs. {Math.round(product.price / 3).toLocaleString()} / month with KalPay · 0% Fee
+                </p>
+              </div>
+              <span className="text-xs font-black px-2.5 py-1 bg-white dark:bg-gray-800 rounded-xl border border-rose-200 dark:border-gray-700 text-[#C2185B] shadow-xs">
+                BNPL
+              </span>
+            </div>
+
+            {/* Shade Swatch Selector */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Select Shade: <span className="text-gray-900 dark:text-gray-100 font-bold">{selectedShade}</span>
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2.5">
+                {[
+                  { name: 'Ruby Pink', hex: '#C2185B' },
+                  { name: 'Velvet Rose', hex: '#E91E63' },
+                  { name: 'Nude Peach', hex: '#F48FB1' },
+                  { name: 'Warm Terracotta', hex: '#D84315' },
+                  { name: 'Berry Plum', hex: '#880E4F' },
+                  { name: 'Golden Amber', hex: '#FFB300' },
+                ].map((s) => (
+                  <button
+                    key={s.name}
+                    type="button"
+                    onClick={() => setSelectedShade(s.name)}
+                    title={s.name}
+                    className={`w-8 h-8 rounded-full transition-all relative flex items-center justify-center ${
+                      selectedShade === s.name ? 'ring-3 ring-[#C2185B] ring-offset-2 scale-110' : 'hover:scale-105 opacity-90'
+                    }`}
+                    style={{ backgroundColor: s.hex }}
+                  />
+                ))}
+              </div>
+            </div>
+
             {product.countInStock > 0 && product.countInStock <= 5 && (
               <p className="text-xs text-amber-600 dark:text-amber-400 font-bold mb-4 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
@@ -147,9 +217,9 @@ export default function ProductDetailPage() {
               </p>
             )}
 
-            <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-8">{product.description || 'A premium cosmetic product crafted for your beauty routine.'}</p>
+            <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6 text-sm">{product.description || 'A premium cosmetic product crafted for your beauty routine.'}</p>
 
-            {product.countInStock > 0 && (
+            {product.countInStock > 0 ? (
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-2xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
                   <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-bold text-lg">−</button>
@@ -158,21 +228,69 @@ export default function ProductDetailPage() {
                 </div>
                 <button
                   onClick={handleAddToCart}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all ${
-                    added ? 'bg-green-500 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5'
+                  className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all ${
+                    added ? 'bg-green-500 text-white' : 'bg-[#C2185B] hover:bg-[#A31555] text-white shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5'
                   }`}
                 >
                   <ShoppingCart size={16} />
                   {added ? 'Added to Cart!' : 'Add to Cart'}
                 </button>
               </div>
+            ) : (
+              /* Restock Notification Form */
+              <div className="bg-amber-50/70 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-6">
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">🔔 Currently Out of Stock</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Enter your email to receive an instant alert when back in stock.</p>
+                <form onSubmit={handleRestockNotify} className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    placeholder="Enter your email"
+                    value={restockEmail}
+                    onChange={(e) => setRestockEmail(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-300"
+                  />
+                  <button
+                    type="submit"
+                    disabled={notifySubmitting}
+                    className="px-4 py-2 bg-[#1A0A0E] text-white font-bold rounded-xl text-xs hover:bg-black transition-colors disabled:opacity-50"
+                  >
+                    {notifySubmitting ? 'Submitting...' : 'Notify Me'}
+                  </button>
+                </form>
+              </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 pt-6 border-t border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            {/* Expandable Tabs Accordion */}
+            <div className="space-y-2 border-t border-gray-100 dark:border-gray-700 pt-6">
+              {[
+                { id: 'ingredients', label: '🌿 Key Active Ingredients', content: 'Formulated with 5% Niacinamide, Hyaluronic Acid (Triple Molecular Weight), Vitamin C (L-Ascorbic Acid), Organic Rosehip Seed Oil, and Plant Glycerin.' },
+                { id: 'usage', label: '📖 How to Apply', content: 'Dispense 2-3 drops onto clean fingertips. Gently press into face, neck, and décolletage in upward circular motions morning and evening before moisturizer.' },
+                { id: 'safety', label: '☪️ Safety & Certifications', content: '100% Cruelty-Free · Halal Certified Ingredients · Dermatologically Tested · Paraben, Sulfate & Mineral Oil Free.' },
+              ].map((tab) => (
+                <div key={tab.id} className="border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden bg-white dark:bg-gray-800/60">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(activeTab === tab.id ? '' : tab.id)}
+                    className="w-full flex items-center justify-between p-3.5 text-xs font-bold text-gray-800 dark:text-gray-200 hover:bg-rose-50/50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                  >
+                    <span>{tab.label}</span>
+                    <span className="text-gray-400 font-bold">{activeTab === tab.id ? '−' : '+'}</span>
+                  </button>
+                  {activeTab === tab.id && (
+                    <div className="px-4 pb-4 pt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed border-t border-gray-50 dark:border-gray-700/50">
+                      {tab.content}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-6">
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <Shield size={14} className="text-green-500" /> Secure Checkout
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <Truck size={14} className="text-blue-500" /> Free shipping Rs. 2,000+
               </div>
             </div>

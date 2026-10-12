@@ -89,22 +89,22 @@ export default function AboutPage() {
             Explore Skincare
           </Link>
           <Link
-            href="/products?category=makeup"
+            href="/products?category=soaps"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-md shadow-rose-100 dark:shadow-rose-900/20 transition-all hover:-translate-y-0.5 text-sm"
           >
-            Explore Makeup
+            Explore Handmade Soaps
+          </Link>
+          <Link
+            href="/products?category=bodycare"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-md shadow-rose-100 dark:shadow-rose-900/20 transition-all hover:-translate-y-0.5 text-sm"
+          >
+            Explore Body Care
           </Link>
           <Link
             href="/products?category=fragrance"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-md shadow-rose-100 dark:shadow-rose-900/20 transition-all hover:-translate-y-0.5 text-sm"
           >
             Explore Fragrance
-          </Link>
-          <Link
-            href="/products?category=jewelry"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 shadow-md shadow-rose-100 dark:shadow-rose-900/20 transition-all hover:-translate-y-0.5 text-sm"
-          >
-            Explore Jewellery
           </Link>
         </div>
       </section>

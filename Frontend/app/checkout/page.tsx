@@ -8,6 +8,7 @@ import { apiFetch } from '@/lib/api';
 import { MapPin, CreditCard, CheckCircle, ArrowLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import PaymentModal from '@/components/PaymentModal';
 
 type Step = 'shipping' | 'payment' | 'review';
 
@@ -25,6 +26,8 @@ export default function CheckoutPage() {
   const [ready, setReady] = useState(false);
   const [shipping, setShipping] = useState<ShippingAddress>({ address: '', city: '', postalCode: '', country: '', phone: '' });
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [txnDetails, setTxnDetails] = useState<{ method: string; transactionId: string } | null>(null);
 
   const shippingCost = totalPrice >= 2000 ? 0 : 200;
   const grandTotal = totalPrice + shippingCost;
@@ -96,6 +99,12 @@ export default function CheckoutPage() {
   const stepIndex = steps.findIndex((s) => s.key === step);
 
   const inputCls = 'w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm';
+
+  const handlePaymentSuccess = (details: { method: string; transactionId: string }) => {
+    setTxnDetails(details);
+    setPaymentMethod(`${details.method} (${details.transactionId})`);
+    setStep('review');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10 px-4">
@@ -169,14 +178,12 @@ export default function CheckoutPage() {
                 <div className="space-y-3 mb-8">
                   {[
                     { label: 'Cash on Delivery (COD)', desc: 'Pay when your order arrives', available: true },
-                    { label: 'JazzCash', desc: 'Pay via JazzCash mobile wallet', available: true },
-                    { label: 'EasyPaisa', desc: 'Pay via EasyPaisa mobile wallet', available: true },
-                    { label: 'Credit / Debit Card', desc: 'Coming soon', available: false },
+                    { label: 'JazzCash / EasyPaisa / Card', desc: 'Instant online authorization', available: true },
                   ].map(({ label, desc, available }) => (
                     <label key={label} className={`flex items-center gap-3 p-4 border-2 rounded-2xl transition-all ${
-                      paymentMethod === label ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                      paymentMethod.includes(label) || (label.includes('JazzCash') && paymentMethod !== 'Cash on Delivery (COD)') ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                     } ${!available ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
-                      <input type="radio" name="payment" value={label} disabled={!available} checked={paymentMethod === label} onChange={() => available && setPaymentMethod(label)} className="accent-rose-500" />
+                      <input type="radio" name="payment" value={label} disabled={!available} checked={paymentMethod.includes(label) || (label.includes('JazzCash') && paymentMethod !== 'Cash on Delivery (COD)')} onChange={() => available && setPaymentMethod(label)} className="accent-rose-500" />
                       <div>
                         <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{label}</p>
                         <p className="text-xs text-gray-400 dark:text-gray-500">{desc}</p>
@@ -186,7 +193,18 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setStep('shipping')} className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-medium rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Back</button>
-                  <button onClick={() => setStep('review')} className="flex-1 py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all">Review Order</button>
+                  <button
+                    onClick={() => {
+                      if (paymentMethod !== 'Cash on Delivery (COD)') {
+                        setShowPayModal(true);
+                      } else {
+                        setStep('review');
+                      }
+                    }}
+                    className="flex-1 py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
+                  >
+                    {paymentMethod === 'Cash on Delivery (COD)' ? 'Review Order' : 'Authorize Online Payment'}
+                  </button>
                 </div>
               </div>
             )}
@@ -209,8 +227,8 @@ export default function CheckoutPage() {
                 <div className="mb-5 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-1">Payment</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-200">{paymentMethod}</p>
+                      <p className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-1">Payment Method</p>
+                      <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{paymentMethod}</p>
                     </div>
                     <button onClick={() => setStep('payment')} className="text-xs text-rose-500 hover:text-rose-700 font-medium">Edit</button>
                   </div>
@@ -267,6 +285,13 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      <PaymentModal
+        isOpen={showPayModal}
+        onClose={() => setShowPayModal(false)}
+        onPaymentSuccess={handlePaymentSuccess}
+        totalAmount={grandTotal}
+      />
     </div>
   );
 }

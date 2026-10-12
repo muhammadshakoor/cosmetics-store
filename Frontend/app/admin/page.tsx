@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
-import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag, BarChart2, MessageSquareWarning } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag, BarChart2, MessageSquareWarning, Download, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -114,6 +114,24 @@ export default function AdminPage() {
     finally { setDeletingId(null); }
   };
 
+  const handleExportCSV = () => {
+    if (products.length === 0) { toast.error('No products to export'); return; }
+    const headers = ['ID', 'Name', 'Brand', 'Category', 'Price', 'Stock', 'Image', 'Description'];
+    const rows = products.map(p => [
+      `"${p._id}"`, `"${p.name.replace(/"/g, '""')}"`, `"${p.brand}"`, `"${p.category}"`,
+      p.price, p.countInStock, `"${p.image}"`, `"${(p.description || '').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `lumina_inventory_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('📊 Inventory CSV exported!');
+  };
+
   const inputCls = 'w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent';
 
   return (
@@ -124,11 +142,19 @@ export default function AdminPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Admin Panel</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your store</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your store inventory & operations</p>
           </div>
-          <button onClick={openAddForm} className="flex items-center gap-2 px-5 py-2.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl shadow-md transition-all">
-            <Plus size={16} /> Add Product
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold rounded-2xl shadow-xs transition-all text-xs"
+            >
+              <Download size={14} className="text-gray-500" /> Export CSV
+            </button>
+            <button onClick={openAddForm} className="flex items-center gap-2 px-5 py-2.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl shadow-md transition-all text-xs">
+              <Plus size={16} /> Add Product
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -288,10 +314,11 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category *</label>
                   <select required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
                     <option value="skincare">Skincare</option>
-                    <option value="makeup">Makeup</option>
-                    <option value="fragrance">Fragrance</option>
+                    <option value="soaps">Handmade Soaps</option>
+                    <option value="bodycare">Body Care</option>
                     <option value="haircare">Hair Care</option>
-                    <option value="jewelry">Jewellery</option>
+                    <option value="fragrance">Fragrance</option>
+                    <option value="makeup">Makeup</option>
                   </select>
                 </div>
               </div>

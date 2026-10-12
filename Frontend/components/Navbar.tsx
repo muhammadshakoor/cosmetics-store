@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, BarChart2, MessageSquareWarning, ArrowRight } from 'lucide-react';
+import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, BarChart2, MessageSquareWarning, ArrowRight, Sparkles } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
+import SkinQuizModal from '@/components/SkinQuizModal';
 import { API_URL } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
 
@@ -62,6 +63,7 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState<ProductType[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -166,8 +168,15 @@ export default function Navbar() {
             <Link href="/" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Home</Link>
             <Link href="/products" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Shop</Link>
             <Link href="/products?category=skincare" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Skincare</Link>
-            <Link href="/products?category=makeup" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Makeup</Link>
-            <Link href="/products?category=jewelry" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Jewellery</Link>
+            <Link href="/products?category=soaps" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Handmade Soaps</Link>
+            <Link href="/products?category=bodycare" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Body Care</Link>
+            <Link href="/products?category=haircare" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Hair Care</Link>
+            <button
+              onClick={() => setQuizOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-linear-to-r from-rose-500 to-pink-600 text-white text-xs font-bold rounded-full shadow-sm hover:opacity-90 transition-opacity"
+            >
+              <Sparkles size={12} className="text-amber-300 animate-pulse" /> Skin Quiz
+            </button>
           </nav>
 
           {/* Right icons */}
@@ -291,7 +300,7 @@ export default function Navbar() {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search for skincare, makeup, fragrance, jewellery..."
+              placeholder="Search for organic skincare, handmade soaps, body care..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
@@ -356,10 +365,10 @@ export default function Navbar() {
             <Link href="/" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Home</Link>
             <Link href="/products" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Shop All</Link>
             <Link href="/products?category=skincare" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Skincare</Link>
-            <Link href="/products?category=makeup" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Makeup</Link>
-            <Link href="/products?category=jewelry" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Jewellery</Link>
-            <Link href="/products?category=fragrance" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Fragrance</Link>
+            <Link href="/products?category=soaps" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Handmade Soaps</Link>
+            <Link href="/products?category=bodycare" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Body Care</Link>
             <Link href="/products?category=haircare" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Hair Care</Link>
+            <Link href="/products?category=fragrance" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Fragrance</Link>
             {user && (
               <>
                 <div className="border-t border-gray-100 dark:border-gray-700 my-2" />
@@ -379,6 +388,8 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      <SkinQuizModal isOpen={quizOpen} onClose={() => setQuizOpen(false)} />
     </header>
   );
 }
