@@ -14,7 +14,7 @@ export default function Footer() {
               <span className="text-xl font-extrabold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent">Lumina</span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Premium cosmetics for every skin type. Cruelty-free, halal certified, delivered across Pakistan.
+              Premium organic cosmetics and handcrafted skincare. Cruelty-free, 100% natural, halal certified, delivered across Pakistan.
             </p>
           </div>
 
@@ -24,9 +24,9 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/products" className="text-gray-600 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 transition-colors">All Products</Link></li>
               <li><Link href="/products?category=skincare" className="text-gray-600 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 transition-colors">Skincare</Link></li>
-              <li><Link href="/products?category=makeup" className="text-gray-600 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 transition-colors">Makeup</Link></li>
-              <li><Link href="/products?category=fragrance" className="text-gray-600 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 transition-colors">Fragrance</Link></li>
-              <li><Link href="/products?category=jewelry" className="text-gray-600 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 transition-colors">Jewellery</Link></li>
+              <li><Link href="/products?category=soaps" className="text-gray-600 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 transition-colors">Handmade Soaps</Link></li>
+              <li><Link href="/products?category=bodycare" className="text-gray-600 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 transition-colors">Body Care</Link></li>
+              <li><Link href="/products?category=haircare" className="text-gray-600 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400 transition-colors">Hair Care</Link></li>
             </ul>
           </div>
 

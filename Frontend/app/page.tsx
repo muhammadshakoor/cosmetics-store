@@ -7,20 +7,20 @@ import ProductCard, { type ProductType } from '@/components/ProductCard';
 import { API_URL } from '@/lib/api';
 
 const categories = [
-  { name: 'Skincare',  slug: 'skincare',  image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&h=700&fit=crop&auto=format', desc: 'Glow from within' },
-  { name: 'Makeup',    slug: 'makeup',    image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=700&fit=crop&auto=format', desc: 'Define your look' },
-  { name: 'Jewellery', slug: 'jewelry',   image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600&h=700&fit=crop&auto=format', desc: 'Shine & sparkle' },
-  { name: 'Fragrance', slug: 'fragrance', image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&h=700&fit=crop&auto=format', desc: 'Captivate & inspire' },
-  { name: 'Hair Care', slug: 'haircare',  image: 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=600&h=700&fit=crop&auto=format', desc: 'Revive & shine' },
+  { name: 'Handmade Soaps', slug: 'soaps',    image: '/products/organic/artisan-organic-soaps-collection.jpeg', desc: 'Cold-processed botanical bars' },
+  { name: 'Skincare',       slug: 'skincare', image: '/products/organic/manjistha-rose-organic-soap.jpeg',      desc: 'Pure herbal glow & care' },
+  { name: 'Body Care',      slug: 'bodycare', image: '/products/organic/homemade-almond-rose-lotion.jpeg',      desc: 'Nourishing natural lotions' },
+  { name: 'Hair Care',      slug: 'haircare', image: 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=600&h=700&fit=crop&auto=format', desc: 'Revive & shine' },
+  { name: 'Fragrance',      slug: 'fragrance',image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&h=700&fit=crop&auto=format', desc: 'Natural & therapeutic' },
 ];
 
 const testimonials = [
-  { name: 'Ayesha K.',  city: 'Lahore',   text: 'The Rose Serum transformed my skin in just 2 weeks. Delivery was fast and packaging was beautiful!',               stars: 5, product: 'Rose Petal Glow Serum' },
-  { name: 'Sana M.',    city: 'Karachi',   text: 'Finally a store with international quality! The Hydra-Boost Moisturizer is my new holy grail. Highly recommend!', stars: 5, product: 'Hydra-Boost Moisturizer' },
-  { name: 'Fatima R.',  city: 'Islamabad', text: 'Ordered the lipstick and it arrived same day. The matte formula stays on all day, absolutely love it!',            stars: 5, product: 'Velvet Matte Lipstick' },
+  { name: 'Ayesha K.',  city: 'Lahore',   text: 'The Manjistha & Rose soap cleared my blemishes and gave me a natural glow within 10 days. So gentle!', stars: 5, product: 'Manjistha & Rose Pure Organic Soap' },
+  { name: 'Sana M.',    city: 'Karachi',   text: 'The Homemade Almond & Rose Lotion is heavenly. Non-greasy, absorbs immediately, and smells like fresh roses!', stars: 5, product: 'Homemade Almond & Rose Lotion' },
+  { name: 'Fatima R.',  city: 'Islamabad', text: 'The Activated Charcoal Rose soap is my daily staple. Pores are clearer and skin feels so clean without drying!', stars: 5, product: 'Activated Charcoal Detox Rose Soap' },
 ];
 
-const marqueeItems = ['✦ FREE DELIVERY', '✦ CASH ON DELIVERY', '✦ JAZZCASH & EASYPAISA', '✦ 100% CRUELTY FREE', '✦ HALAL CERTIFIED', '✦ AUTHENTIC PRODUCTS', '✦ NATIONWIDE SHIPPING', '✦ 5-STAR REVIEWS'];
+const marqueeItems = ['✦ 100% ORGANIC INGREDIENTS', '✦ HANDMADE IN SMALL BATCHES', '✦ PARABEN & CHEMICAL FREE', '✦ FREE DELIVERY OVER PKR 2,000', '✦ CASH ON DELIVERY NATIONWIDE', '✦ 100% CRUELTY FREE & HALAL'];
 
 export default function HomePage() {
   const [products, setProducts] = useState<ProductType[]>([]);
@@ -74,13 +74,13 @@ export default function HomePage() {
             <div className="space-y-7">
               <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-rose-100 dark:border-gray-700 px-4 py-2 rounded-full shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-[#C2185B] animate-pulse" />
-                <span className="text-xs font-semibold text-[#C2185B] tracking-widest uppercase">New Spring Collection 2025</span>
+                <span className="text-xs font-semibold text-[#C2185B] tracking-widest uppercase">Pure Botanical Formulations</span>
               </div>
 
               <h1 className="text-5xl sm:text-6xl xl:text-7xl font-extrabold text-[#1A0A0E] dark:text-gray-100 leading-[1.05] tracking-tight">
-                Beauty Is Your{' '}
+                Beauty In Its{' '}
                 <span className="relative inline-block">
-                  <span className="bg-linear-to-r from-[#C2185B] to-pink-500 bg-clip-text text-transparent">Superpower</span>
+                  <span className="bg-linear-to-r from-[#C2185B] to-pink-500 bg-clip-text text-transparent">Purest Form</span>
                   <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 10" fill="none">
                     <path d="M2 7 Q75 2 150 7 Q225 12 298 7" stroke="#C2185B" strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.4"/>
                   </svg>
@@ -88,7 +88,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-lg text-gray-500 dark:text-gray-400 max-w-md leading-relaxed">
-                Premium cosmetics crafted with care — cruelty-free, halal certified, and made for every skin type. Delivered across Pakistan.
+                Handcrafted organic soaps, nourishing botanical lotions, and chemical-free skincare — crafted in small batches with pure natural ingredients. Delivered across Pakistan.
               </p>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -101,24 +101,24 @@ export default function HomePage() {
                   <Link href="/products?category=skincare" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
                     Skincare <ChevronRight size={15} />
                   </Link>
-                  <Link href="/products?category=makeup" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
-                    Makeup <ChevronRight size={15} />
+                  <Link href="/products?category=soaps" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                    Handmade Soaps <ChevronRight size={15} />
                   </Link>
-                  <Link href="/products?category=fragrance" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
-                    Fragrance <ChevronRight size={15} />
+                  <Link href="/products?category=bodycare" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                    Body Care <ChevronRight size={15} />
                   </Link>
-                  <Link href="/products?category=jewelry" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
-                    Jewellery <ChevronRight size={15} />
+                  <Link href="/products?category=haircare" className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#1A0A0E] dark:text-gray-100 font-semibold rounded-2xl shadow-md shadow-gray-200 dark:shadow-gray-900/40 border border-gray-100 dark:border-gray-700 transition-all text-sm">
+                    Hair Care <ChevronRight size={15} />
                   </Link>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 sm:flex sm:flex-wrap sm:gap-x-6">
                 {[
-                  { icon: <ShieldCheck size={14} className="text-green-600" />, text: '100% Authentic' },
-                  { icon: <Leaf size={14} className="text-green-600" />, text: 'Cruelty-Free' },
+                  { icon: <ShieldCheck size={14} className="text-green-600" />, text: '100% Organic' },
+                  { icon: <Leaf size={14} className="text-green-600" />, text: 'Chemical-Free' },
                   { icon: <Truck size={14} className="text-blue-500" />, text: 'Nationwide Delivery' },
-                  { icon: <RefreshCw size={14} className="text-purple-500" />, text: '7-Day Returns' },
+                  { icon: <RefreshCw size={14} className="text-purple-500" />, text: 'Small-Batch Artisan' },
                 ].map(({ icon, text }) => (
                   <div key={text} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium">{icon} {text}</div>
                 ))}
@@ -128,13 +128,13 @@ export default function HomePage() {
             {/* Right — Product collage */}
             <div className="relative hidden md:block h-[440px] lg:h-[520px]">
               <div className="absolute top-0 right-0 w-64 h-64 lg:w-72 lg:h-72 rounded-3xl overflow-hidden shadow-2xl shadow-rose-100 rotate-3">
-                <img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop&auto=format" alt="Serum" loading="lazy" className="w-full h-full object-cover" />
+                <img src="/products/organic/artisan-organic-soaps-collection.jpeg" alt="Handmade Organic Soaps Collection" loading="lazy" className="w-full h-full object-cover" />
               </div>
               <div className="absolute bottom-0 left-4 lg:left-8 w-56 h-56 lg:w-64 lg:h-64 rounded-3xl overflow-hidden shadow-2xl shadow-pink-100 -rotate-2">
-                <img src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop&auto=format" alt="Makeup" loading="lazy" className="w-full h-full object-cover" />
+                <img src="/products/organic/homemade-almond-rose-lotion.jpeg" alt="Homemade Botanical Lotion" loading="lazy" className="w-full h-full object-cover" />
               </div>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 lg:w-44 lg:h-44 rounded-3xl overflow-hidden shadow-xl shadow-rose-200 rotate-1 border-4 border-white dark:border-gray-800">
-                <img src="https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300&h=300&fit=crop&auto=format" alt="Moisturizer" loading="lazy" className="w-full h-full object-cover" />
+                <img src="/products/organic/manjistha-rose-organic-soap.jpeg" alt="Pure Organic Soap" loading="lazy" className="w-full h-full object-cover" />
               </div>
               <div className="absolute top-6 left-2 bg-white dark:bg-gray-800 rounded-2xl shadow-lg px-4 py-3 flex items-center gap-2 border border-rose-50 dark:border-gray-700">
                 <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} size={11} className="fill-amber-400 text-amber-400" />)}</div>
@@ -220,10 +220,10 @@ export default function HomePage() {
       <section className="py-10 sm:py-14 px-4 bg-[#FFF8F5] dark:bg-gray-950">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-5">
           {[
-            { icon: '🌿', title: 'Cruelty-Free', desc: '100% never tested on animals' },
-            { icon: '☪️', title: 'Halal Certified', desc: 'Safe and permissible ingredients' },
-            { icon: '🚚', title: 'Free Delivery', desc: 'On orders over PKR 2,000' },
-            { icon: '💳', title: 'Easy Payments', desc: 'JazzCash · EasyPaisa · COD' },
+            { icon: '🌿', title: '100% Organic', desc: 'Pure botanical oils & natural clays' },
+            { icon: '🫧', title: 'Handmade Soaps', desc: 'Cold-processed in artisan batches' },
+            { icon: '🌱', title: 'Chemical-Free', desc: 'No parabens, sulfates, or toxins' },
+            { icon: '🚚', title: 'Nationwide Delivery', desc: 'COD, JazzCash & EasyPaisa' },
           ].map(({ icon, title, desc }) => (
             <div key={title} className="bg-white dark:bg-gray-800 rounded-3xl p-6 text-center shadow-sm border border-rose-50 dark:border-gray-700 hover:shadow-md hover:-translate-y-1 transition-all">
               <div className="text-3xl mb-3">{icon}</div>

@@ -3,19 +3,195 @@ import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase';
 
 const products = [
-  { name: 'Rose Petal Glow Serum',        image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'skincare',   description: 'A luxurious facial serum infused with rose extract and hyaluronic acid. Brightens skin tone and locks in moisture for a radiant, dewy glow all day long.',    price: 2499, countInStock: 15, rating: 4.8, numReviews: 124 },
-  { name: 'Velvet Matte Lipstick',         image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'makeup',     description: 'Long-lasting matte lipstick that stays vibrant for up to 12 hours. Formulated with vitamin E to keep lips moisturized and smooth.',                          price: 1199, countInStock: 30, rating: 4.6, numReviews: 87  },
-  { name: 'Hydra-Boost Moisturizer',       image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'skincare',   description: 'Intense 72-hour hydration moisturizer with ceramides and niacinamide. Suitable for all skin types, absorbs quickly without greasiness.',                     price: 3299, countInStock: 8,  rating: 4.9, numReviews: 203 },
-  { name: 'Golden Hour Highlighter',       image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'makeup',     description: 'Buildable, blendable highlighter with a warm golden glow. Perfect for cheekbones, brow bones, and inner corners for a sun-kissed look.',                    price: 1799, countInStock: 20, rating: 4.7, numReviews: 56  },
-  { name: 'Midnight Bloom Eau de Parfum',  image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'fragrance', description: 'A captivating floral-musk fragrance with top notes of jasmine and bergamot. Long-lasting 8+ hour wear. 50ml bottle.',                                         price: 4999, countInStock: 12, rating: 4.9, numReviews: 178 },
-  { name: 'Argan Oil Hair Mask',           image: 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'haircare',  description: 'Deep conditioning hair mask with pure Moroccan argan oil. Restores shine, reduces frizz, and repairs damaged hair in just 10 minutes.',                     price: 1999, countInStock: 25, rating: 4.7, numReviews: 92  },
-  { name: 'Vitamin C Brightening Toner',   image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'skincare',   description: 'Alcohol-free toner with 10% Vitamin C and green tea extract. Evens skin tone, minimizes pores, and preps skin for serums.',                                price: 1599, countInStock: 18, rating: 4.6, numReviews: 65  },
-  { name: 'Volumizing Mascara',            image: 'https://images.unsplash.com/photo-1512207736890-6ffed8a84e8d?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'makeup',     description: 'Buildable, clump-free mascara that volumizes and lengthens lashes. Smudge-proof formula lasts all day. Removes easily with warm water.',                   price: 1099, countInStock: 40, rating: 4.5, numReviews: 134 },
-  { name: 'Pearl Drop Earrings',           image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'jewelry',    description: 'Elegant freshwater pearl drop earrings with gold-plated hooks. Lightweight and versatile — perfect for everyday wear or special occasions.',                price: 899,  countInStock: 35, rating: 4.7, numReviews: 48  },
-  { name: 'Kundan Choker Set',             image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'jewelry',    description: 'Traditional Kundan choker necklace with matching earrings. Intricate stone work set in gold-tone metal. Ideal for weddings and festive occasions.',          price: 2499, countInStock: 15, rating: 4.8, numReviews: 62  },
-  { name: 'Gold-Plated Bangles Set',       image: 'https://images.unsplash.com/photo-1573408301185-9519f94bf0a5?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'jewelry',    description: 'Set of 6 gold-plated bangles with intricate carved patterns. Tarnish-resistant coating for long-lasting shine. Available in standard Pakistani sizes.',      price: 1299, countInStock: 28, rating: 4.5, numReviews: 73  },
-  { name: 'Crystal Jhumka Earrings',       image: 'https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'jewelry',    description: 'Classic Pakistani jhumka earrings adorned with sparkling crystals and beaded tassels. Lightweight design with secure screw backs.',                          price: 999,  countInStock: 42, rating: 4.6, numReviews: 91  },
-  { name: 'Stone-Studded Ring Set',        image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop&auto=format', brand: 'Lumina', category: 'jewelry',    description: 'Set of 3 stackable rings with colourful semi-precious stones. Adjustable size fits most fingers. Mix and match for a trendy layered look.',                 price: 699,  countInStock: 50, rating: 4.4, numReviews: 38  },
+  // ── Handcrafted Organic Soaps (Real WhatsApp items) ──
+  {
+    name: 'Manjistha & Rose Pure Organic Soap',
+    image: '/products/organic/manjistha-rose-organic-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Handcrafted with Ayurvedic Manjistha root extract and cold-pressed damask rose essential oils. Naturally evens skin tone, fades pigmentation, and leaves a luminous herbal glow. 100% organic, chemical & paraben free.',
+    price: 499,
+    countInStock: 35,
+    rating: 4.9,
+    numReviews: 84
+  },
+  {
+    name: 'Activated Charcoal Detox Rose Soap',
+    image: '/products/organic/charcoal-detox-rose-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Artisan rose-carved detox bar formulated with medical-grade activated bamboo charcoal and organic tea tree oil. Deeply pulls impurities and excess oil from pores without stripping essential skin hydration.',
+    price: 450,
+    countInStock: 40,
+    rating: 4.8,
+    numReviews: 95
+  },
+  {
+    name: 'Pure Goat Milk & Coconut Pearl Rose Soap',
+    image: '/products/organic/goat-milk-coconut-rose-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Ultra-gentle nourishing rose bar handcrafted with farm-fresh goat milk and cold-pressed extra virgin coconut oil. Rich in lactic acid and vitamins A & D for soft, supple, intensely hydrated skin.',
+    price: 490,
+    countInStock: 25,
+    rating: 4.9,
+    numReviews: 110
+  },
+  {
+    name: 'Aloe Vera & Neem Soothing Rose Soap',
+    image: '/products/organic/aloe-neem-rose-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Translucent botanical green soap enriched with fresh organic aloe vera gel and antibacterial wild neem extract. Calms redness, soothes acne, and restores natural moisture balance.',
+    price: 450,
+    countInStock: 30,
+    rating: 4.7,
+    numReviews: 62
+  },
+  {
+    name: 'Raw Honey & Turmeric Glow Rose Soap',
+    image: '/products/organic/honey-turmeric-rose-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Golden amber handcrafted bar crafted with unpasteurized wild forest honey and wild kasturi turmeric. Packed with natural antioxidants to brighten dark spots and protect the skin barrier.',
+    price: 450,
+    countInStock: 35,
+    rating: 4.9,
+    numReviews: 78
+  },
+  {
+    name: 'Lavender & Wildberry Relaxing Rose Soap',
+    image: '/products/organic/lavender-berry-rose-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Artisan purple rose bar infused with French lavender essential oil and antioxidant-rich wildberry extracts. Eases tension, calms irritated skin, and promotes relaxing nighttime rejuvenation.',
+    price: 450,
+    countInStock: 28,
+    rating: 4.8,
+    numReviews: 57
+  },
+  {
+    name: 'French Rose Clay & Hibiscus Firming Soap',
+    image: '/products/organic/french-rose-clay-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Mineral-rich French pink clay bar combined with organic hibiscus flower extract. Gently clarifies, improves skin elasticity, and leaves a silky, velvety smooth texture.',
+    price: 470,
+    countInStock: 32,
+    rating: 4.7,
+    numReviews: 43
+  },
+  {
+    name: 'Sandalwood & Amber Swirl Artisan Soap',
+    image: '/products/organic/sandalwood-amber-rose-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Luxurious swirled bar combining precious sandalwood oil and warm organic amber extracts. Delivers deep moisture, reduces blemishes, and envelops the senses in a natural woody aroma.',
+    price: 520,
+    countInStock: 20,
+    rating: 4.8,
+    numReviews: 64
+  },
+  {
+    name: 'Botanical Neem & Spirulina Purifying Bar',
+    image: '/products/organic/herbal-neem-spirulina-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'Deep green botanical cleansing bar infused with spirulina microalgae and concentrated neem oil. A powerhouse purifying formula for troubled or congested skin.',
+    price: 460,
+    countInStock: 24,
+    rating: 4.6,
+    numReviews: 39
+  },
+  {
+    name: 'Coffee & Walnut Dual-Layer Scrub Bar',
+    image: '/products/organic/coffee-scrub-layer-soap.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'bodycare',
+    description: 'Two-in-one exfoliating body bar featuring finely ground Arabica coffee and crushed walnut shells on the bottom layer, topped with a creamy moisturizing herbal soap relief. Polishes away dead skin cells.',
+    price: 550,
+    countInStock: 30,
+    rating: 4.9,
+    numReviews: 91
+  },
+  {
+    name: 'Pure Almond & Rose Homemade Botanical Lotion',
+    image: '/products/organic/homemade-almond-rose-lotion.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'bodycare',
+    description: '100% natural, handcrafted lotion enriched with sweet almond oil, pure damask rose water, and organic shea butter. Lightweight, fast-absorbing formula that deeply hydrates dry skin for 48 hours without feeling sticky.',
+    price: 850,
+    countInStock: 45,
+    rating: 4.9,
+    numReviews: 132
+  },
+  {
+    name: 'Artisan Organic Soaps Collection Gift Set',
+    image: '/products/organic/artisan-organic-soaps-collection.jpeg',
+    brand: 'Lumina Botanicals',
+    category: 'soaps',
+    description: 'A luxurious gift box featuring an assortment of our signature handcrafted organic soaps — Manjistha Rose, Activated Charcoal, Goat Milk Coconut, Honey Turmeric, Lavender Berry, and Coffee Scrub.',
+    price: 2499,
+    countInStock: 15,
+    rating: 5.0,
+    numReviews: 44
+  },
+  // ── Botanical Skincare & Haircare Essentials ──
+  {
+    name: 'Rose Petal Glow Serum',
+    image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop&auto=format',
+    brand: 'Lumina Botanicals',
+    category: 'skincare',
+    description: 'A luxurious facial serum infused with organic damask rose extract and plant hyaluronic acid. Brightens skin tone and locks in moisture for a radiant, dewy glow all day long.',
+    price: 2499,
+    countInStock: 15,
+    rating: 4.8,
+    numReviews: 124
+  },
+  {
+    name: 'Hydra-Boost Botanical Moisturizer',
+    image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=400&fit=crop&auto=format',
+    brand: 'Lumina Botanicals',
+    category: 'skincare',
+    description: 'Intense 72-hour hydration moisturizer with ceramides and niacinamide. Suitable for all skin types, absorbs quickly without greasiness.',
+    price: 3299,
+    countInStock: 8,
+    rating: 4.9,
+    numReviews: 203
+  },
+  {
+    name: 'Vitamin C Brightening Herbal Toner',
+    image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop&auto=format',
+    brand: 'Lumina Botanicals',
+    category: 'skincare',
+    description: 'Alcohol-free toner with 10% Vitamin C and green tea extract. Evens skin tone, minimizes pores, and preps skin for organic serums.',
+    price: 1599,
+    countInStock: 18,
+    rating: 4.6,
+    numReviews: 65
+  },
+  {
+    name: 'Organic Moroccan Argan Hair Mask',
+    image: 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=400&h=400&fit=crop&auto=format',
+    brand: 'Lumina Botanicals',
+    category: 'haircare',
+    description: 'Deep conditioning hair mask with pure Moroccan argan oil and botanical keratin. Restores shine, reduces frizz, and repairs damaged hair in just 10 minutes.',
+    price: 1999,
+    countInStock: 25,
+    rating: 4.7,
+    numReviews: 92
+  },
+  {
+    name: 'Midnight Bloom Natural Eau de Parfum',
+    image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=400&h=400&fit=crop&auto=format',
+    brand: 'Lumina Botanicals',
+    category: 'fragrance',
+    description: 'A captivating botanical floral-musk fragrance with top notes of pure jasmine and Italian bergamot essential oils. 50ml glass flacon.',
+    price: 4999,
+    countInStock: 12,
+    rating: 4.9,
+    numReviews: 178
+  },
 ];
 
 export async function GET() {

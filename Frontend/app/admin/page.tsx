@@ -314,10 +314,11 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category *</label>
                   <select required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
                     <option value="skincare">Skincare</option>
-                    <option value="makeup">Makeup</option>
-                    <option value="fragrance">Fragrance</option>
+                    <option value="soaps">Handmade Soaps</option>
+                    <option value="bodycare">Body Care</option>
                     <option value="haircare">Hair Care</option>
-                    <option value="jewelry">Jewellery</option>
+                    <option value="fragrance">Fragrance</option>
+                    <option value="makeup">Makeup</option>
                   </select>
                 </div>
               </div>

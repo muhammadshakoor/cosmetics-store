@@ -1,7 +1,9 @@
 'use client';
 
-const PHONE = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '923001234567';
-const MESSAGE = encodeURIComponent('Hi! I have a question about Lumina Cosmetics.');
+const rawPhone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '923157320217';
+const cleanPhone = rawPhone.replace(/\D/g, '');
+const PHONE = cleanPhone.startsWith('0') ? '92' + cleanPhone.slice(1) : (cleanPhone || '923157320217');
+const MESSAGE = encodeURIComponent('Hi! I have a question about Lumina Organic Cosmetics.');
 
 export default function WhatsAppButton() {
   const href = `https://wa.me/${PHONE}?text=${MESSAGE}`;

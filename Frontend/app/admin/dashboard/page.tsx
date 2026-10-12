@@ -28,11 +28,12 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 };
 
 const CAT_META: Record<string, { label: string; color: string }> = {
-  skincare:  { label: 'Skincare',  color: 'bg-emerald-400' },
-  makeup:    { label: 'Makeup',    color: 'bg-pink-400' },
-  fragrance: { label: 'Fragrance', color: 'bg-purple-400' },
-  haircare:  { label: 'Hair Care', color: 'bg-amber-400' },
-  jewelry:   { label: 'Jewellery', color: 'bg-yellow-400' },
+  skincare:  { label: 'Skincare',       color: 'bg-emerald-400' },
+  soaps:     { label: 'Handmade Soaps', color: 'bg-rose-400' },
+  bodycare:  { label: 'Body Care',      color: 'bg-teal-400' },
+  haircare:  { label: 'Hair Care',      color: 'bg-amber-400' },
+  fragrance: { label: 'Fragrance',      color: 'bg-purple-400' },
+  makeup:    { label: 'Makeup',         color: 'bg-pink-400' },
 };
 
 const emptySubscribe = () => () => {};

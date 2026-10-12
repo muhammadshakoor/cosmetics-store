@@ -2,11 +2,18 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Filter, Search, X } from 'lucide-react';
+import { Filter, Search, X, ChevronDown } from 'lucide-react';
 import ProductCard, { type ProductType } from '@/components/ProductCard';
 import { API_URL } from '@/lib/api';
 
-const CATEGORIES = ['All', 'Skincare', 'Makeup', 'Fragrance', 'Hair Care', 'Jewelry'];
+const CATEGORIES = [
+  { label: 'All', value: 'All' },
+  { label: 'Skincare', value: 'skincare' },
+  { label: 'Handmade Soaps', value: 'soaps' },
+  { label: 'Body Care', value: 'bodycare' },
+  { label: 'Hair Care', value: 'haircare' },
+  { label: 'Fragrance', value: 'fragrance' },
+];
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -80,16 +87,19 @@ function ProductsContent() {
           </div>
 
           <div className="flex items-center gap-3">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as any)}
-              className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-300 shadow-sm"
-            >
-              <option value="newest">Sort: Newest</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="rating">Top Rated</option>
-            </select>
+            <div className="relative">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as any)}
+                className="appearance-none pl-4 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-semibold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-300 shadow-sm cursor-pointer"
+              >
+                <option value="newest">Sort: Newest</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="rating">Top Rated</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            </div>
 
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -105,15 +115,15 @@ function ProductsContent() {
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => (
               <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
+                key={cat.value}
+                onClick={() => setActiveCategory(cat.value)}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  activeCategory === cat
+                  activeCategory.toLowerCase() === cat.value.toLowerCase()
                     ? 'bg-rose-500 text-white shadow-md shadow-rose-200'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-rose-300 hover:text-rose-600'
                 }`}
               >
-                {cat}
+                {cat.label}
               </button>
             ))}
           </div>
