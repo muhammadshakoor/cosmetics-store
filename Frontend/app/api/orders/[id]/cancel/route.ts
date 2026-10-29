@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
+import { getLocalProductById, updateLocalProduct } from '@/lib/localProducts';
 
 export async function PUT(
   request: NextRequest,
@@ -50,6 +51,9 @@ export async function PUT(
         await supabase.from('Product')
           .update({ countInStock: product.countInStock + item.qty })
           .eq('id', item.productId);
+      } else {
+        const local = getLocalProductById(item.productId);
+        if (local) updateLocalProduct(item.productId, { countInStock: local.countInStock + item.qty });
       }
     }
 

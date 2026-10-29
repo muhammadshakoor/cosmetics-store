@@ -161,9 +161,13 @@ Frontend/
 │   └── ThemeContext.tsx        # theme toggle, localStorage persistence
 │
 └── lib/
-    ├── auth.ts                 # signToken(), getAuthUser(), toClient()
+    ├── auth.ts                 # signToken(), getAuthUser(), toClient(), RESET_TOKEN_PREFIX
     ├── supabase.ts             # Supabase client (server-side)
     ├── api.ts                  # Client-side fetch helpers
+    ├── site.ts                 # Contact details (WhatsApp/phone/email), shipping constants, safeRedirectPath()
+    ├── email.ts                # sendEmail() via Resend + escapeHtml() — escape ALL user input in emails
+    ├── coupons.ts              # evaluateCoupon() — server-side source of truth for discounts
+    ├── localProducts.ts        # Fallback product catalog (data/products.json) when Supabase is unavailable
     └── theme.ts                # Brand color palette + semantic tokens
 ```
 
@@ -194,9 +198,8 @@ CREATE TABLE "User" (
 ## Navbar — Current Features
 - Sticky, scrolled state (shadow deepens on scroll)
 - Logo → Home
-- Desktop nav links: Home, Shop, Skincare, Makeup, Jewellery
-- Desktop search bar (expandable input with Search icon)
-- **Mobile search**: Search icon in navbar → expands full-width search bar below header row; auto-focuses input; closes on route change or X button
+- Desktop nav (shown from `lg`): Home, Shop, Skincare, Handmade Soaps, Body Care, Hair Care, Skin Quiz button
+- Persistent search bar under the header row on all screen sizes, with live product suggestions
 - Theme toggle (sun/moon)
 - Wishlist icon with badge count
 - Cart icon with badge count
@@ -204,8 +207,9 @@ CREATE TABLE "User" (
   - **With picture**: shows `<img>` (Google/Facebook photo), `referrerPolicy="no-referrer"`
   - **Without picture**: colored gradient initials circle (gradient chosen by `name.charCodeAt(0)`)
   - Dropdown shows: profile header (avatar + full name + email), My Profile, Admin links (if admin), My Complaints / Submit Complaint (if customer), Sign out
-- Mobile hamburger → drawer with all nav links + user profile section
-- Closing behavior: mobile menu, mobile search, and user dropdown all close on route change
+- Hamburger (below `lg`) → drawer with nav links, Skin Quiz, account links, Sign in/out
+- Closing behavior: menus close on route change, on Escape, and the mobile drawer on any link tap (query-only navigations don't change the pathname)
+- `UserAvatar` lives in `components/UserAvatar.tsx` (also used on the profile page)
 
 ### Avatar Gradient Palette
 8 gradients assigned by `name.charCodeAt(0) % 8`:
@@ -262,11 +266,11 @@ Blocking inline script in `<head>` reads `lumina-theme` from localStorage and ad
 | Cart (add/remove/qty, persisted) | ✅ |
 | Coupon system (percent/flat, usage limits, expiry) | ✅ |
 | Wishlist (add/remove, badge count) | ✅ |
-| Checkout (3-step: address → payment → review) | ✅ |
+| Checkout (3-step: address → payment → review); COD or JazzCash/EasyPaisa transfer (details sent via WhatsApp) | ✅ |
 | Order tracking with courier timeline | ✅ |
 | User auth (register, login, logout) | ✅ |
 | Email verification (Resend emails) | ✅ |
-| Forgot password | ✅ |
+| Forgot / reset password (`/forgot-password` → email → `/reset-password?token=reset_…`) | ✅ |
 | Google OAuth | ✅ |
 | Facebook OAuth | ✅ |
 | Remember me (localStorage vs sessionStorage) | ✅ |
@@ -280,10 +284,10 @@ Blocking inline script in `<head>` reads `lumina-theme` from localStorage and ad
 | Admin: complaints management | ✅ |
 | Customer complaints form + my complaints | ✅ |
 | WhatsApp floating button | ✅ |
-| Zanderio AI chat widget (loaded via `next/script` in `layout.tsx`) | ✅ |
-| Newsletter signup | ✅ |
-| Jewelry category | ✅ |
-| Mobile search in navbar | ✅ |
+| Skin Quiz (recommends real catalog products by skin type + goal) | ✅ |
+| Contact form (`/api/contact`, emails CONTACT_EMAIL/ADMIN_EMAIL; WhatsApp fallback) | ✅ |
+| Newsletter signup (forwards sign-ups to the store inbox) | ✅ |
+| Guest wishlist (localStorage, merged into the account on sign-in) | ✅ |
 | User avatar (gradient initials + profile photo) | ✅ |
 
 ---
@@ -301,7 +305,10 @@ GOOGLE_CLIENT_SECRET=...
 FACEBOOK_APP_ID=...
 FACEBOOK_APP_SECRET=...
 RESEND_API_KEY=...
-NEXT_PUBLIC_WHATSAPP_NUMBER=...
+RESEND_FROM_EMAIL=...            # optional sender, e.g. "Lumina <orders@yourdomain.pk>"
+ADMIN_EMAIL=...                  # receives new-order, complaint, contact and newsletter emails
+CONTACT_EMAIL=...                # optional; overrides ADMIN_EMAIL for contact/newsletter
+NEXT_PUBLIC_WHATSAPP_NUMBER=923157320217   # defaults to this in lib/site.ts
 ```
 
 ### Backend (`.env`)
@@ -312,6 +319,13 @@ PORT=5000
 ```
 
 ---
+
+## Security Rules
+- **Never trust prices from the client.** `POST /api/orders` accepts only product IDs, quantities, address, phone, payment choice and coupon code; it re-prices from the catalog, checks stock and re-validates the coupon via `evaluateCoupon()`.
+- `?redirect=` values must go through `safeRedirectPath()` (prevents open redirects like `//evil.com`).
+- Password-reset tokens share `User.verifyToken` but are prefixed `reset_`; `/api/users/verify` rejects them.
+- Wrap all user-supplied text in `escapeHtml()` before putting it into an email.
+- No fake features: don't show payment options, discounts or loyalty points that the backend doesn't actually implement.
 
 ## Dev Notes
 - All pages use `'use client'` directive (client components only — no RSC data fetching)

@@ -43,3 +43,7 @@ export function toClient<T extends { id: string }>(obj: T) {
   const { id, ...rest } = obj;
   return { _id: id, ...rest };
 }
+
+// Password-reset tokens share the User.verifyToken column; this prefix keeps them
+// from ever being accepted as email-verification links (which log the user in).
+export const RESET_TOKEN_PREFIX = 'reset_';

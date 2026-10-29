@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { safeRedirectPath, rememberPostLoginRedirect } from '@/lib/site';
 import type { User } from '@/context/AuthContext';
 import { Mail, RefreshCw, Sparkles, ShieldCheck, Truck, Star, Eye, EyeOff } from 'lucide-react';
 
@@ -29,14 +30,14 @@ function BrandPanel() {
           <span className="text-rose-200">Confidence</span>
         </h2>
         <p className="text-white/70 text-base leading-relaxed mb-10 max-w-xs">
-          Discover premium halal-certified cosmetics crafted for every skin tone. Delivered across Pakistan with love.
+          Handmade organic soaps, botanical lotions and chemical-free skincare — crafted in small batches and delivered across Pakistan.
         </p>
         <div className="space-y-4">
           {[
-            { icon: <Sparkles size={16} />, text: 'Halal certified & cruelty-free formulas' },
-            { icon: <ShieldCheck size={16} />, text: '100% authentic products, guaranteed' },
-            { icon: <Truck size={16} />, text: 'Fast delivery across Pakistan' },
-            { icon: <Star size={16} />, text: 'Loved by 10,000+ happy customers' },
+            { icon: <Sparkles size={16} />, text: '100% organic, halal & cruelty-free' },
+            { icon: <ShieldCheck size={16} />, text: 'Track every order from your account' },
+            { icon: <Truck size={16} />, text: 'Cash on Delivery nationwide' },
+            { icon: <Star size={16} />, text: 'Handmade in small batches' },
           ].map(({ icon, text }) => (
             <div key={text} className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-white shrink-0">{icon}</div>
@@ -51,9 +52,9 @@ function BrandPanel() {
           {[1,2,3,4,5].map(i => <Star key={i} size={12} className="fill-amber-300 text-amber-300" />)}
         </div>
         <p className="text-white/90 text-sm italic leading-relaxed">
-          &ldquo;Lumina changed my skincare routine completely. The products are amazing and delivery was super fast!&rdquo;
+          &ldquo;The Manjistha &amp; Rose soap cleared my blemishes and gave me a natural glow within 10 days. So gentle!&rdquo;
         </p>
-        <p className="text-white/60 text-xs mt-2 font-medium">— Ayesha R., Lahore</p>
+        <p className="text-white/60 text-xs mt-2 font-medium">— Ayesha K., Lahore</p>
       </div>
     </div>
   );
@@ -81,10 +82,10 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, login } = useAuth();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = safeRedirectPath(searchParams.get('redirect'));
 
   useEffect(() => {
-    if (user) router.push(`/${redirect}`);
+    if (user) router.push(redirect);
   }, [user, router, redirect]);
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
@@ -104,7 +105,7 @@ function LoginForm() {
         throw new Error(data.message || 'Login failed');
       }
       login(data as User, rememberMe);
-      router.push(`/${redirect}`);
+      router.push(redirect);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -127,13 +128,13 @@ function LoginForm() {
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 mb-1 text-center">Welcome back</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 text-center">
             Don&apos;t have an account?{' '}
-            <Link href={`/register${redirect !== '/' ? `?redirect=${redirect}` : ''}`} className="text-rose-600 hover:text-rose-700 font-semibold">
+            <Link href={`/register${redirect !== '/' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-rose-600 hover:text-rose-700 font-semibold">
               Sign up free
             </Link>
           </p>
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm mb-5">
+            <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm mb-5">
               {error}
             </div>
           )}
@@ -155,7 +156,7 @@ function LoginForm() {
 
           {/* Social */}
           <div className="space-y-3 mb-6">
-            <a href="/api/auth/google" className="flex items-center justify-center gap-3 w-full py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+            <a href="/api/auth/google" onClick={() => rememberPostLoginRedirect(redirect)} className="flex items-center justify-center gap-3 w-full py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
                 <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
@@ -164,7 +165,7 @@ function LoginForm() {
               </svg>
               Continue with Google
             </a>
-            <a href="/api/auth/facebook" className="flex items-center justify-center gap-3 w-full py-2.5 bg-[#1877F2] hover:bg-[#166FE5] rounded-2xl text-sm font-semibold text-white transition-all">
+            <a href="/api/auth/facebook" onClick={() => rememberPostLoginRedirect(redirect)} className="flex items-center justify-center gap-3 w-full py-2.5 bg-[#1877F2] hover:bg-[#166FE5] rounded-2xl text-sm font-semibold text-white transition-all">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                 <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.887v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073Z"/>
               </svg>
@@ -180,19 +181,19 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
-              <input
-                type="email" required value={email}
+              <label htmlFor="login-email-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
+              <input id="login-email-address"
+                type="email" required autoComplete="email" value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@gmail.com"
                 className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
+              <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
               <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'} required value={password}
+                <input id="login-password"
+                  type={showPassword ? 'text' : 'password'} required autoComplete="current-password" value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-4 py-3 pr-11 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
@@ -201,7 +202,8 @@ function LoginForm() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -218,7 +220,7 @@ function LoginForm() {
             </div>
             <button
               type="submit" disabled={loading}
-              className="w-full py-3 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed mt-1"
+              className="w-full py-3 bg-[#C2185B] hover:bg-[#A31555] disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 dark:hover:shadow-none hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed mt-1"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>

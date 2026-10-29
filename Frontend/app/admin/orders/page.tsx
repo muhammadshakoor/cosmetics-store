@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { ArrowLeft, Package, CheckCircle, Clock, Truck, Search, X, ChevronDown, ChevronUp, MapPin, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered';
+type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
 type FilterStatus = 'all' | OrderStatus;
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
@@ -17,6 +17,7 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: str
   picked_up:  { label: 'Picked Up',        color: 'text-amber-700 dark:text-amber-400',  bg: 'bg-amber-50 dark:bg-amber-900/30' },
   on_the_way: { label: 'Out for Delivery', color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30' },
   delivered:  { label: 'Delivered',        color: 'text-green-700 dark:text-green-400',  bg: 'bg-green-50 dark:bg-green-900/30' },
+  cancelled:  { label: 'Cancelled',        color: 'text-red-700 dark:text-red-400',      bg: 'bg-red-50 dark:bg-red-900/30' },
 };
 
 const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = { placed: 'confirmed', confirmed: 'picked_up', picked_up: 'on_the_way', on_the_way: 'delivered' };
@@ -33,6 +34,7 @@ interface Order {
   _id: string; user?: { name: string; email: string };
   orderItems: OrderItem[]; address: string; city: string; postalCode: string; country: string;
   paymentMethod: string; itemsPrice: number; taxPrice: number; shippingPrice: number; totalPrice: number;
+  phone?: string | null; discountAmount?: number; couponCode?: string | null;
   isDelivered: boolean; status: OrderStatus; trackingNumber?: string; courierService?: string;
   deliveredAt?: string; createdAt: string;
 }
@@ -64,7 +66,7 @@ export default function AdminOrdersPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) { router.replace('/login'); return; }
+    if (!user) { router.replace('/login?redirect=admin/orders'); return; }
     if (!user.isAdmin) { router.replace('/'); return; }
     fetchOrders();
   }, [user, router, fetchOrders]);
@@ -96,12 +98,15 @@ export default function AdminOrdersPage() {
   };
 
   const filtered = orders.filter(o => {
-    const matchesSearch = o._id.toLowerCase().includes(search.toLowerCase()) || (o.user?.name || '').toLowerCase().includes(search.toLowerCase()) || (o.user?.email || '').toLowerCase().includes(search.toLowerCase()) || o.city.toLowerCase().includes(search.toLowerCase());
+    const q = search.trim().toLowerCase();
+    const matchesSearch = !q || [o._id, o.user?.name, o.user?.email, o.city, o.phone].some((v) => (v || '').toLowerCase().includes(q));
     return matchesSearch && (filter === 'all' || o.status === filter);
   });
 
   const totalRevenue = orders.reduce((s, o) => s + o.totalPrice, 0);
-  const counts = { placed: orders.filter(o => o.status === 'placed').length, confirmed: orders.filter(o => o.status === 'confirmed').length, picked_up: orders.filter(o => o.status === 'picked_up').length, on_the_way: orders.filter(o => o.status === 'on_the_way').length, delivered: orders.filter(o => o.status === 'delivered').length };
+  const counts = Object.fromEntries(
+    (Object.keys(STATUS_CONFIG) as OrderStatus[]).map((st) => [st, orders.filter(o => o.status === st).length])
+  ) as Record<OrderStatus, number>;
 
   if (!user?.isAdmin) return null;
 
@@ -122,7 +127,7 @@ export default function AdminOrdersPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
           {(Object.entries(STATUS_CONFIG) as [OrderStatus, typeof STATUS_CONFIG[OrderStatus]][]).map(([status, cfg]) => (
             <button key={status} onClick={() => setFilter(filter === status ? 'all' : status)}
               className={`p-4 rounded-2xl border text-left transition-all ${filter === status ? 'border-[#C2185B] shadow-md bg-white dark:bg-gray-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 shadow-sm hover:border-rose-200 dark:hover:border-rose-900/40'}`}>
@@ -136,11 +141,11 @@ export default function AdminOrdersPage() {
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" value={search} placeholder="Search by order ID, customer or city..."
+            <input type="text" value={search} placeholder="Search by order ID, customer, phone or city..." aria-label="Search orders"
               onChange={e => setSearch(e.target.value)}
               className={`w-full pl-10 pr-10 py-3 ${inputCls} rounded-2xl text-sm shadow-sm`}
             />
-            {search && <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"><X size={14} /></button>}
+            {search && <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"><X size={14} /></button>}
           </div>
         </div>
 
@@ -154,7 +159,7 @@ export default function AdminOrdersPage() {
         ) : (
           <div className="space-y-3">
             {filtered.map(order => {
-              const cfg = STATUS_CONFIG[order.status || 'placed'];
+              const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.placed;
               const nextAction = NEXT_ACTION[order.status];
               const trackUrl = order.courierService && order.trackingNumber ? (COURIER_LINKS[order.courierService] || '') + order.trackingNumber : null;
 
@@ -225,13 +230,28 @@ export default function AdminOrdersPage() {
                           <div>
                             <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Ship To</p>
                             <p className="text-sm font-semibold text-[#1A0A0E] dark:text-gray-100">{order.user?.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{order.address}, {order.city} {order.postalCode}, {order.country}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{[order.address, order.city, order.postalCode, order.country].filter(Boolean).join(', ')}</p>
+                            {order.phone && (
+                              <p className="text-xs mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <a href={`tel:${order.phone.replace(/[^\d+]/g, '')}`} className="font-semibold text-[#1A0A0E] dark:text-gray-100 hover:text-[#C2185B]">📞 {order.phone}</a>
+                                <a
+                                  href={`https://wa.me/${order.phone.replace(/\D/g, '').replace(/^0/, '92')}?text=${encodeURIComponent(`Hi ${order.user?.name || ''}! This is Lumina about your order #${order._id.slice(-8).toUpperCase()}.`)}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="font-semibold text-[#128C7E] dark:text-[#25D366] hover:underline"
+                                >
+                                  WhatsApp customer
+                                </a>
+                              </p>
+                            )}
                           </div>
                           <div>
                             <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Price</p>
                             <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
                               <div className="flex justify-between"><span>Items</span><span>Rs. {Math.round(order.itemsPrice || 0).toLocaleString()}</span></div>
                               <div className="flex justify-between"><span>Shipping</span><span>{order.shippingPrice === 0 ? 'FREE' : `Rs. ${Math.round(order.shippingPrice || 0).toLocaleString()}`}</span></div>
+                              {(order.discountAmount || 0) > 0 && (
+                                <div className="flex justify-between text-green-600 dark:text-green-400"><span>Discount{order.couponCode ? ` (${order.couponCode})` : ''}</span><span>-Rs. {Math.round(order.discountAmount || 0).toLocaleString()}</span></div>
+                              )}
                               <div className="flex justify-between font-bold text-[#1A0A0E] dark:text-gray-100 text-sm border-t border-gray-200 dark:border-gray-600 pt-1 mt-1"><span>Total</span><span>Rs. {Math.round(order.totalPrice).toLocaleString()}</span></div>
                             </div>
                           </div>
@@ -258,14 +278,14 @@ export default function AdminOrdersPage() {
             </p>
             <form onSubmit={handleCourierSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Courier Service *</label>
-                <select value={selectedCourier} onChange={e => setSelectedCourier(e.target.value)} className={`w-full px-4 py-3 rounded-2xl text-sm ${inputCls}`}>
+                <label htmlFor="orders-courier-service" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Courier Service *</label>
+                <select id="orders-courier-service" value={selectedCourier} onChange={e => setSelectedCourier(e.target.value)} className={`w-full px-4 py-3 rounded-2xl text-sm ${inputCls}`}>
                   {COURIERS.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tracking Number <span className="text-gray-400">(optional)</span></label>
+                  <label htmlFor="orders-tracking-number" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tracking Number <span className="text-gray-400">(optional)</span></label>
                   <button
                     type="button"
                     onClick={() => {
@@ -279,7 +299,7 @@ export default function AdminOrdersPage() {
                     ⚡ Auto-Book Shipment
                   </button>
                 </div>
-                <input type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="e.g. PX123456789" className={`w-full px-4 py-3 rounded-2xl text-sm font-mono ${inputCls}`} />
+                <input id="orders-tracking-number" type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="e.g. PX123456789" className={`w-full px-4 py-3 rounded-2xl text-sm font-mono ${inputCls}`} />
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Customer will see this and can click to track on courier website.</p>
               </div>
               <div className="flex gap-3 pt-1">

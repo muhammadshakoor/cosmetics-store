@@ -11,46 +11,16 @@ import ThemeToggle from '@/components/ThemeToggle';
 import SkinQuizModal from '@/components/SkinQuizModal';
 import { API_URL } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
+import UserAvatar from '@/components/UserAvatar';
 
-const AVATAR_GRADIENTS = [
-  'from-rose-400 to-pink-600',
-  'from-violet-400 to-purple-600',
-  'from-blue-400 to-indigo-600',
-  'from-teal-400 to-emerald-600',
-  'from-amber-400 to-orange-500',
-  'from-fuchsia-400 to-rose-500',
-  'from-sky-400 to-blue-600',
-  'from-green-400 to-teal-600',
+const NAV_LINKS = [
+  { href: '/products?category=skincare', label: 'Skincare' },
+  { href: '/products?category=soaps', label: 'Handmade Soaps' },
+  { href: '/products?category=bodycare', label: 'Body Care' },
+  { href: '/products?category=haircare', label: 'Hair Care' },
 ];
 
-function UserAvatar({ name, picture, size = 'sm' }: { name: string; picture?: string; size?: 'sm' | 'md' }) {
-  const initials = name
-    .split(' ')
-    .filter(Boolean)
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-  const gradient = AVATAR_GRADIENTS[name.charCodeAt(0) % AVATAR_GRADIENTS.length];
-  const sz = size === 'md' ? 'w-10 h-10 text-sm' : 'w-7 h-7 text-xs';
-
-  if (picture) {
-    return (
-      <img
-        src={picture}
-        alt={name}
-        referrerPolicy="no-referrer"
-        className={`${sz} rounded-full object-cover shrink-0 shadow-sm ring-2 ring-white/30`}
-      />
-    );
-  }
-
-  return (
-    <div className={`${sz} bg-linear-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm select-none leading-none`}>
-      {initials}
-    </div>
-  );
-}
+const MOBILE_LINK_CLS = 'block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl';
 
 export default function Navbar() {
   const { itemCount } = useCart();
@@ -112,6 +82,17 @@ export default function Navbar() {
   }, [searchQuery]);
 
   useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setUserMenuOpen(false);
+      setShowSuggestions(false);
+      setMobileOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
@@ -137,8 +118,16 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setUserMenuOpen(false);
+    setMobileOpen(false);
     router.push('/');
   };
+
+  const desktopLinkCls = (active: boolean) =>
+    `text-sm font-medium transition-colors whitespace-nowrap ${
+      active
+        ? 'text-[#C2185B] dark:text-rose-400'
+        : 'text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400'
+    }`;
 
   return (
     <header
@@ -164,18 +153,18 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Home</Link>
-            <Link href="/products" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Shop</Link>
-            <Link href="/products?category=skincare" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Skincare</Link>
-            <Link href="/products?category=soaps" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Handmade Soaps</Link>
-            <Link href="/products?category=bodycare" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Body Care</Link>
-            <Link href="/products?category=haircare" className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Hair Care</Link>
+          <nav aria-label="Main" className="hidden lg:flex items-center gap-6">
+            <Link href="/" aria-current={pathname === '/' ? 'page' : undefined} className={desktopLinkCls(pathname === '/')}>Home</Link>
+            <Link href="/products" aria-current={pathname === '/products' ? 'page' : undefined} className={desktopLinkCls(pathname === '/products')}>Shop</Link>
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link key={href} href={href} className={desktopLinkCls(false)}>{label}</Link>
+            ))}
             <button
+              type="button"
               onClick={() => setQuizOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-linear-to-r from-rose-500 to-pink-600 text-white text-xs font-bold rounded-full shadow-sm hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-linear-to-r from-rose-500 to-pink-600 text-white text-xs font-bold rounded-full shadow-sm hover:opacity-90 transition-opacity whitespace-nowrap"
             >
-              <Sparkles size={12} className="text-amber-300 animate-pulse" /> Skin Quiz
+              <Sparkles size={12} className="text-amber-300" aria-hidden="true" /> Skin Quiz
             </button>
           </nav>
 
@@ -184,8 +173,11 @@ export default function Navbar() {
             <ThemeToggle />
 
             {/* Wishlist */}
-            <Link href="/wishlist" className="relative p-1.5 sm:p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
-              <Heart size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
+            <Link
+              href="/wishlist"
+              aria-label={mounted && wishlistCount > 0 ? `Wishlist, ${wishlistCount} items` : 'Wishlist'}
+              className="relative p-1.5 sm:p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
+              <Heart size={20} aria-hidden="true" className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
               {mounted && wishlistCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
                   {wishlistCount > 9 ? '9+' : wishlistCount}
@@ -194,8 +186,11 @@ export default function Navbar() {
             </Link>
 
             {/* Cart */}
-            <Link href="/cart" className="relative p-1.5 sm:p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
-              <ShoppingBag size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
+            <Link
+              href="/cart"
+              aria-label={itemCount > 0 ? `Cart, ${itemCount} items` : 'Cart'}
+              className="relative p-1.5 sm:p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
+              <ShoppingBag size={20} aria-hidden="true" className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
               {itemCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
                   {itemCount > 9 ? '9+' : itemCount}
@@ -210,6 +205,9 @@ export default function Navbar() {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-label="Account menu"
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
                   className="flex items-center gap-2 p-1.5 sm:pr-3 rounded-full bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
                 >
                   <UserAvatar name={user.name} picture={user.picture} />
@@ -276,6 +274,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
+                aria-label="Sign in"
                 className="flex items-center gap-1.5 px-4 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium rounded-full transition-colors shadow-sm"
               >
                 <User size={14} />
@@ -285,7 +284,10 @@ export default function Navbar() {
 
             {/* Hamburger */}
             <button
-              className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              type="button"
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-menu"
+              className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -297,10 +299,12 @@ export default function Navbar() {
         {/* Persistent Search Bar with Live Autocomplete */}
         <div className="border-t border-gray-100 dark:border-gray-700 py-2 relative" ref={searchContainerRef}>
           <form onSubmit={handleSearch} className="relative">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Search size={16} aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search for organic skincare, handmade soaps, body care..."
+              aria-label="Search products"
+              autoComplete="off"
+              placeholder="Search soaps, skincare, body care..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
@@ -361,17 +365,28 @@ export default function Navbar() {
 
         {/* Mobile Nav Drawer */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-gray-100 dark:border-gray-700 py-3 space-y-1 pb-4">
-            <Link href="/" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Home</Link>
-            <Link href="/products" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Shop All</Link>
-            <Link href="/products?category=skincare" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Skincare</Link>
-            <Link href="/products?category=soaps" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Handmade Soaps</Link>
-            <Link href="/products?category=bodycare" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Body Care</Link>
-            <Link href="/products?category=haircare" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Hair Care</Link>
-            <Link href="/products?category=fragrance" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Fragrance</Link>
-            {user && (
+          <nav
+            id="mobile-menu"
+            aria-label="Mobile"
+            // Close on any link tap — query-only navigations (e.g. ?category=) don't change the pathname
+            onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setMobileOpen(false); }}
+            className="lg:hidden border-t border-gray-100 dark:border-gray-700 py-3 space-y-1 pb-4 max-h-[calc(100dvh-116px)] overflow-y-auto">
+            <Link href="/" className={MOBILE_LINK_CLS}>Home</Link>
+            <Link href="/products" className={MOBILE_LINK_CLS}>Shop All</Link>
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link key={href} href={href} className={MOBILE_LINK_CLS}>{label}</Link>
+            ))}
+            <Link href="/products?category=fragrance" className={MOBILE_LINK_CLS}>Fragrance</Link>
+            <button
+              type="button"
+              onClick={() => { setMobileOpen(false); setQuizOpen(true); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-[#C2185B] dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl"
+            >
+              <Sparkles size={14} aria-hidden="true" /> Take the Skin Quiz
+            </button>
+            <div className="border-t border-gray-100 dark:border-gray-700 my-2" />
+            {mounted && user ? (
               <>
-                <div className="border-t border-gray-100 dark:border-gray-700 my-2" />
                 <div className="flex items-center gap-3 px-3 py-2">
                   <UserAvatar name={user.name} picture={user.picture} size="md" />
                   <div className="min-w-0">
@@ -379,13 +394,31 @@ export default function Navbar() {
                     <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{user.email}</p>
                   </div>
                 </div>
-                <Link href="/profile" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">My Profile</Link>
-                {user.isAdmin && (
-                  <Link href="/admin" className="block px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Admin Panel</Link>
+                <Link href="/profile" className={MOBILE_LINK_CLS}>My Profile &amp; Orders</Link>
+                <Link href="/wishlist" className={MOBILE_LINK_CLS}>Wishlist</Link>
+                {user.isAdmin ? (
+                  <>
+                    <Link href="/admin" className={MOBILE_LINK_CLS}>Admin Panel</Link>
+                    <Link href="/admin/dashboard" className={MOBILE_LINK_CLS}>Sales Dashboard</Link>
+                  </>
+                ) : (
+                  <Link href="/complaints/my" className={MOBILE_LINK_CLS}>My Complaints</Link>
                 )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
+                >
+                  <LogOut size={14} aria-hidden="true" /> Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className={MOBILE_LINK_CLS}>Sign in</Link>
+                <Link href="/register" className={MOBILE_LINK_CLS}>Create account</Link>
               </>
             )}
-          </div>
+          </nav>
         )}
       </div>
 

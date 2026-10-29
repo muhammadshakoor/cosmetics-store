@@ -8,31 +8,56 @@ interface WishlistContextType {
   toggle: (productId: string) => Promise<void>;
   isWishlisted: (productId: string) => boolean;
   count: number;
+  /** true once the wishlist has been loaded (from the server or this browser) */
+  loaded: boolean;
 }
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
+const STORAGE_KEY = 'wishlist';
+
+function readLocal(): string[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const ids = stored ? JSON.parse(stored) : [];
+    return Array.isArray(ids) ? ids : [];
+  } catch {
+    return [];
+  }
+}
 
 export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
+  const [loaded, setLoaded] = useState(false);
 
   const loadWishlist = useCallback(async () => {
     if (!user) {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('wishlist');
-        setWishlistIds(new Set(stored ? JSON.parse(stored) : []));
-      }
+      setWishlistIds(new Set(readLocal()));
+      setLoaded(true);
       return;
     }
     try {
-      const res = await fetch('/api/wishlist', {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
+      const headers = { Authorization: `Bearer ${user.token}` };
+      const res = await fetch('/api/wishlist', { headers });
       if (res.ok) {
         const data: { productId: string }[] = await res.json();
-        setWishlistIds(new Set(data.map((w) => w.productId)));
+        const ids = new Set(data.map((w) => w.productId));
+
+        // Items hearted while signed out are added to the account, then cleared locally
+        const guestIds = readLocal().filter((id) => !ids.has(id));
+        await Promise.all(guestIds.map((productId) =>
+          fetch('/api/wishlist', {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId }),
+          }).then((r) => { if (r.ok) ids.add(productId); }).catch(() => {})
+        ));
+        try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+
+        setWishlistIds(ids);
       }
     } catch { /* ignore */ }
+    setLoaded(true);
   }, [user]);
 
   useEffect(() => { loadWishlist(); }, [loadWishlist]);
@@ -47,9 +72,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
     setWishlistIds(newSet);
 
     if (!user) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('wishlist', JSON.stringify([...newSet]));
-      }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...newSet])); } catch { /* ignore */ }
       return;
     }
     try {
@@ -64,7 +87,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   const isWishlisted = (productId: string) => wishlistIds.has(productId);
 
   return (
-    <WishlistContext.Provider value={{ wishlistIds, toggle, isWishlisted, count: wishlistIds.size }}>
+    <WishlistContext.Provider value={{ wishlistIds, toggle, isWishlisted, count: wishlistIds.size, loaded }}>
       {children}
     </WishlistContext.Provider>
   );

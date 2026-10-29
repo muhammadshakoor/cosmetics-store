@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Star, ShoppingCart, ArrowLeft, Heart, Shield, Truck } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { Star, ShoppingCart, ChevronRight, Heart, Shield, Truck, Banknote, Leaf, Minus, Plus } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { API_URL } from '@/lib/api';
@@ -10,9 +11,40 @@ import type { ProductType } from '@/components/ProductCard';
 import ProductCard from '@/components/ProductCard';
 import toast from 'react-hot-toast';
 
+const CATEGORY_LABELS: Record<string, string> = {
+  skincare: 'Skincare', soaps: 'Handmade Soaps', bodycare: 'Body Care', haircare: 'Hair Care', fragrance: 'Fragrance', makeup: 'Makeup',
+};
+
+// Category-level guidance; product-specific details belong in the product description
+const CATEGORY_DETAILS: Record<string, { ingredients: string; usage: string }> = {
+  soaps: {
+    ingredients: 'Cold-processed from plant oils and butters, with natural clays, botanicals and pure essential oils. The full ingredient list is printed on each bar\'s wrapper.',
+    usage: 'Work into a rich lather between wet hands or on a loofah, massage gently over skin and rinse. Keep the bar on a draining soap dish between uses so it lasts longer.',
+  },
+  skincare: {
+    ingredients: 'Made with pure botanical oils, herbal extracts and natural clays. The full ingredient list is printed on the pack.',
+    usage: 'Apply to clean skin, morning and/or evening. Patch-test on your inner arm 24 hours before first use.',
+  },
+  bodycare: {
+    ingredients: 'Blended from nourishing plant oils and butters with natural fragrance. The full ingredient list is printed on the pack.',
+    usage: 'Massage into clean, slightly damp skin after bathing, focusing on dry areas such as elbows and knees.',
+  },
+  haircare: {
+    ingredients: 'Formulated with herbal extracts and botanical oils. The full ingredient list is printed on the pack.',
+    usage: 'Apply to scalp and lengths, massage gently, and rinse thoroughly. For oils, leave on for at least an hour (or overnight) before washing.',
+  },
+  fragrance: {
+    ingredients: 'Natural essential oils and botanical extracts. The full ingredient list is printed on the pack.',
+    usage: 'Apply to pulse points — wrists, neck and behind the ears. Avoid contact with eyes.',
+  },
+};
+const DEFAULT_DETAILS = {
+  ingredients: 'Made with natural, skin-loving ingredients. The full ingredient list is printed on the pack.',
+  usage: 'Use as directed on the pack. Patch-test before first use.',
+};
+
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const { addToCart } = useCart();
   const { isWishlisted, toggle } = useWishlist();
 
@@ -21,7 +53,6 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  const [selectedShade, setSelectedShade] = useState('Ruby Pink');
   const [activeTab, setActiveTab] = useState('ingredients');
   const [restockEmail, setRestockEmail] = useState('');
   const [notifySubmitting, setNotifySubmitting] = useState(false);
@@ -85,8 +116,8 @@ export default function ProductDetailPage() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
           <div className="bg-gray-200 dark:bg-gray-800 rounded-3xl h-96 animate-pulse" />
           <div className="space-y-4">
-            {[80, 40, 60, 30, 50].map((w, i) => (
-              <div key={i} className={`bg-gray-200 dark:bg-gray-800 rounded-xl h-6 animate-pulse w-${w}`} />
+            {['w-1/4', 'w-3/4', 'w-1/3', 'w-full', 'w-2/3'].map((w, i) => (
+              <div key={i} className={`bg-gray-200 dark:bg-gray-800 rounded-xl h-6 animate-pulse ${w}`} />
             ))}
           </div>
         </div>
@@ -100,29 +131,44 @@ export default function ProductDetailPage() {
         <div className="text-center">
           <div className="text-6xl mb-4">😕</div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Product not found</h2>
-          <button onClick={() => router.push('/products')} className="mt-4 px-6 py-3 bg-rose-500 text-white rounded-2xl hover:bg-rose-600 transition-colors">
-            Back to Products
-          </button>
+          <p className="text-sm text-gray-500 dark:text-gray-400">It may have been removed or the link is incorrect.</p>
+          <Link href="/products" className="inline-block mt-6 px-6 py-3 bg-[#C2185B] text-white font-semibold rounded-2xl hover:bg-[#A31555] transition-colors">
+            Browse all products
+          </Link>
         </div>
       </div>
     );
   }
 
+  const categoryKey = product.category?.toLowerCase() || '';
+  const categoryLabel = CATEGORY_LABELS[categoryKey] || product.category;
+  const details = CATEGORY_DETAILS[categoryKey] || DEFAULT_DETAILS;
+  const wishlisted = isWishlisted(product._id);
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4">
+    // Extra bottom padding on mobile so the sticky purchase bar never covers content
+    <div className={`min-h-screen bg-gray-50 dark:bg-gray-950 pt-6 sm:pt-10 px-4 ${product.countInStock > 0 ? 'pb-28 sm:pb-12' : 'pb-12'}`}>
       <div className="max-w-6xl mx-auto">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-rose-500 transition-colors mb-8 group"
-        >
-          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-          Back to products
-        </button>
+        <nav aria-label="Breadcrumb" className="mb-6 sm:mb-8">
+          <ol className="flex items-center flex-wrap gap-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            <li><Link href="/" className="hover:text-[#C2185B] dark:hover:text-rose-400 transition-colors">Home</Link></li>
+            <li aria-hidden="true"><ChevronRight size={14} /></li>
+            <li><Link href="/products" className="hover:text-[#C2185B] dark:hover:text-rose-400 transition-colors">Shop</Link></li>
+            {categoryLabel && (
+              <>
+                <li aria-hidden="true"><ChevronRight size={14} /></li>
+                <li><Link href={`/products?category=${categoryKey}`} className="hover:text-[#C2185B] dark:hover:text-rose-400 transition-colors">{categoryLabel}</Link></li>
+              </>
+            )}
+            <li aria-hidden="true"><ChevronRight size={14} /></li>
+            <li aria-current="page" className="text-gray-800 dark:text-gray-200 font-medium truncate max-w-[45vw] sm:max-w-xs">{product.name}</li>
+          </ol>
+        </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image */}
           <div className="relative">
-            <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-rose-50 to-pink-50 dark:from-gray-800 dark:to-gray-800 aspect-square shadow-lg">
+            <div className="rounded-3xl overflow-hidden bg-linear-to-br from-rose-50 to-pink-50 dark:from-gray-800 dark:to-gray-800 aspect-square shadow-lg">
               <img
                 src={product.image || `https://picsum.photos/seed/${product._id}/600/600`}
                 alt={product.name}
@@ -130,12 +176,15 @@ export default function ProductDetailPage() {
               />
             </div>
             <button
+              type="button"
               onClick={() => toggle(product._id)}
+              aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+              aria-pressed={wishlisted}
               className="absolute top-4 right-4 p-3 bg-white dark:bg-gray-800 rounded-full shadow-md hover:scale-110 transition-transform"
             >
               <Heart
                 size={18}
-                className={isWishlisted(product._id) ? 'fill-[#C2185B] text-[#C2185B]' : 'text-gray-400'}
+                className={wishlisted ? 'fill-[#C2185B] text-[#C2185B]' : 'text-gray-500 dark:text-gray-400'}
               />
             </button>
           </div>
@@ -167,53 +216,22 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            {/* BNPL Installment Banner */}
-            <div className="bg-rose-50/60 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/40 rounded-2xl p-3.5 mb-5 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Pay in 3 Interest-Free Monthly Installments</p>
-                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
-                  Rs. {Math.round(product.price / 3).toLocaleString()} / month with KalPay · 0% Fee
-                </p>
-              </div>
-              <span className="text-xs font-black px-2.5 py-1 bg-white dark:bg-gray-800 rounded-xl border border-rose-200 dark:border-gray-700 text-[#C2185B] shadow-xs">
-                BNPL
-              </span>
-            </div>
-
-            {/* Shade Swatch Selector */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Select Shade: <span className="text-gray-900 dark:text-gray-100 font-bold">{selectedShade}</span>
-                </label>
-              </div>
-              <div className="flex flex-wrap gap-2.5">
-                {[
-                  { name: 'Ruby Pink', hex: '#C2185B' },
-                  { name: 'Velvet Rose', hex: '#E91E63' },
-                  { name: 'Nude Peach', hex: '#F48FB1' },
-                  { name: 'Warm Terracotta', hex: '#D84315' },
-                  { name: 'Berry Plum', hex: '#880E4F' },
-                  { name: 'Golden Amber', hex: '#FFB300' },
-                ].map((s) => (
-                  <button
-                    key={s.name}
-                    type="button"
-                    onClick={() => setSelectedShade(s.name)}
-                    title={s.name}
-                    className={`w-8 h-8 rounded-full transition-all relative flex items-center justify-center ${
-                      selectedShade === s.name ? 'ring-3 ring-[#C2185B] ring-offset-2 scale-110' : 'hover:scale-105 opacity-90'
-                    }`}
-                    style={{ backgroundColor: s.hex }}
-                  />
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {[
+                { icon: <Leaf size={13} aria-hidden="true" />, text: 'Organic & handmade' },
+                { icon: <Banknote size={13} aria-hidden="true" />, text: 'Cash on Delivery' },
+                { icon: <Truck size={13} aria-hidden="true" />, text: 'Free delivery over Rs. 2,000' },
+              ].map(({ icon, text }) => (
+                <span key={text} className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full px-3 py-1.5">
+                  <span className="text-[#C2185B] dark:text-rose-400">{icon}</span>{text}
+                </span>
+              ))}
             </div>
 
             {product.countInStock > 0 && product.countInStock <= 5 && (
               <p className="text-xs text-amber-600 dark:text-amber-400 font-bold mb-4 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                🔥 High Demand: Only {product.countInStock} remaining in stock!
+                <span className="w-2 h-2 rounded-full bg-amber-500" aria-hidden="true" />
+                Only {product.countInStock} left in stock — order soon!
               </p>
             )}
 
@@ -222,14 +240,14 @@ export default function ProductDetailPage() {
             {product.countInStock > 0 ? (
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-2xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
-                  <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-bold text-lg">−</button>
-                  <span className="px-5 py-3 font-semibold text-gray-900 dark:text-gray-100 border-x border-gray-200 dark:border-gray-600">{qty}</span>
-                  <button onClick={() => setQty(Math.min(product.countInStock, qty + 1))} className="px-4 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-bold text-lg">+</button>
+                  <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} disabled={qty <= 1} aria-label="Decrease quantity" className="px-4 py-3.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Minus size={16} /></button>
+                  <span className="px-5 py-3 font-semibold text-gray-900 dark:text-gray-100 border-x border-gray-200 dark:border-gray-600 min-w-12 text-center" aria-live="polite" aria-label={`Quantity ${qty}`}>{qty}</span>
+                  <button type="button" onClick={() => setQty(Math.min(product.countInStock, qty + 1))} disabled={qty >= product.countInStock} aria-label="Increase quantity" className="px-4 py-3.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Plus size={16} /></button>
                 </div>
                 <button
                   onClick={handleAddToCart}
                   className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all ${
-                    added ? 'bg-green-500 text-white' : 'bg-[#C2185B] hover:bg-[#A31555] text-white shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5'
+                    added ? 'bg-green-600 text-white' : 'bg-[#C2185B] hover:bg-[#A31555] text-white shadow-lg hover:shadow-rose-200 dark:hover:shadow-none hover:-translate-y-0.5'
                   }`}
                 >
                   <ShoppingCart size={16} />
@@ -245,6 +263,7 @@ export default function ProductDetailPage() {
                   <input
                     type="email"
                     required
+                    aria-label="Email for restock alert"
                     placeholder="Enter your email"
                     value={restockEmail}
                     onChange={(e) => setRestockEmail(e.target.value)}
@@ -264,21 +283,24 @@ export default function ProductDetailPage() {
             {/* Expandable Tabs Accordion */}
             <div className="space-y-2 border-t border-gray-100 dark:border-gray-700 pt-6">
               {[
-                { id: 'ingredients', label: '🌿 Key Active Ingredients', content: 'Formulated with 5% Niacinamide, Hyaluronic Acid (Triple Molecular Weight), Vitamin C (L-Ascorbic Acid), Organic Rosehip Seed Oil, and Plant Glycerin.' },
-                { id: 'usage', label: '📖 How to Apply', content: 'Dispense 2-3 drops onto clean fingertips. Gently press into face, neck, and décolletage in upward circular motions morning and evening before moisturizer.' },
-                { id: 'safety', label: '☪️ Safety & Certifications', content: '100% Cruelty-Free · Halal Certified Ingredients · Dermatologically Tested · Paraben, Sulfate & Mineral Oil Free.' },
+                { id: 'ingredients', label: '🌿 Ingredients', content: details.ingredients },
+                { id: 'usage', label: '📖 How to Use', content: details.usage },
+                { id: 'safety', label: '✅ Our Promise', content: '100% Cruelty-Free · Halal Ingredients · Paraben & Sulfate Free · Handmade in small batches. For external use only — discontinue use if irritation occurs.' },
+                { id: 'delivery', label: '🚚 Delivery & Returns', content: 'Delivered across Pakistan in 2–5 business days (1–3 days in Lahore, Karachi & Islamabad). Free delivery on orders over Rs. 2,000, otherwise Rs. 200. Pay with Cash on Delivery, JazzCash or EasyPaisa. Damaged or incorrect items can be returned within 7 days of delivery.' },
               ].map((tab) => (
                 <div key={tab.id} className="border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden bg-white dark:bg-gray-800/60">
                   <button
                     type="button"
                     onClick={() => setActiveTab(activeTab === tab.id ? '' : tab.id)}
+                    aria-expanded={activeTab === tab.id}
+                    aria-controls={`panel-${tab.id}`}
                     className="w-full flex items-center justify-between p-3.5 text-xs font-bold text-gray-800 dark:text-gray-200 hover:bg-rose-50/50 dark:hover:bg-gray-700/50 transition-colors text-left"
                   >
                     <span>{tab.label}</span>
                     <span className="text-gray-400 font-bold">{activeTab === tab.id ? '−' : '+'}</span>
                   </button>
                   {activeTab === tab.id && (
-                    <div className="px-4 pb-4 pt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed border-t border-gray-50 dark:border-gray-700/50">
+                    <div id={`panel-${tab.id}`} className="px-4 pb-4 pt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed border-t border-gray-50 dark:border-gray-700/50">
                       {tab.content}
                     </div>
                   )}
@@ -291,7 +313,7 @@ export default function ProductDetailPage() {
                 <Shield size={14} className="text-green-500" /> Secure Checkout
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                <Truck size={14} className="text-blue-500" /> Free shipping Rs. 2,000+
+                <Truck size={14} className="text-blue-500" /> Nationwide delivery
               </div>
             </div>
           </div>
@@ -299,15 +321,15 @@ export default function ProductDetailPage() {
 
         {/* Sticky Mobile Purchase Bar */}
         {product.countInStock > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 p-3 flex items-center justify-between gap-3 shadow-2xl">
+          <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-3 shadow-2xl">
             <div>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-bold">Total Price</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold">{qty > 1 ? `Total · ${qty} items` : 'Price'}</p>
               <p className="text-lg font-black text-[#1A0A0E] dark:text-gray-100">Rs. {Math.round(product.price * qty).toLocaleString()}</p>
             </div>
             <button
               onClick={handleAddToCart}
               className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs transition-all ${
-                added ? 'bg-green-500 text-white' : 'bg-[#C2185B] text-white shadow-lg shadow-rose-200 dark:shadow-none'
+                added ? 'bg-green-600 text-white' : 'bg-[#C2185B] text-white shadow-lg shadow-rose-200 dark:shadow-none'
               }`}
             >
               <ShoppingCart size={14} />

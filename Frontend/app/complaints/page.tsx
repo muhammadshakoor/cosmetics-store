@@ -61,7 +61,7 @@ export default function ComplaintsPage() {
 
   if (user?.isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4">
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-10 max-w-md w-full text-center border border-gray-100 dark:border-gray-700">
           <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto mb-5">
             <Lock size={24} className="text-amber-500" />
@@ -74,7 +74,7 @@ export default function ComplaintsPage() {
             <Link href="/" className="px-5 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
               Back to Store
             </Link>
-            <Link href="/admin/complaints" className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-2xl transition-colors text-sm">
+            <Link href="/admin/complaints" className="px-5 py-2.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl transition-colors text-sm">
               View Complaints
             </Link>
           </div>
@@ -85,7 +85,7 @@ export default function ComplaintsPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4">
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-10 max-w-md w-full text-center border border-gray-100 dark:border-gray-700">
           <div className="w-16 h-16 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mx-auto mb-5">
             <CheckCircle size={32} className="text-green-500" />
@@ -104,7 +104,7 @@ export default function ComplaintsPage() {
             </Link>
             <button
               onClick={() => { setSubmitted(false); setForm({ name: user?.name || '', email: user?.email || '', orderId: '', category: '', subject: '', message: '' }); }}
-              className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-2xl transition-colors text-sm"
+              className="px-5 py-2.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl transition-colors text-sm"
             >
               Submit Another
             </button>
@@ -115,7 +115,7 @@ export default function ComplaintsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 py-10 px-4">
+    <div className="min-h-screen bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 py-10 px-4">
       <div className="max-w-2xl mx-auto">
         <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-rose-500 mb-8 transition-colors">
           <ArrowLeft size={14} /> Back to Home
@@ -123,7 +123,7 @@ export default function ComplaintsPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-rose-500 to-pink-600 px-8 py-8">
+          <div className="bg-linear-to-r from-rose-500 to-pink-600 px-8 py-8">
             <div className="flex items-center gap-3 mb-2">
               <MessageSquareWarning size={26} className="text-white/80" />
               <h1 className="text-2xl font-extrabold text-white">Submit a Complaint</h1>
@@ -143,8 +143,8 @@ export default function ComplaintsPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name *</label>
-                  <input
+                  <label htmlFor="complaints-full-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name *</label>
+                  <input id="complaints-full-name"
                     required type="text"
                     value={form.name}
                     onChange={(e) => set('name', e.target.value)}
@@ -153,8 +153,8 @@ export default function ComplaintsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Address *</label>
-                  <input
+                  <label htmlFor="complaints-email-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Address *</label>
+                  <input id="complaints-email-address"
                     required type="email"
                     value={form.email}
                     onChange={(e) => set('email', e.target.value)}
@@ -166,10 +166,10 @@ export default function ComplaintsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label htmlFor="complaints-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     Category *
                   </label>
-                  <select
+                  <select id="complaints-category"
                     required
                     value={form.category}
                     onChange={(e) => set('category', e.target.value)}
@@ -182,10 +182,10 @@ export default function ComplaintsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label htmlFor="complaints-order-id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                     Order ID <span className="text-gray-400 font-normal">(optional)</span>
                   </label>
-                  <input
+                  <input id="complaints-order-id"
                     type="text"
                     value={form.orderId}
                     onChange={(e) => set('orderId', e.target.value)}
@@ -196,8 +196,8 @@ export default function ComplaintsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Subject *</label>
-                <input
+                <label htmlFor="complaints-subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Subject *</label>
+                <input id="complaints-subject"
                   required type="text"
                   value={form.subject}
                   onChange={(e) => set('subject', e.target.value)}
@@ -207,8 +207,8 @@ export default function ComplaintsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Your Message *</label>
-                <textarea
+                <label htmlFor="complaints-your-message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Your Message *</label>
+                <textarea id="complaints-your-message"
                   required
                   rows={5}
                   value={form.message}

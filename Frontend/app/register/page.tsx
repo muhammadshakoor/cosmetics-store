@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { safeRedirectPath, rememberPostLoginRedirect } from '@/lib/site';
 import { Mail, CheckCircle, Sparkles, ShieldCheck, Truck, Gift, Eye, EyeOff } from 'lucide-react';
 
 function BrandPanel() {
@@ -32,8 +33,8 @@ function BrandPanel() {
         </p>
         <div className="space-y-4">
           {[
-            { icon: <Gift size={16} />,       text: 'Welcome discount on your first order' },
-            { icon: <Sparkles size={16} />,   text: 'Personalised product recommendations' },
+            { icon: <Gift size={16} />,       text: '10% off your first order with LUMINA10' },
+            { icon: <Sparkles size={16} />,   text: 'Take the Skin Quiz for a personalised routine' },
             { icon: <ShieldCheck size={16} />, text: 'Save addresses & track orders easily' },
             { icon: <Truck size={16} />,       text: 'Free delivery on orders above Rs. 2,000' },
           ].map(({ icon, text }) => (
@@ -47,9 +48,9 @@ function BrandPanel() {
 
       <div className="relative z-10 grid grid-cols-3 gap-4">
         {[
-          { value: '10K+', label: 'Happy Customers' },
-          { value: '200+', label: 'Products' },
-          { value: '4.9★', label: 'Avg. Rating' },
+          { value: '100%', label: 'Organic' },
+          { value: 'COD', label: 'Nationwide' },
+          { value: 'Halal', label: '& Cruelty-free' },
         ].map(({ value, label }) => (
           <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-4 text-center border border-white/20">
             <p className="text-white font-extrabold text-xl">{value}</p>
@@ -75,10 +76,10 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = safeRedirectPath(searchParams.get('redirect'));
 
   useEffect(() => {
-    if (user) router.push(`/${redirect}`);
+    if (user) router.push(redirect);
   }, [user, router, redirect]);
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
@@ -156,20 +157,20 @@ function RegisterForm() {
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 mb-1 text-center">Create your account</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 text-center">
             Already have an account?{' '}
-            <Link href={`/login${redirect !== '/' ? `?redirect=${redirect}` : ''}`} className="text-rose-600 hover:text-rose-700 font-semibold">
+            <Link href={`/login${redirect !== '/' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-rose-600 hover:text-rose-700 font-semibold">
               Sign in
             </Link>
           </p>
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm mb-5">
+            <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm mb-5">
               {error}
             </div>
           )}
 
           {/* Social */}
           <div className="space-y-3 mb-6">
-            <a href="/api/auth/google" className="flex items-center justify-center gap-3 w-full py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+            <a href="/api/auth/google" onClick={() => rememberPostLoginRedirect(redirect)} className="flex items-center justify-center gap-3 w-full py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
                 <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
@@ -178,7 +179,7 @@ function RegisterForm() {
               </svg>
               Continue with Google
             </a>
-            <a href="/api/auth/facebook" className="flex items-center justify-center gap-3 w-full py-2.5 bg-[#1877F2] hover:bg-[#166FE5] rounded-2xl text-sm font-semibold text-white transition-all">
+            <a href="/api/auth/facebook" onClick={() => rememberPostLoginRedirect(redirect)} className="flex items-center justify-center gap-3 w-full py-2.5 bg-[#1877F2] hover:bg-[#166FE5] rounded-2xl text-sm font-semibold text-white transition-all">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                 <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.887v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073Z"/>
               </svg>
@@ -194,28 +195,28 @@ function RegisterForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name</label>
-              <input
-                type="text" required value={name}
+              <label htmlFor="register-full-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name</label>
+              <input id="register-full-name"
+                type="text" required autoComplete="name" value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Jane Doe"
                 className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
-              <input
-                type="email" required value={email}
+              <label htmlFor="register-email-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
+              <input id="register-email-address"
+                type="email" required autoComplete="email" value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@gmail.com"
                 className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
+              <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
               <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'} required value={password}
+                <input id="register-password"
+                  type={showPassword ? 'text' : 'password'} required minLength={6} autoComplete="new-password" value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 6 characters"
                   className="w-full px-4 py-3 pr-11 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
@@ -224,17 +225,17 @@ function RegisterForm() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Confirm Password</label>
+              <label htmlFor="register-confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Confirm Password</label>
               <div className="relative">
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'} required value={confirmPassword}
+                <input id="register-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'} required autoComplete="new-password" value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter your password"
                   className="w-full px-4 py-3 pr-11 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
@@ -243,7 +244,7 @@ function RegisterForm() {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
-                  title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
                   {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -251,7 +252,7 @@ function RegisterForm() {
             </div>
             <button
               type="submit" disabled={loading}
-              className="w-full py-3 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed mt-1"
+              className="w-full py-3 bg-[#C2185B] hover:bg-[#A31555] disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 dark:hover:shadow-none hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed mt-1"
             >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>

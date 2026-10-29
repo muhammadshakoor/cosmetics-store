@@ -5,10 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { CheckCircle, Package, Truck, MapPin, CreditCard, ArrowRight, Star, ExternalLink, Printer } from 'lucide-react';
+import { CheckCircle, Package, Truck, MapPin, CreditCard, ArrowRight, Star, ExternalLink, Printer, XCircle, MessageCircle } from 'lucide-react';
+import { whatsappLink } from '@/lib/site';
 import toast from 'react-hot-toast';
 
-type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered';
+type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
 
 interface OrderItem { _id: string; name: string; qty: number; image: string; price: number; productId: string; }
 interface Order {
@@ -17,6 +18,7 @@ interface Order {
   shippingAddress: { address: string; city: string; postalCode: string; country: string };
   paymentMethod: string;
   itemsPrice: number; taxPrice: number; shippingPrice: number; totalPrice: number;
+  discountAmount?: number; couponCode?: string | null; cancelReason?: string;
   isPaid: boolean; isDelivered: boolean;
   status: OrderStatus;
   trackingNumber?: string;
@@ -34,6 +36,7 @@ const STEPS: { key: OrderStatus; label: string; desc: string; icon: React.ReactN
 ];
 
 const STATUS_ORDER: OrderStatus[] = ['placed', 'confirmed', 'picked_up', 'on_the_way', 'delivered'];
+const CANCELLABLE: OrderStatus[] = ['placed', 'confirmed'];
 
 const COURIER_LINKS: Record<string, string> = {
   'PostEx':        'https://postex.pk/tracking/',
@@ -51,6 +54,8 @@ export default function OrderPage() {
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [reviewProductId, setReviewProductId] = useState('');
   const [reviewProductName, setReviewProductName] = useState('');
@@ -60,12 +65,26 @@ export default function OrderPage() {
   const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!user) { router.replace('/login'); return; }
+    if (!user) { router.replace(`/login?redirect=${encodeURIComponent(`order/${id}`)}`); return; }
     apiFetch<Order>(`/orders/${id}`, {}, user.token)
       .then(setOrder)
-      .catch(() => router.replace('/'))
+      .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id, user, router]);
+
+  const handleCancel = async () => {
+    if (!user || !order || !window.confirm('Cancel this order? This can\'t be undone.')) return;
+    setCancelling(true);
+    try {
+      await apiFetch(`/orders/${order._id}/cancel`, { method: 'PUT', body: JSON.stringify({ reason: 'Cancelled by customer' }) }, user.token);
+      setOrder({ ...order, status: 'cancelled' });
+      toast.success('Your order has been cancelled');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel order');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const openReview = (productId: string, productName: string) => {
     setReviewProductId(productId); setReviewProductName(productName);
@@ -96,36 +115,76 @@ export default function OrderPage() {
       <div className="w-8 h-8 border-4 border-[#C2185B] border-t-transparent rounded-full animate-spin" />
     </div>
   );
-  if (!order) return null;
+  if (!order) {
+    if (!notFound) return null;
+    return (
+      <div className="min-h-[60vh] bg-[#FFF8F5] dark:bg-gray-950 flex items-center justify-center px-4">
+        <div className="text-center">
+          <Package size={40} className="text-rose-300 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-[#1A0A0E] dark:text-gray-100 mb-2">Order not found</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">This order doesn&apos;t exist or belongs to another account.</p>
+          <Link href="/profile" className="inline-flex items-center gap-2 px-6 py-3 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl transition-colors text-sm">
+            View my orders <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
+  const shortId = order._id.slice(-10).toUpperCase();
+  const isCancelled = order.status === 'cancelled';
+  const awaitingWalletPayment = !order.isPaid && !isCancelled && /JazzCash|EasyPaisa/i.test(order.paymentMethod) && /awaiting/i.test(order.paymentMethod);
+  const helpLink = whatsappLink(
+    awaitingWalletPayment
+      ? `Hi Lumina! I placed order #${shortId} (Rs. ${Math.round(order.totalPrice).toLocaleString()}) and would like to pay by JazzCash/EasyPaisa. Please share your account details.`
+      : `Hi Lumina! I need help with my order #${shortId}.`
+  );
   const currentStepIndex = STATUS_ORDER.indexOf(order.status || 'placed');
   const trackingUrl = order.courierService && order.trackingNumber
     ? (COURIER_LINKS[order.courierService] || '') + order.trackingNumber
     : null;
 
   return (
-    <div className="min-h-screen bg-[#FFF8F5] dark:bg-gray-950 py-10 px-4">
+    <div className="min-h-screen bg-[#FFF8F5] dark:bg-gray-950 py-8 sm:py-10 px-4">
       <div className="max-w-3xl mx-auto">
 
         {/* Top banner */}
         <div className={`rounded-3xl p-6 mb-8 text-center ${
-          order.status === 'delivered'
+          isCancelled
+            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50'
+            : order.status === 'delivered'
             ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
             : 'bg-white dark:bg-gray-800 border border-rose-100 dark:border-rose-900/30 shadow-sm'
         }`}>
           <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${order.status === 'delivered' ? 'bg-green-100 dark:bg-green-900/40' : 'bg-rose-50 dark:bg-rose-900/20'}`}>
-            {order.status === 'delivered' ? <CheckCircle size={32} className="text-green-500" /> : <Package size={32} className="text-[#C2185B]" />}
+            {isCancelled ? <XCircle size={32} className="text-red-500" /> : order.status === 'delivered' ? <CheckCircle size={32} className="text-green-500" /> : <Package size={32} className="text-[#C2185B]" />}
           </div>
           <h1 className="text-2xl font-extrabold text-[#1A0A0E] dark:text-gray-100 mb-1">
-            {order.status === 'delivered'  ? 'Order Delivered!' :
+            {isCancelled                   ? 'Order Cancelled' :
+             order.status === 'delivered'  ? 'Order Delivered!' :
              order.status === 'on_the_way' ? 'Your Order is On the Way! 🚚' :
              order.status === 'picked_up'  ? 'Picked Up by Courier' :
              order.status === 'confirmed'  ? 'Order Confirmed ✓' :
              'Order Placed Successfully!'}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-            Order ID: <span className="font-mono font-semibold">#{order._id.slice(-10).toUpperCase()}</span>
+            Order ID: <span className="font-mono font-semibold">#{shortId}</span>
+            {' · '}{new Date(order.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
+          {isCancelled && order.cancelReason && (
+            <p className="text-sm text-red-600 dark:text-red-400 mb-2">{order.cancelReason}</p>
+          )}
+          {awaitingWalletPayment && (
+            <div className="max-w-md mx-auto mb-4 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 text-left print:hidden">
+              <p className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-1">Payment pending</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
+                Message us on WhatsApp to get our JazzCash / EasyPaisa account details. We&apos;ll dispatch your order as soon as payment is confirmed.
+              </p>
+              <a href={helpLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-[#25D366] hover:bg-[#1ebe5a] text-white text-xs font-bold rounded-xl transition-colors">
+                <MessageCircle size={14} aria-hidden="true" /> Get payment details on WhatsApp
+              </a>
+            </div>
+          )}
           {order.trackingNumber && (
             <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-full shadow-sm">
               <Truck size={14} className="text-[#C2185B]" />
@@ -140,7 +199,7 @@ export default function OrderPage() {
         </div>
 
         {/* ── Status Timeline ── */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 sm:p-8 mb-6">
+        {!isCancelled && <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 sm:p-8 mb-6">
           <h2 className="text-lg font-bold text-[#1A0A0E] dark:text-gray-100 mb-8">Live Order Tracking</h2>
           <div className="relative">
             <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-gray-100 dark:bg-gray-700" />
@@ -168,7 +227,7 @@ export default function OrderPage() {
                       )}
                     </div>
                     {current && (
-                      <span className="shrink-0 mt-1.5 text-[10px] font-bold text-[#C2185B] bg-rose-50 dark:bg-rose-900/30 px-2.5 py-1 rounded-full animate-pulse">
+                      <span className="shrink-0 mt-1.5 text-[10px] font-bold text-[#C2185B] dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 px-2.5 py-1 rounded-full">
                         Current Status
                       </span>
                     )}
@@ -177,7 +236,7 @@ export default function OrderPage() {
               })}
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* ── Order Items ── */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6">
@@ -214,7 +273,7 @@ export default function OrderPage() {
           <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
             <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5"><MapPin size={12} /> Shipping Address</p>
             <p className="text-sm font-semibold text-[#1A0A0E] dark:text-gray-100">{order.shippingAddress?.address}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{order.shippingAddress?.city}, {order.shippingAddress?.postalCode}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{[order.shippingAddress?.city, order.shippingAddress?.postalCode].filter(Boolean).join(', ')}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">{order.shippingAddress?.country}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
@@ -223,13 +282,28 @@ export default function OrderPage() {
             <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
               <div className="flex justify-between"><span>Items</span><span>Rs. {Math.round(order.itemsPrice || 0).toLocaleString()}</span></div>
               <div className="flex justify-between"><span>Shipping</span><span className={order.shippingPrice === 0 ? 'text-green-600 dark:text-green-400' : ''}>{order.shippingPrice === 0 ? 'FREE' : `Rs. ${Math.round(order.shippingPrice || 0).toLocaleString()}`}</span></div>
+              {(order.discountAmount || 0) > 0 && (
+                <div className="flex justify-between text-green-600 dark:text-green-400"><span>Discount{order.couponCode ? ` (${order.couponCode})` : ''}</span><span>-Rs. {Math.round(order.discountAmount || 0).toLocaleString()}</span></div>
+              )}
               <div className="flex justify-between font-bold text-[#1A0A0E] dark:text-gray-100 text-sm border-t border-gray-100 dark:border-gray-700 pt-2 mt-1"><span>Total</span><span>Rs. {Math.round(order.totalPrice || 0).toLocaleString()}</span></div>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-6 text-sm print:hidden">
+          <a href={helpLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-[#128C7E] dark:text-[#25D366] hover:underline">
+            <MessageCircle size={15} aria-hidden="true" /> Need help with this order?
+          </a>
+          {CANCELLABLE.includes(order.status) && (
+            <button type="button" onClick={handleCancel} disabled={cancelling} className="font-semibold text-red-600 dark:text-red-400 hover:underline disabled:opacity-50">
+              {cancelling ? 'Cancelling...' : 'Cancel order'}
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 print:hidden">
           <button
+            type="button"
             onClick={() => window.print()}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-900 dark:bg-gray-800 text-white font-semibold rounded-2xl hover:bg-black transition-colors text-sm print:hidden"
           >
@@ -246,16 +320,16 @@ export default function OrderPage() {
 
       {/* ── Review Modal ── */}
       {showReview && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md p-6">
-            <h2 className="text-xl font-bold text-[#1A0A0E] dark:text-gray-100 mb-1">Rate Your Purchase</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-60 px-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="review-title" className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md p-6">
+            <h2 id="review-title" className="text-xl font-bold text-[#1A0A0E] dark:text-gray-100 mb-1">Rate Your Purchase</h2>
             <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">{reviewProductName}</p>
             <form onSubmit={handleReview} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Rating *</label>
+                <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Rating *</p>
                 <div className="flex items-center gap-2">
                   {[1,2,3,4,5].map(s => (
-                    <button key={s} type="button" onClick={() => setReviewRating(s)} className="hover:scale-110 transition-transform">
+                    <button key={s} type="button" onClick={() => setReviewRating(s)} aria-label={`${s} star${s > 1 ? 's' : ''}`} aria-pressed={s === reviewRating} className="hover:scale-110 transition-transform">
                       <Star size={30} className={s <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-gray-200 dark:text-gray-700'} />
                     </button>
                   ))}
@@ -265,8 +339,8 @@ export default function OrderPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Your Review *</label>
-                <textarea
+                <label htmlFor="review-comment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Your Review *</label>
+                <textarea id="review-comment"
                   required rows={4} value={reviewComment} onChange={e => setReviewComment(e.target.value)}
                   placeholder="Share your experience — quality, packaging, results on your skin..."
                   className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"

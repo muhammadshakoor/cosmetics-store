@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(
     data?.map((w) => {
-      const arr = w.Product as unknown as Record<string, unknown>[] | null;
-      const p = Array.isArray(arr) ? arr[0] ?? null : null;
+      // Many-to-one joins come back as an object (older clients returned an array)
+      const joined = w.Product as unknown as Record<string, unknown> | Record<string, unknown>[] | null;
+      const p = Array.isArray(joined) ? joined[0] ?? null : joined;
       return {
         id: w.id,
         productId: w.productId,
