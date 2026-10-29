@@ -3,6 +3,9 @@
 /* Enable class-based dark mode for Tailwind v4 */
 @variant dark (&:where(.dark, .dark *));
 
+/* Only devices with a real hover pointer (mouse/trackpad) — touch screens skip hover-only UI */
+@custom-variant can-hover (@media (hover: hover) and (pointer: fine));
+
 /* Custom breakpoints */
 @theme {
   --breakpoint-xs: 375px;
@@ -52,3 +55,17 @@ html {
   outline: 2px solid #C2185B;
   outline-offset: 2px;
 }
+
+/* Respect users who ask the OS for less motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Hide scrollbars on horizontal carousels while keeping them scrollable */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }

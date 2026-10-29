@@ -73,22 +73,24 @@ export default function WishlistPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {items.map(({ id, product: p }) => (
               <div key={id} className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:border-rose-100 dark:hover:border-rose-900/40 hover:shadow-lg transition-all group">
-                <Link href={`/products/${p._id}`} className="block relative">
-                  <div className="aspect-square overflow-hidden bg-[#FFF8F5] dark:bg-gray-700">
-                    <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  </div>
+                <div className="relative">
+                  <Link href={`/products/${p._id}`} tabIndex={-1} aria-hidden="true" className="block aspect-square overflow-hidden bg-[#FFF8F5] dark:bg-gray-700">
+                    <img src={p.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  </Link>
                   {p.countInStock === 0 && (
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
                       <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-full">Sold Out</span>
                     </div>
                   )}
                   <button
-                    onClick={(e) => { e.preventDefault(); toggle(p._id); setItems((prev) => prev.filter((w) => w.product._id !== p._id)); }}
-                    className="absolute top-3 right-3 w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-transform"
+                    type="button"
+                    onClick={() => { toggle(p._id); setItems((prev) => prev.filter((w) => w.product._id !== p._id)); }}
+                    aria-label={`Remove ${p.name} from wishlist`}
+                    className="absolute top-3 right-3 w-9 h-9 bg-white dark:bg-gray-800 rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-transform"
                   >
-                    <Heart size={13} className="fill-[#C2185B] text-[#C2185B]" />
+                    <Heart size={14} className="fill-[#C2185B] text-[#C2185B]" />
                   </button>
-                </Link>
+                </div>
 
                 <div className="p-4">
                   <p className="text-[10px] text-[#C2185B] font-bold uppercase tracking-widest mb-1">{p.brand}</p>
@@ -112,7 +114,9 @@ export default function WishlistPage() {
                       {p.countInStock === 0 ? 'Sold Out' : 'Add to Cart'}
                     </button>
                     <button
+                      type="button"
                       onClick={() => { toggle(p._id); setItems((prev) => prev.filter((w) => w.product._id !== p._id)); }}
+                      aria-label={`Remove ${p.name} from wishlist`}
                       className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
                     >
                       <Trash2 size={14} />

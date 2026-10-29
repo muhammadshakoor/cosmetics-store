@@ -28,15 +28,21 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  // Don't persist until the stored cart has been read, otherwise the initial
+  // empty state overwrites it (and Strict Mode's double-run then reads back []).
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('cartItems');
-    if (stored) setCartItems(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem('cartItems');
+      if (stored) setCartItems(JSON.parse(stored));
+    } catch { /* corrupt storage — start with an empty cart */ }
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('cartItems', JSON.stringify(cartItems));
-  }, [cartItems]);
+    if (hydrated) localStorage.setItem('cartItems', JSON.stringify(cartItems));
+  }, [cartItems, hydrated]);
 
   const addToCart = (item: CartItem) => {
     if (user?.isAdmin) {
@@ -46,8 +52,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setCartItems((prev) => {
       const existing = prev.find((x) => x.product === item.product);
       if (existing) {
+        // Adding an item that's already in the cart increases its quantity, capped at stock
+        const qty = Math.min(existing.qty + item.qty, item.countInStock || existing.countInStock);
         return prev.map((x) =>
-          x.product === item.product ? { ...x, qty: item.qty } : x
+          x.product === item.product ? { ...x, qty, countInStock: item.countInStock } : x
         );
       }
       return [...prev, item];

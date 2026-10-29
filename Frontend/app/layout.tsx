@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
@@ -8,10 +8,32 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const description = 'Handmade organic soaps, botanical lotions and chemical-free skincare. Cruelty-free, halal, delivered across Pakistan with Cash on Delivery.';
+
 export const metadata: Metadata = {
-  title: 'Lumina – Premium Cosmetics & Beauty',
-  description: 'Shop the finest cosmetics, skincare, and beauty products. Cruelty-free and sustainably sourced.',
-  keywords: 'cosmetics, beauty, skincare, makeup, fragrance',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'),
+  title: {
+    default: 'Lumina – Organic Cosmetics & Handmade Skincare',
+    template: '%s | Lumina',
+  },
+  description,
+  keywords: 'organic cosmetics, handmade soap, skincare, body care, hair care, natural beauty, Pakistan',
+  openGraph: {
+    type: 'website',
+    siteName: 'Lumina',
+    title: 'Lumina – Organic Cosmetics & Handmade Skincare',
+    description,
+    images: ['/products/organic/artisan-organic-soaps-collection.jpeg'],
+    locale: 'en_PK',
+  },
+  twitter: { card: 'summary_large_image' },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
+    { media: '(prefers-color-scheme: dark)', color: '#111827' },
+  ],
 };
 
 // Runs before React hydrates to prevent theme flash
@@ -30,9 +52,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className={`${inter.className} antialiased min-h-screen flex flex-col`}>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-100 focus:px-4 focus:py-2 focus:bg-white focus:text-[#C2185B] focus:rounded-xl focus:shadow-lg">
+          Skip to content
+        </a>
         <Providers>
           <Navbar />
-          <main className="flex-1 pt-[116px]">
+          <main id="main-content" className="flex-1 pt-[116px]">
             {children}
           </main>
           <Footer />

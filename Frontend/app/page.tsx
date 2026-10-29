@@ -128,13 +128,13 @@ export default function HomePage() {
             {/* Right — Product collage */}
             <div className="relative hidden md:block h-[440px] lg:h-[520px]">
               <div className="absolute top-0 right-0 w-64 h-64 lg:w-72 lg:h-72 rounded-3xl overflow-hidden shadow-2xl shadow-rose-100 rotate-3">
-                <img src="/products/organic/artisan-organic-soaps-collection.jpeg" alt="Handmade Organic Soaps Collection" loading="lazy" className="w-full h-full object-cover" />
+                <img src="/products/organic/artisan-organic-soaps-collection.jpeg" alt="Handmade Organic Soaps Collection" fetchPriority="high" className="w-full h-full object-cover" />
               </div>
               <div className="absolute bottom-0 left-4 lg:left-8 w-56 h-56 lg:w-64 lg:h-64 rounded-3xl overflow-hidden shadow-2xl shadow-pink-100 -rotate-2">
-                <img src="/products/organic/homemade-almond-rose-lotion.jpeg" alt="Homemade Botanical Lotion" loading="lazy" className="w-full h-full object-cover" />
+                <img src="/products/organic/homemade-almond-rose-lotion.jpeg" alt="Homemade Botanical Lotion" fetchPriority="high" className="w-full h-full object-cover" />
               </div>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 lg:w-44 lg:h-44 rounded-3xl overflow-hidden shadow-xl shadow-rose-200 rotate-1 border-4 border-white dark:border-gray-800">
-                <img src="/products/organic/manjistha-rose-organic-soap.jpeg" alt="Pure Organic Soap" loading="lazy" className="w-full h-full object-cover" />
+                <img src="/products/organic/manjistha-rose-organic-soap.jpeg" alt="Pure Organic Soap" fetchPriority="high" className="w-full h-full object-cover" />
               </div>
               <div className="absolute top-6 left-2 bg-white dark:bg-gray-800 rounded-2xl shadow-lg px-4 py-3 flex items-center gap-2 border border-rose-50 dark:border-gray-700">
                 <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} size={11} className="fill-amber-400 text-amber-400" />)}</div>
@@ -150,7 +150,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Marquee Strip ── */}
-      <div className="bg-[#1A0A0E] text-white py-3 overflow-hidden">
+      <div className="bg-[#1A0A0E] text-white py-3 overflow-hidden" aria-hidden="true">
         <div className="flex gap-12 animate-marquee text-xs font-semibold tracking-widest uppercase whitespace-nowrap">
           {[...marqueeItems, ...marqueeItems, ...marqueeItems].map((item, i) => (
             <span key={i} className="shrink-0">{item}</span>
@@ -165,7 +165,7 @@ export default function HomePage() {
             <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-2">Explore Our Range</p>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Shop by Category</h2>
           </div>
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:pb-0 md:grid md:grid-cols-5">
+          <div className="flex overflow-x-auto scrollbar-none snap-x snap-mandatory gap-4 -mx-4 px-4 pb-4 md:mx-0 md:px-0 md:pb-0 md:grid md:grid-cols-5">
             {categories.map((cat) => (
               <Link key={cat.slug} href={`/products?category=${cat.slug}`} className="group relative overflow-hidden rounded-3xl aspect-[3/4] block shrink-0 snap-center w-[65%] sm:w-[45%] md:w-auto">
                 <img src={cat.image} alt={cat.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -196,17 +196,20 @@ export default function HomePage() {
             </Link>
           </div>
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-3xl h-80 bg-gray-100 dark:bg-gray-800 animate-pulse" />)}
             </div>
           ) : products.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {products.map((p) => <ProductCard key={p._id} product={p} />)}
             </div>
           ) : (
-            <p className="text-center text-gray-400 dark:text-gray-500 py-16">
-              Visit <a href="/api/seed" className="text-rose-500 underline">/api/seed</a> to add sample products
-            </p>
+            <div className="text-center py-16">
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Our best sellers are being restocked — check back soon!</p>
+              <Link href="/products" className="inline-flex items-center gap-2 text-sm font-semibold text-[#C2185B] dark:text-rose-400 hover:underline">
+                Browse the full range <ArrowRight size={14} />
+              </Link>
+            </div>
           )}
           <div className="text-center mt-8 sm:hidden">
             <Link href="/products" className="inline-flex items-center gap-2 px-8 py-3 bg-[#C2185B] text-white font-bold rounded-2xl text-sm">
@@ -226,7 +229,7 @@ export default function HomePage() {
             { icon: '🚚', title: 'Nationwide Delivery', desc: 'COD, JazzCash & EasyPaisa' },
           ].map(({ icon, title, desc }) => (
             <div key={title} className="bg-white dark:bg-gray-800 rounded-3xl p-6 text-center shadow-sm border border-rose-50 dark:border-gray-700 hover:shadow-md hover:-translate-y-1 transition-all">
-              <div className="text-3xl mb-3">{icon}</div>
+              <div className="text-3xl mb-3" aria-hidden="true">{icon}</div>
               <h3 className="font-bold text-[#1A0A0E] dark:text-gray-100 text-sm mb-1">{title}</h3>
               <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{desc}</p>
             </div>
@@ -243,19 +246,19 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
-              <div key={t.name} className="bg-[#FFF8F5] dark:bg-gray-800 rounded-3xl p-7 border border-rose-50 dark:border-gray-700 hover:shadow-lg transition-shadow">
+              <figure key={t.name} className="bg-[#FFF8F5] dark:bg-gray-800 rounded-3xl p-7 border border-rose-50 dark:border-gray-700 hover:shadow-lg transition-shadow">
                 <Quote size={24} className="text-rose-200 dark:text-rose-900 mb-4" />
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-6 italic">&ldquo;{t.text}&rdquo;</p>
-                <div className="flex items-center justify-between">
+                <blockquote className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-6 italic">&ldquo;{t.text}&rdquo;</blockquote>
+                <figcaption className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-bold text-[#1A0A0E] dark:text-gray-100 text-sm">{t.name}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">{t.city} · {t.product}</p>
                   </div>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: t.stars }).map((_, i) => <Star key={i} size={12} className="fill-amber-400 text-amber-400" />)}
+                  <div className="flex gap-0.5 shrink-0" aria-label={`${t.stars} out of 5 stars`}>
+                    {Array.from({ length: t.stars }).map((_, i) => <Star key={i} size={12} aria-hidden="true" className="fill-amber-400 text-amber-400" />)}
                   </div>
-                </div>
-              </div>
+                </figcaption>
+              </figure>
             ))}
           </div>
         </div>
@@ -274,6 +277,8 @@ export default function HomePage() {
             <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email" required
+                aria-label="Email address"
+                autoComplete="email"
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="Enter your email address"
