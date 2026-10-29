@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Mail, Truck, Banknote } from 'lucide-react';
+import { Mail, Truck, Banknote, MessageCircle } from 'lucide-react';
+import { SUPPORT_EMAIL, PHONE_DISPLAY, whatsappLink } from '@/lib/site';
 
 export default function Footer() {
   return (
@@ -19,8 +20,13 @@ export default function Footer() {
             </p>
             <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-400">
               <li>
-                <a href="mailto:support@lumina.pk" className="inline-flex items-center gap-2 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
-                  <Mail size={14} aria-hidden="true" /> support@lumina.pk
+                <a href={whatsappLink()} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
+                  <MessageCircle size={14} aria-hidden="true" /> {PHONE_DISPLAY} (WhatsApp)
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="inline-flex items-center gap-2 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
+                  <Mail size={14} aria-hidden="true" /> {SUPPORT_EMAIL}
                 </a>
               </li>
               <li className="inline-flex items-center gap-2"><Truck size={14} aria-hidden="true" /> Free delivery over Rs. 2,000</li>

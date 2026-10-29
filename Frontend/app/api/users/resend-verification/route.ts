@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { escapeHtml } from '@/lib/email';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
 const RESEND_KEY = process.env.RESEND_API_KEY;
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #f0e8ea">
               <div style="background:linear-gradient(135deg,#C2185B,#e91e8c);padding:32px 24px;text-align:center">
                 <h1 style="color:#fff;margin:0;font-size:22px;font-weight:800">Verify Your Email</h1>
-                <p style="color:rgba(255,255,255,0.85);margin:8px 0 0">Hi ${user.name}, here is your new verification link</p>
+                <p style="color:rgba(255,255,255,0.85);margin:8px 0 0">Hi ${escapeHtml(user.name)}, here is your new verification link</p>
               </div>
               <div style="padding:32px 24px;text-align:center">
                 <p style="color:#555;font-size:15px">This new link expires in <strong>24 hours</strong>.</p>

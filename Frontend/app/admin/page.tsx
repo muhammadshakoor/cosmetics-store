@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
-import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag, BarChart2, MessageSquareWarning, Download, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag, BarChart2, MessageSquareWarning, Download, Search, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [query, setQuery] = useState('');
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -40,7 +41,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!user) { router.replace('/login'); return; }
+    if (!user) { router.replace('/login?redirect=admin'); return; }
     if (!user.isAdmin) return;
     fetchProducts();
     apiFetch<{ _id: string; isDelivered: boolean }[]>('/orders/all', {}, user.token)
@@ -113,6 +114,16 @@ export default function AdminPage() {
     } catch (err) { toast.error(err instanceof Error ? err.message : 'Delete failed'); }
     finally { setDeletingId(null); }
   };
+
+  const q = query.trim().toLowerCase();
+  const visibleProducts = q
+    ? products.filter((p) => [p.name, p.brand, p.category].some((v) => v?.toLowerCase().includes(q)))
+    : products;
+  const lowStock = products.filter((p) => p.countInStock <= 5);
+  const stockBadge = (n: number) =>
+    n === 0 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+    : n <= 5 ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
+    : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400';
 
   const handleExportCSV = () => {
     if (products.length === 0) { toast.error('No products to export'); return; }
@@ -206,8 +217,23 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-[#1A0A0E] dark:text-gray-100">Products ({products.length})</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <h2 className="text-xl font-bold text-[#1A0A0E] dark:text-gray-100">
+            Products ({products.length})
+            {lowStock.length > 0 && (
+              <span className="ml-2 inline-flex items-center gap-1 align-middle text-xs font-semibold px-2 py-1 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                <AlertTriangle size={12} aria-hidden="true" /> {lowStock.length} low or out of stock
+              </span>
+            )}
+          </h2>
+          <div className="relative sm:w-72">
+            <Search size={15} aria-hidden="true" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search products" placeholder="Search by name, brand or category..."
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300"
+            />
+          </div>
         </div>
 
         {loading ? (
@@ -219,22 +245,25 @@ export default function AdminPage() {
             <div className="text-5xl mb-4">📦</div>
             <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No products yet</h3>
             <p className="text-gray-400 dark:text-gray-500 mb-6">Click &quot;Add Product&quot; to create your first product</p>
-            <button onClick={openAddForm} className="px-6 py-2.5 bg-rose-500 text-white rounded-2xl font-medium hover:bg-rose-600 transition-colors">Add Product</button>
+            <button onClick={openAddForm} className="px-6 py-2.5 bg-[#C2185B] text-white rounded-2xl font-medium hover:bg-[#A31555] transition-colors">Add Product</button>
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+            {visibleProducts.length === 0 && (
+              <p className="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">No products match &ldquo;{query}&rdquo;.</p>
+            )}
             {/* Desktop Table */}
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
                     {['Product', 'Category', 'Price', 'Stock', 'Actions'].map(h => (
-                      <th key={h} className={`px-6 py-4 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide ${h === 'Actions' ? 'text-right' : 'text-left'}`}>{h}</th>
+                      <th key={h} className={`px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide ${h === 'Actions' ? 'text-right' : 'text-left'}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                  {products.map((product) => (
+                  {visibleProducts.map((product) => (
                     <tr key={product._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -250,14 +279,14 @@ export default function AdminPage() {
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-gray-100">Rs. {Math.round(product.price).toLocaleString()}</td>
                       <td className="px-6 py-4">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${product.countInStock > 0 ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400'}`}>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${stockBadge(product.countInStock)}`}>
                           {product.countInStock > 0 ? `${product.countInStock} left` : 'Out of stock'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => openEditForm(product)} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors" title="Edit"><Pencil size={14} /></button>
-                          <button onClick={() => handleDelete(product._id)} disabled={deletingId === product._id} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-40" title="Delete"><Trash2 size={14} /></button>
+                          <button onClick={() => openEditForm(product)} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors" aria-label={`Edit ${product.name}`} title="Edit"><Pencil size={14} /></button>
+                          <button onClick={() => handleDelete(product._id)} disabled={deletingId === product._id} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-40" aria-label={`Delete ${product.name}`} title="Delete"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
@@ -268,7 +297,7 @@ export default function AdminPage() {
 
             {/* Mobile Cards */}
             <div className="sm:hidden divide-y divide-gray-50 dark:divide-gray-700">
-              {products.map((product) => (
+              {visibleProducts.map((product) => (
                 <div key={product._id} className="p-4 flex items-start gap-3">
                   <img src={product.image} alt={product.name} className="w-14 h-14 rounded-xl object-cover bg-gray-100 dark:bg-gray-700 shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -276,14 +305,14 @@ export default function AdminPage() {
                     <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{product.brand} · {product.category}</p>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Rs. {Math.round(product.price).toLocaleString()}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${product.countInStock > 0 ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stockBadge(product.countInStock)}`}>
                         {product.countInStock > 0 ? `${product.countInStock} left` : 'Out of stock'}
                       </span>
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => openEditForm(product)} className="p-2 text-gray-400 hover:text-rose-500 rounded-xl transition-colors"><Pencil size={14} /></button>
-                    <button onClick={() => handleDelete(product._id)} disabled={deletingId === product._id} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-colors disabled:opacity-40"><Trash2 size={14} /></button>
+                    <button onClick={() => openEditForm(product)} aria-label={`Edit ${product.name}`} className="p-2 text-gray-400 hover:text-rose-500 rounded-xl transition-colors"><Pencil size={14} /></button>
+                    <button onClick={() => handleDelete(product._id)} disabled={deletingId === product._id} aria-label={`Delete ${product.name}`} className="p-2 text-gray-400 hover:text-red-500 rounded-xl transition-colors disabled:opacity-40"><Trash2 size={14} /></button>
                   </div>
                 </div>
               ))}
@@ -298,21 +327,21 @@ export default function AdminPage() {
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-3xl">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{editingId ? 'Edit Product' : 'Add New Product'}</h2>
-              <button onClick={() => setShowForm(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"><X size={18} /></button>
+              <button type="button" onClick={() => setShowForm(false)} aria-label="Close form" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"><X size={18} /></button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Product Name *</label>
-                <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Rose Petal Glow Serum" className={inputCls} />
+                <label htmlFor="admin-product-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Product Name *</label>
+                <input id="admin-product-name" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Rose Petal Glow Serum" className={inputCls} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Brand *</label>
-                  <input type="text" required value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g. Lumina" className={inputCls} />
+                  <label htmlFor="admin-brand" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Brand *</label>
+                  <input id="admin-brand" type="text" required value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g. Lumina" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category *</label>
-                  <select required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
+                  <label htmlFor="admin-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category *</label>
+                  <select id="admin-category" required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
                     <option value="skincare">Skincare</option>
                     <option value="soaps">Handmade Soaps</option>
                     <option value="bodycare">Body Care</option>
@@ -324,12 +353,12 @@ export default function AdminPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Price (Rs.) *</label>
-                  <input type="number" required min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="29.99" className={inputCls} />
+                  <label htmlFor="admin-price-rs" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Price (Rs.) *</label>
+                  <input id="admin-price-rs" type="number" required min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="29.99" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Stock Qty *</label>
-                  <input type="number" required min="0" value={form.countInStock} onChange={(e) => setForm({ ...form, countInStock: e.target.value })} placeholder="50" className={inputCls} />
+                  <label htmlFor="admin-stock-qty" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Stock Qty *</label>
+                  <input id="admin-stock-qty" type="number" required min="0" value={form.countInStock} onChange={(e) => setForm({ ...form, countInStock: e.target.value })} placeholder="50" className={inputCls} />
                 </div>
               </div>
               <div>
@@ -345,8 +374,8 @@ export default function AdminPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description *</label>
-                <textarea required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Describe the product — ingredients, benefits, how to use..." className={`${inputCls} resize-none`} />
+                <label htmlFor="admin-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description *</label>
+                <textarea id="admin-description" required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Describe the product — ingredients, benefits, how to use..." className={`${inputCls} resize-none`} />
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-medium rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>

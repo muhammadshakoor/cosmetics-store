@@ -42,8 +42,8 @@ function ForgotPasswordForm() {
               </div>
               <h2 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Check Your Email</h2>
               <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
-                We&apos;ve sent a password reset link to <span className="font-semibold text-gray-700 dark:text-gray-200">{email}</span>.
-                Check your inbox (and spam folder just in case).
+                If an account exists for <span className="font-semibold text-gray-700 dark:text-gray-200">{email}</span>, we&apos;ve sent a link to reset your password.
+                It expires in 1 hour — check your spam folder if you don&apos;t see it.
               </p>
               <Link href="/login" className="inline-flex items-center gap-2 text-sm text-[#C2185B] font-semibold hover:underline">
                 <ArrowLeft size={14} /> Back to Sign In
@@ -62,16 +62,16 @@ function ForgotPasswordForm() {
               </div>
 
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm text-center mb-6">
+                <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm text-center mb-6">
                   {error}
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
-                  <input
-                    type="email" required value={email}
+                  <label htmlFor="forgot-password-email-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
+                  <input id="forgot-password-email-address"
+                    type="email" required autoComplete="email" value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
@@ -79,7 +79,7 @@ function ForgotPasswordForm() {
                 </div>
                 <button
                   type="submit" disabled={status === 'loading'}
-                  className="w-full py-3 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed"
+                  className="w-full py-3 bg-[#C2185B] hover:bg-[#A31555] disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed"
                 >
                   {status === 'loading' ? 'Sending...' : 'Send Reset Link'}
                 </button>

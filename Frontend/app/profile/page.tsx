@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { User, Package, ArrowRight, CheckCircle, XCircle, Truck, MapPin, Sparkles } from 'lucide-react';
+import UserAvatar from '@/components/UserAvatar';
+import { Package, ArrowRight, CheckCircle, XCircle, Truck, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
@@ -49,7 +50,7 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    if (!user) { router.replace('/login'); return; }
+    if (!user) { router.replace('/login?redirect=profile'); return; }
     apiFetch<Order[]>('/orders/myorders', {}, user.token)
       .then(setOrders).catch(() => setOrders([]))
       .finally(() => setLoading(false));
@@ -57,54 +58,64 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  const beautyPoints = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + Math.floor(o.totalPrice / 100), 0);
+  const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+  const deliveredCount = orders.filter(o => o.status === 'delivered').length;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 sm:py-10 px-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 mb-8">My Account</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {/* Profile Card */}
           <div className="md:col-span-1 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-            <div className="w-16 h-16 rounded-full bg-linear-to-br from-rose-400 to-pink-500 flex items-center justify-center mx-auto mb-4 shadow-md">
-              <User size={28} className="text-white" />
+            <div className="flex justify-center mb-4">
+              <UserAvatar name={user.name} picture={user.picture} size="lg" />
             </div>
             <div className="text-center mb-5">
               <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{user.name}</h2>
-              <p className="text-sm text-gray-400 dark:text-gray-500">{user.email}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 break-all">{user.email}</p>
               {user.isAdmin && (
                 <span className="mt-2 inline-block text-xs px-2 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-full font-medium">Admin</span>
               )}
             </div>
 
-            {/* Lumina Beauty Points Card */}
-            <div className="mb-6 p-4 bg-linear-to-br from-amber-50 to-rose-50 dark:from-gray-700/60 dark:to-gray-700/40 border border-amber-200/60 dark:border-gray-600 rounded-2xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                    <Sparkles size={12} /> Lumina Beauty Club
-                  </p>
-                  <p className="text-2xl font-black text-gray-900 dark:text-gray-100 mt-0.5">{beautyPoints} <span className="text-xs font-normal">PTS</span></p>
+            {/* Order stats */}
+            <dl className="grid grid-cols-3 gap-2 mb-6 text-center">
+              {[
+                { label: 'Orders', value: orders.length },
+                { label: 'In progress', value: activeOrders.length },
+                { label: 'Delivered', value: deliveredCount },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-2xl bg-rose-50/70 dark:bg-gray-700/60 px-2 py-3">
+                  <dd className="text-xl font-black text-gray-900 dark:text-gray-100">{loading ? '–' : value}</dd>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</dt>
                 </div>
-                <span className="text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 font-bold px-2.5 py-1 rounded-xl">
-                  Rs. {beautyPoints} Value
-                </span>
-              </div>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 leading-tight">Earn 1 point per PKR 100 spent. Redeem points for cash discounts!</p>
-            </div>
+              ))}
+            </dl>
             <div className="space-y-2">
               {user.isAdmin && (
                 <Link href="/admin" className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
                   Admin Panel <ArrowRight size={14} />
                 </Link>
               )}
+              {!user.isAdmin && (
+                <>
+                  <Link href="/wishlist" className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
+                    My Wishlist <ArrowRight size={14} />
+                  </Link>
+                  <Link href="/complaints/my" className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
+                    My Complaints <ArrowRight size={14} />
+                  </Link>
+                </>
+              )}
               <Link href="/products" className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
                 Shop Products <ArrowRight size={14} />
               </Link>
               <button
                 onClick={() => { logout(); router.push('/'); }}
-                className="flex items-center justify-center w-full px-4 py-2.5 text-sm font-medium text-red-500 border border-red-100 dark:border-red-900/30 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                type="button"
+                className="flex items-center justify-center w-full px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
               >
                 Sign Out
               </button>
@@ -127,7 +138,7 @@ export default function ProfilePage() {
               <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center">
                 <div className="text-4xl mb-3">🛍️</div>
                 <p className="text-gray-500 dark:text-gray-400 mb-4">You haven&apos;t placed any orders yet.</p>
-                <Link href="/products" className="inline-flex items-center gap-2 px-5 py-2.5 bg-rose-500 text-white font-semibold rounded-2xl hover:bg-rose-600 transition-colors text-sm">
+                <Link href="/products" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C2185B] text-white font-semibold rounded-2xl hover:bg-[#A31555] transition-colors text-sm">
                   Start Shopping <ArrowRight size={14} />
                 </Link>
               </div>
@@ -159,7 +170,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex -space-x-2">
                           {order.orderItems.slice(0, 4).map((item, i) => (
-                            <img key={i} src={item.image} alt={item.name} className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700" />
+                            <img key={i} src={item.image} alt="" className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700" />
                           ))}
                           {order.orderItems.length > 4 && (
                             <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-white dark:border-gray-800 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -174,6 +185,7 @@ export default function ProfilePage() {
                       {canCancel && (
                         <div className="border-t border-gray-50 dark:border-gray-700 mt-3 pt-3">
                           <button
+                            type="button"
                             onClick={() => handleCancel(order._id)}
                             disabled={cancellingId === order._id}
                             className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 disabled:opacity-50"

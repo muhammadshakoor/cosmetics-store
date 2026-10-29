@@ -10,12 +10,13 @@ export async function GET(request: NextRequest) {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  const { data: orders } = await supabase
-    .from('Order')
-    .select('id, totalPrice, status, isCancelled, createdAt');
+  // select('*') so a missing optional column (e.g. isCancelled) can't make the whole query fail
+  const { data: orders } = await supabase.from('Order').select('*');
 
-  const allOrders = orders || [];
-  const activeOrders = allOrders.filter((o) => !o.isCancelled);
+  const allOrders = (orders || []) as { id: string; totalPrice: number; status?: string; isCancelled?: boolean; createdAt: string }[];
+  const isCancelled = (o: { status?: string; isCancelled?: boolean }) => o.status === 'cancelled' || Boolean(o.isCancelled);
+  const activeOrders = allOrders.filter((o) => !isCancelled(o));
+  const activeOrderIds = new Set(activeOrders.map((o) => o.id));
 
   const totalRevenue = activeOrders.reduce((s, o) => s + o.totalPrice, 0);
   const monthRevenue = activeOrders
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   const statusCounts: Record<string, number> = {};
   for (const o of allOrders) {
-    const key = o.isCancelled ? 'cancelled' : (o.status || 'confirmed');
+    const key = isCancelled(o) ? 'cancelled' : (o.status || 'confirmed');
     statusCounts[key] = (statusCounts[key] || 0) + 1;
   }
 
@@ -40,16 +41,22 @@ export async function GET(request: NextRequest) {
   }
 
   // Top products + category breakdown
-  const { data: items } = await supabase
+  const { data: allItems } = await supabase
     .from('OrderItem')
-    .select('productId, name, qty, price, Product(image)');
+    .select('orderId, productId, name, qty, price, Product(image)');
+  // Cancelled orders don't count towards product or category sales
+  const items = (allItems || []).filter((item) => activeOrderIds.has(item.orderId));
 
   const productRevenue: Record<string, { name: string; image: string; revenue: number; sold: number }> = {};
-  for (const item of items || []) {
+  for (const item of items) {
     if (!productRevenue[item.productId]) {
       productRevenue[item.productId] = {
         name: item.name,
-        image: (item.Product as unknown as Array<{ image: string }>)?.[0]?.image ?? '',
+        // Many-to-one joins come back as an object (older clients returned an array)
+        image: (() => {
+          const joined = item.Product as unknown as { image: string } | { image: string }[] | null;
+          return (Array.isArray(joined) ? joined[0]?.image : joined?.image) ?? '';
+        })(),
         revenue: 0,
         sold: 0,
       };
@@ -68,7 +75,7 @@ export async function GET(request: NextRequest) {
   for (const p of products || []) catMap[p.id] = p.category;
 
   const categoryRevenue: Record<string, number> = {};
-  for (const item of items || []) {
+  for (const item of items) {
     const cat = catMap[item.productId] || 'other';
     categoryRevenue[cat] = (categoryRevenue[cat] || 0) + item.price * item.qty;
   }

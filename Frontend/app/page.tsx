@@ -270,8 +270,8 @@ export default function HomePage() {
           <h2 className="text-3xl font-extrabold text-white mb-3">Get 10% Off Your First Order</h2>
           <p className="text-rose-100 text-sm mb-8">Subscribe for beauty tips, new arrivals, and exclusive offers.</p>
           {newsletterStatus === 'success' ? (
-            <div className="bg-white/20 border border-white/30 rounded-2xl px-6 py-4 text-white font-semibold">
-              🎉 You&apos;re subscribed! Check your inbox for your 10% off code.
+            <div role="status" className="bg-white/20 border border-white/30 rounded-2xl px-6 py-4 text-white font-semibold">
+              🎉 You&apos;re subscribed! Use code <span className="font-mono font-extrabold tracking-wider bg-white/25 px-2 py-0.5 rounded-lg">LUMINA10</span> at checkout for 10% off.
             </div>
           ) : (
             <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-3">

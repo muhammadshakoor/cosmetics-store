@@ -1,15 +1,11 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-
-const rawPhone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '923157320217';
-const cleanPhone = rawPhone.replace(/\D/g, '');
-const PHONE = cleanPhone.startsWith('0') ? '92' + cleanPhone.slice(1) : (cleanPhone || '923157320217');
-const MESSAGE = encodeURIComponent('Hi! I have a question about Lumina Organic Cosmetics.');
+import { whatsappLink } from '@/lib/site';
 
 export default function WhatsAppButton() {
   const pathname = usePathname();
-  const href = `https://wa.me/${PHONE}?text=${MESSAGE}`;
+  const href = whatsappLink();
   // Product pages have a sticky "Add to Cart" bar on mobile — sit above it
   const onProductPage = /^\/products\/[^/]+$/.test(pathname);
   return (

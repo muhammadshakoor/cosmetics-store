@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase';
+import { escapeHtml } from '@/lib/email';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
 const RESEND_KEY = process.env.RESEND_API_KEY;
@@ -23,7 +24,7 @@ async function sendVerificationEmail(to: string, name: string, token: string) {
               <span style="color:#fff;font-size:22px;font-weight:bold">L</span>
             </div>
             <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800">Welcome to Lumina!</h1>
-            <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px">Hi ${name}, one quick step to get started</p>
+            <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px">Hi ${escapeHtml(name)}, one quick step to get started</p>
           </div>
           <div style="padding:36px 24px;text-align:center">
             <p style="color:#444;font-size:15px;line-height:1.6;margin-top:0">
