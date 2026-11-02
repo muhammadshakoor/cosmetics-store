@@ -2,23 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Star, ShoppingCart, Heart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import toast from 'react-hot-toast';
+import type { Product } from '@/types/api';
 
-export interface ProductType {
-  _id: string;
-  name: string;
-  image: string;
-  brand: string;
-  category: string;
-  description: string;
-  rating: number;
-  numReviews: number;
-  price: number;
-  countInStock: number;
-}
+export type ProductType = Product;
 
 const categoryColors: Record<string, string> = {
   skincare:  'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400',
@@ -34,6 +25,7 @@ export default function ProductCard({ product }: { product: ProductType }) {
   const { isWishlisted, toggle } = useWishlist();
   const wishlisted = isWishlisted(product._id);
   const [added, setAdded] = useState(false);
+  const [imgSrc, setImgSrc] = useState(product.image || `https://picsum.photos/seed/${product._id}/400/400`);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,26 +49,28 @@ export default function ProductCard({ product }: { product: ProductType }) {
     <Link href={`/products/${product._id}`} className="group block">
       <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:border-rose-100 dark:hover:border-rose-900/40 hover:-translate-y-1.5">
 
-        {/* Image */}
+        {/* Image Container with Next/Image */}
         <div className="relative overflow-hidden bg-[#FFF8F5] dark:bg-gray-700 aspect-square">
-          <img
-            src={product.image || `https://picsum.photos/seed/${product._id}/400/400`}
+          <Image
+            src={imgSrc}
             alt={product.name}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700"
-            onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${product._id}/400/400`; }}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover group-hover:scale-108 transition-transform duration-700"
+            onError={() => {
+              setImgSrc(`https://picsum.photos/seed/${product._id}/400/400`);
+            }}
           />
 
           {/* Out of stock overlay */}
           {product.countInStock === 0 && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
               <span className="text-white font-bold text-xs bg-black/60 px-3 py-1.5 rounded-full tracking-wide uppercase">Sold Out</span>
             </div>
           )}
 
           {/* Category badge */}
-          <div className="absolute top-3 left-3">
+          <div className="absolute top-3 left-3 z-10">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${catClass}`}>
               {product.category}
             </span>
@@ -85,16 +79,18 @@ export default function ProductCard({ product }: { product: ProductType }) {
           {/* Wishlist */}
           <button
             onClick={(e) => { e.preventDefault(); toggle(product._id); }}
-            className="absolute top-3 right-3 w-8 h-8 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-transform"
+            aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+            className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-transform"
           >
             <Heart size={13} className={wishlisted ? 'fill-[#C2185B] text-[#C2185B]' : 'text-gray-400'} />
           </button>
 
           {/* Add to Cart — always visible */}
           {product.countInStock > 0 && (
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/20 to-transparent">
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/20 to-transparent z-10">
               <button
                 onClick={handleAddToCart}
+                aria-label={`Add ${product.name} to cart`}
                 className={`w-full flex items-center justify-center gap-2 py-2.5 text-white text-xs font-bold rounded-2xl transition-all ${
                   added ? 'bg-green-500' : 'bg-[#C2185B] hover:bg-[#A31555]'
                 }`}

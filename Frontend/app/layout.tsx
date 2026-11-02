@@ -1,12 +1,9 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Lumina – Premium Cosmetics & Beauty',
@@ -29,10 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className={`${inter.className} antialiased min-h-screen flex flex-col`}>
+      <body className="antialiased min-h-screen flex flex-col font-sans">
         <Providers>
           <Navbar />
-          <main className="flex-1 pt-[116px]">
+          <main className="flex-1 pt-16">
             {children}
           </main>
           <Footer />

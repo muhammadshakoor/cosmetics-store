@@ -21,6 +21,8 @@ interface CartContextType {
   clearCart: () => void;
   itemCount: number;
   totalPrice: number;
+  /** false until the saved cart has been read from localStorage */
+  cartReady: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -28,15 +30,21 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartReady, setCartReady] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('cartItems');
-    if (stored) setCartItems(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem('cartItems');
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- storage is only readable after hydration
+      if (stored) setCartItems(JSON.parse(stored));
+    } catch { /* corrupted storage — start with an empty cart */ }
+    setCartReady(true);
   }, []);
 
+  // Only persist once the saved cart is loaded, otherwise the initial [] overwrites it
   useEffect(() => {
-    localStorage.setItem('cartItems', JSON.stringify(cartItems));
-  }, [cartItems]);
+    if (cartReady) localStorage.setItem('cartItems', JSON.stringify(cartItems));
+  }, [cartItems, cartReady]);
 
   const addToCart = (item: CartItem) => {
     if (user?.isAdmin) {
@@ -68,7 +76,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const totalPrice = cartItems.reduce((a, c) => a + c.price * c.qty, 0);
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQty, clearCart, itemCount, totalPrice }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQty, clearCart, itemCount, totalPrice, cartReady }}>
       {children}
     </CartContext.Provider>
   );

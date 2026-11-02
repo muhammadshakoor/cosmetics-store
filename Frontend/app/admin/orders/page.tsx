@@ -38,7 +38,7 @@ interface Order {
 }
 
 export default function AdminOrdersPage() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -64,10 +64,11 @@ export default function AdminOrdersPage() {
   }, [user]);
 
   useEffect(() => {
+    if (!authReady) return;
     if (!user) { router.replace('/login'); return; }
     if (!user.isAdmin) { router.replace('/'); return; }
     fetchOrders();
-  }, [user, router, fetchOrders]);
+  }, [user, authReady, router, fetchOrders]);
 
   const updateStatus = async (orderId: string, status: OrderStatus, courier?: string, tracking?: string) => {
     if (!user) return;

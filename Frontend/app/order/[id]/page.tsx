@@ -47,7 +47,7 @@ const COURIER_LINKS: Record<string, string> = {
 
 export default function OrderPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,12 +60,13 @@ export default function OrderPage() {
   const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (!authReady) return;
     if (!user) { router.replace('/login'); return; }
     apiFetch<Order>(`/orders/${id}`, {}, user.token)
       .then(setOrder)
       .catch(() => router.replace('/'))
       .finally(() => setLoading(false));
-  }, [id, user, router]);
+  }, [id, user, authReady, router]);
 
   const openReview = (productId: string, productName: string) => {
     setReviewProductId(productId); setReviewProductName(productName);

@@ -30,7 +30,8 @@ Full-stack e-commerce app for a cosmetics brand called **Lumina**. Customers can
 2. Google OAuth → `/api/auth/google` → callback → `/api/auth/google/callback` → redirect to `/auth/callback?token=...` → fetches `/api/users/profile` → `login()` in AuthContext
 3. Facebook OAuth → same pattern via `/api/auth/facebook/callback`
 4. Token stored in `localStorage` (remember me) or `sessionStorage` (session only), key: `userInfo`
-5. `useAuth()` hook from `AuthContext` provides `{ user, login, logout }`
+5. `useAuth()` hook from `AuthContext` provides `{ user, authReady, login, logout }`
+6. `user` is `null` on the server **and** on the first client render (stored session is read in a `useEffect`, to avoid hydration mismatches). `authReady` flips to `true` once storage is read — any redirect-on-`!user` guard must wait for it. `useCart()` has the same `cartReady` flag.
 
 ### User Object Shape
 ```ts
@@ -194,8 +195,9 @@ CREATE TABLE "User" (
 ## Navbar — Current Features
 - Sticky, scrolled state (shadow deepens on scroll)
 - Logo → Home
-- Desktop nav links: Home, Shop, Skincare, Makeup, Jewellery
-- Desktop search bar (expandable input with Search icon)
+- Desktop nav: Home, **Rituals** (hover/click dropdown: Skincare, Handmade Soaps, Body Care, Hair Care, Fragrance), Shop All, Skin Quiz button
+- Active link (Home / Shop All) gets rose text + underline via `navLinkCls()`
+- Search: icon toggles a full-width search bar with autocomplete suggestions
 - **Mobile search**: Search icon in navbar → expands full-width search bar below header row; auto-focuses input; closes on route change or X button
 - Theme toggle (sun/moon)
 - Wishlist icon with badge count
@@ -204,7 +206,7 @@ CREATE TABLE "User" (
   - **With picture**: shows `<img>` (Google/Facebook photo), `referrerPolicy="no-referrer"`
   - **Without picture**: colored gradient initials circle (gradient chosen by `name.charCodeAt(0)`)
   - Dropdown shows: profile header (avatar + full name + email), My Profile, Admin links (if admin), My Complaints / Submit Complaint (if customer), Sign out
-- Mobile hamburger → drawer with all nav links + user profile section
+- Mobile hamburger → drawer with all nav links + user profile section (profile, admin or complaints links, Sign out)
 - Closing behavior: mobile menu, mobile search, and user dropdown all close on route change
 
 ### Avatar Gradient Palette
@@ -222,10 +224,12 @@ const inputCls = 'w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600
 
 ### Admin Guard Pattern
 ```tsx
+const { user, authReady } = useAuth();
 useEffect(() => {
+  if (!authReady) return; // wait for stored session, or a logged-in user gets bounced to /login
   if (!user) { router.replace('/login'); return; }
   if (!user.isAdmin) { router.replace('/'); return; }
-}, [user, router]);
+}, [user, authReady, router]);
 if (!user?.isAdmin) return null;
 ```
 
@@ -314,6 +318,7 @@ PORT=5000
 ---
 
 ## Dev Notes
+- **Offline fallback**: when `isSupabaseAvailable()` is false or a query fails, products/orders/complaints read and write local JSON files in `Frontend/data/` (`lib/localProducts.ts`, `lib/localOrders.ts`, `lib/localComplaints.ts`). The complaints GET merges Supabase and local results.
 - All pages use `'use client'` directive (client components only — no RSC data fetching)
 - `mounted` state guards are used where needed to prevent hydration mismatches (e.g., cart count, user menu)
 - Supabase auto-generated TypeScript types may not include custom columns (like `picture`) until the schema is refreshed — TS6133 hints on these are false positives at build time

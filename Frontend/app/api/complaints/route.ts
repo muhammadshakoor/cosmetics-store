@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseAvailable } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
+import { addLocalComplaint, getLocalComplaints, type LocalComplaint } from '@/lib/localComplaints';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     const user = await getAuthUser(request).catch(() => null);
     const now = new Date().toISOString();
 
-    const { data: complaint, error } = await supabase.from('Complaint').insert({
+    const payload: LocalComplaint = {
       id: crypto.randomUUID(),
       userId: user?.id || null,
       name,
@@ -25,9 +26,20 @@ export async function POST(request: NextRequest) {
       status: 'open',
       createdAt: now,
       updatedAt: now,
-    }).select().single();
+    };
 
-    if (error) throw new Error(error.message);
+    let complaint: LocalComplaint | null = null;
+    if (await isSupabaseAvailable()) {
+      try {
+        const { data, error } = await supabase.from('Complaint').insert(payload).select().single();
+        if (error) throw new Error(error.message);
+        complaint = data;
+      } catch (e) {
+        console.warn('[complaints API] Supabase insert failed, saving locally:', e instanceof Error ? e.message : e);
+      }
+    }
+    // Fallback: Supabase offline or table missing
+    if (!complaint) complaint = addLocalComplaint(payload);
 
     notifyAdmin(complaint, name, email, orderId, category, subject, message).catch(() => {});
     confirmUser(email, name, subject).catch(() => {});
@@ -42,24 +54,27 @@ export async function GET(request: NextRequest) {
   const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
 
-  if (user.isAdmin) {
-    // Admin sees all complaints
-    const { data, error } = await supabase
-      .from('Complaint')
-      .select('*')
-      .order('createdAt', { ascending: false });
-    if (error) return NextResponse.json({ message: error.message }, { status: 500 });
-    return NextResponse.json(data);
+  // Admin sees all complaints; regular users only their own
+  const userId = user.isAdmin ? undefined : user.id;
+  let remote: LocalComplaint[] = [];
+
+  if (await isSupabaseAvailable()) {
+    try {
+      let query = supabase.from('Complaint').select('*').order('createdAt', { ascending: false });
+      if (userId) query = query.eq('userId', userId);
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      remote = data ?? [];
+    } catch (e) {
+      console.warn('[complaints API] Supabase query failed, using local store:', e instanceof Error ? e.message : e);
+    }
   }
 
-  // Regular user sees only their own complaints
-  const { data, error } = await supabase
-    .from('Complaint')
-    .select('*')
-    .eq('userId', user.id)
-    .order('createdAt', { ascending: false });
-  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  // Merge in complaints saved locally while Supabase was unreachable
+  const seen = new Set(remote.map((c) => c.id));
+  const merged = [...remote, ...getLocalComplaints(userId).filter((c) => !seen.has(c.id))]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return NextResponse.json(merged);
 }
 
 async function resendEmail(to: string, subject: string, html: string) {

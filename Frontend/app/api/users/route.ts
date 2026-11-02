@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase';
+import { RegisterInputSchema } from '@/types/api';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
 const RESEND_KEY = process.env.RESEND_API_KEY;
@@ -51,22 +52,24 @@ async function sendVerificationEmail(to: string, name: string, token: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json();
+    const rawBody = await request.json();
+    const parseResult = RegisterInputSchema.safeParse(rawBody);
 
-    if (!name?.trim() || !email?.trim() || !password)
-      return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
+    if (!parseResult.success) {
+      const firstError = parseResult.error.issues[0]?.message || 'Invalid input data';
+      return NextResponse.json({ message: firstError }, { status: 400 });
+    }
 
-    if (password.length < 6)
-      return NextResponse.json({ message: 'Password must be at least 6 characters' }, { status: 400 });
-
-    const normalizedEmail = email.toLowerCase().trim();
+    const { name, email, password } = parseResult.data;
 
     const { data: existing } = await supabase
-      .from('User').select('id').eq('email', normalizedEmail).single();
-    if (existing)
+      .from('User').select('id').eq('email', email).single();
+    if (existing) {
       return NextResponse.json({ message: 'An account with this email already exists' }, { status: 400 });
+    }
 
-    const hashed = await bcrypt.hash(password, 10);
+    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10);
+    const hashed = await bcrypt.hash(password, saltRounds);
     const id = crypto.randomUUID();
     const verifyToken = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -74,8 +77,8 @@ export async function POST(request: NextRequest) {
 
     const { error } = await supabase.from('User').insert({
       id,
-      name: name.trim(),
-      email: normalizedEmail,
+      name,
+      email,
       password: hashed,
       isAdmin: false,
       emailVerified: false,
@@ -85,13 +88,19 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error('[users API] Failed to create user:', error.message);
+      return NextResponse.json({ message: 'Failed to create user account. Please try again.' }, { status: 500 });
+    }
 
     // Non-blocking — registration still succeeds even if email fails
-    sendVerificationEmail(normalizedEmail, name.trim(), verifyToken).catch(() => {});
+    sendVerificationEmail(email, name, verifyToken).catch((err) => {
+      console.warn('[users API] Verification email delivery failed:', err);
+    });
 
-    return NextResponse.json({ emailSent: true, email: normalizedEmail }, { status: 201 });
+    return NextResponse.json({ emailSent: true, email }, { status: 201 });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : 'Server error' }, { status: 500 });
+    console.error('[users API] Unexpected error:', e);
+    return NextResponse.json({ message: 'Server error processing registration' }, { status: 500 });
   }
 }

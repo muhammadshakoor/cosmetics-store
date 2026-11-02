@@ -15,7 +15,7 @@ interface Product {
 interface WishlistItem { id: string; productId: string; product: Product; }
 
 export default function WishlistPage() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const { toggle } = useWishlist();
   const { addToCart } = useCart();
   const [items, setItems] = useState<WishlistItem[]>([]);
@@ -25,10 +25,12 @@ export default function WishlistPage() {
     if (!user) { setLoading(false); return; }
     fetch('/api/wishlist', { headers: { Authorization: `Bearer ${user.token}` } })
       .then((r) => r.json())
-      .then((data: WishlistItem[]) => setItems(data.filter((w) => w.product)))
+      .then((data: WishlistItem[]) => setItems(Array.isArray(data) ? data.filter((w) => w.product) : []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [user]);
+
+  if (!authReady) return null;
 
   if (!user) {
     return (

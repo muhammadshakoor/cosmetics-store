@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseAvailable } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
+import { CreateOrderInputSchema } from '@/types/api';
+import { saveLocalOrder } from '@/lib/localOrders';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,70 +10,144 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
     if (user.isAdmin) return NextResponse.json({ message: 'Admin accounts cannot place orders. Use a customer account.' }, { status: 403 });
 
+    const rawBody = await request.json();
+    const parseResult = CreateOrderInputSchema.safeParse(rawBody);
+
+    if (!parseResult.success) {
+      const firstError = parseResult.error.issues[0]?.message || 'Invalid order data';
+      return NextResponse.json({ message: firstError }, { status: 400 });
+    }
+
     const {
       orderItems, shippingAddress, paymentMethod,
       itemsPrice, taxPrice, shippingPrice, totalPrice,
       couponCode, discountAmount, phone,
-    } = await request.json();
-
-    if (!orderItems?.length) return NextResponse.json({ message: 'No order items' }, { status: 400 });
+    } = parseResult.data;
 
     const orderId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    const { data: order, error: orderError } = await supabase
-      .from('Order')
-      .insert({
-        id: orderId, userId: user.id,
-        address: shippingAddress.address, city: shippingAddress.city,
-        postalCode: shippingAddress.postalCode, country: shippingAddress.country,
-        phone: phone || null,
-        paymentMethod, itemsPrice, taxPrice, shippingPrice, totalPrice,
-        discountAmount: discountAmount || 0,
-        couponCode: couponCode || null,
-        isPaid: false, isDelivered: false,
-        status: 'confirmed',
-        createdAt: now, updatedAt: now,
-      })
-      .select().single();
+    const items = orderItems.map((item) => {
+      const prodId = item._id || item.product || item.id || crypto.randomUUID();
+      return {
+        id: crypto.randomUUID(),
+        orderId,
+        productId: prodId,
+        name: item.name,
+        qty: item.qty,
+        image: item.image,
+        price: item.price,
+      };
+    });
 
-    if (orderError) throw new Error(orderError.message);
+    let savedOrder: any = null;
 
-    const items = orderItems.map((item: { name: string; qty: number; image: string; price: number; _id: string }) => ({
-      id: crypto.randomUUID(),
-      orderId, productId: item._id,
-      name: item.name, qty: item.qty, image: item.image, price: item.price,
-    }));
+    if (await isSupabaseAvailable()) {
+      try {
+        const { data: order, error: orderError } = await supabase
+          .from('Order')
+          .insert({
+            id: orderId, userId: user.id,
+            address: shippingAddress.address, city: shippingAddress.city,
+            postalCode: shippingAddress.postalCode, country: shippingAddress.country,
+            phone: phone || null,
+            paymentMethod, itemsPrice, taxPrice, shippingPrice, totalPrice,
+            discountAmount: discountAmount || 0,
+            couponCode: couponCode || null,
+            isPaid: false, isDelivered: false,
+            status: 'confirmed',
+            createdAt: now, updatedAt: now,
+          })
+          .select().single();
 
-    const { error: itemsError } = await supabase.from('OrderItem').insert(items);
-    if (itemsError) throw new Error(itemsError.message);
-
-    // Reduce stock
-    for (const item of orderItems) {
-      const { data: product } = await supabase
-        .from('Product').select('countInStock').eq('id', item._id).single();
-      if (product) {
-        const newStock = Math.max(0, product.countInStock - item.qty);
-        await supabase.from('Product').update({ countInStock: newStock }).eq('id', item._id);
+        if (!orderError && order) {
+          savedOrder = order;
+          const { error: itemsError } = await supabase.from('OrderItem').insert(items);
+          if (itemsError) {
+            console.warn('[orders API] Failed to insert Supabase OrderItems:', itemsError.message);
+          }
+        } else if (orderError) {
+          console.warn('[orders API] Supabase order insert failed:', orderError.message);
+        }
+      } catch (dbErr) {
+        console.warn('[orders API] Database connection offline:', dbErr instanceof Error ? dbErr.message : dbErr);
       }
     }
 
-    // Mark coupon as used
+    // If Supabase was offline or failed in development, persist locally
+    if (!savedOrder) {
+      if (process.env.NODE_ENV !== 'production') {
+        const localCreated = saveLocalOrder({
+          id: orderId,
+          userId: user.id,
+          address: shippingAddress.address,
+          city: shippingAddress.city,
+          postalCode: shippingAddress.postalCode,
+          country: shippingAddress.country,
+          phone: phone || null,
+          paymentMethod,
+          itemsPrice,
+          taxPrice,
+          shippingPrice,
+          totalPrice,
+          discountAmount: discountAmount || 0,
+          couponCode: couponCode || null,
+          isPaid: false,
+          isDelivered: false,
+          isCancelled: false,
+          status: 'confirmed',
+          createdAt: now,
+          updatedAt: now,
+          orderItems: items,
+        });
+        savedOrder = localCreated;
+      } else {
+        return NextResponse.json({ message: 'Failed to record order. Database temporarily unavailable.' }, { status: 500 });
+      }
+    }
+
+    // Reduce stock (wrap in try/catch to gracefully handle offline database)
+    try {
+      for (const item of orderItems) {
+        const prodId = item._id || item.product || item.id;
+        if (prodId) {
+          const { data: product } = await supabase
+            .from('Product').select('countInStock').eq('id', prodId).single();
+          if (product) {
+            const newStock = Math.max(0, product.countInStock - item.qty);
+            await supabase.from('Product').update({ countInStock: newStock }).eq('id', prodId);
+          }
+        }
+      }
+    } catch (stockErr) {
+      console.warn('[orders API] Stock update skipped (offline database):', stockErr);
+    }
+
+    // Mark coupon as used (wrap in try/catch to gracefully handle offline database)
     if (couponCode) {
-      const { error: rpcError } = await supabase.rpc('increment_coupon_usage', { coupon_code: couponCode });
-      if (rpcError) {
-        const { data: c } = await supabase.from('Coupon').select('usedCount').eq('code', couponCode).single();
-        if (c) await supabase.from('Coupon').update({ usedCount: c.usedCount + 1 }).eq('code', couponCode);
+      try {
+        const { error: rpcError } = await supabase.rpc('increment_coupon_usage', { coupon_code: couponCode });
+        if (rpcError) {
+          const { data: c } = await supabase.from('Coupon').select('usedCount').eq('code', couponCode).single();
+          if (c) await supabase.from('Coupon').update({ usedCount: c.usedCount + 1 }).eq('code', couponCode);
+        }
+      } catch (couponErr) {
+        console.warn('[orders API] Coupon usage update skipped (offline database):', couponErr);
       }
     }
 
     // Send emails non-blocking
-    sendCustomerConfirmation(order, user.name, user.email, orderItems, totalPrice).catch(() => {});
-    sendAdminNotification(order, user.name, user.email, orderItems, totalPrice).catch(() => {});
+    sendCustomerConfirmation(savedOrder, user.name, user.email, orderItems, totalPrice).catch((err) => {
+      console.warn('[orders API] Customer confirmation email failed:', err);
+    });
+    sendAdminNotification(savedOrder, user.name, user.email, orderItems, totalPrice).catch((err) => {
+      console.warn('[orders API] Admin notification email failed:', err);
+    });
 
-    return NextResponse.json(toClient(order), { status: 201 });
+    return NextResponse.json(toClient(savedOrder), { status: 201 });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : 'Server error' }, { status: 500 });
+    console.error('[orders API] Unexpected error placing order:', e);
+    return NextResponse.json({ message: 'Server error processing order' }, { status: 500 });
   }
 }
 

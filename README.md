@@ -326,22 +326,31 @@ All API routes are inside the Next.js app — no separate server.
 
 ---
 
-## Deployment (Free)
+## Deployment to Production
 
-### Deploy to Vercel (frontend + backend in one)
+### Deploy to Vercel (Recommended)
 
 1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) → Import your GitHub repo
+2. Go to [vercel.com](https://vercel.com) → **Add New Project** → Import your repository
 3. Set **Root Directory** to `Frontend`
-4. Add environment variables (same as `.env.local`):
+4. Copy all required keys from [`Frontend/.env.example`](Frontend/.env.example) into your Vercel Project Environment Variables:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `JWT_SECRET`
-   - `CLOUDINARY_CLOUD_NAME`
-   - `CLOUDINARY_UPLOAD_PRESET`
-5. Click **Deploy** — your store is live!
+   - `JWT_SECRET` (generate a strong random secret with `openssl rand -base64 32`)
+   - `NEXT_PUBLIC_SITE_URL` (set to your custom domain, e.g. `https://yourbrand.com`)
+   - `CLOUDINARY_CLOUD_NAME` & `CLOUDINARY_UPLOAD_PRESET`
+   - `SEED_SECRET` (optional, guards `/api/seed` in production)
+   - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `ADMIN_EMAIL` (for order & verification emails)
+5. Click **Deploy** — your application builds and deploys globally with edge middleware.
 
-> No separate backend hosting needed. Vercel handles everything.
+### Connecting a Custom Domain (e.g. `yourbrand.com`)
+1. In your Vercel project dashboard, go to **Settings** → **Domains**.
+2. Enter your custom domain (e.g., `yourbrand.com` and `www.yourbrand.com`).
+3. Add the DNS records provided by Vercel in your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.):
+   - **A Record**: `@` → `76.76.21.21`
+   - **CNAME Record**: `www` → `cname.vercel-dns.com`
+4. Vercel will automatically provision a free SSL certificate (HTTPS).
+5. Update `NEXT_PUBLIC_SITE_URL` in Vercel Environment Variables to your custom domain so verification and reset links work properly.
 
 ---
 

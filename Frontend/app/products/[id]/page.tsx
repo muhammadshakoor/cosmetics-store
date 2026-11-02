@@ -50,25 +50,35 @@ export default function ProductDetailPage() {
   };
 
   useEffect(() => {
+    let isCancelled = false;
     const fetchProduct = async () => {
       try {
         const res = await fetch(`${API_URL}/products/${id}`);
         if (res.ok) {
           const p: ProductType = await res.json();
+          if (isCancelled) return;
           setProduct(p);
-          const relRes = await fetch(`${API_URL}/products?category=${p.category}&limit=4`);
-          if (relRes.ok) {
-            const all: ProductType[] = await relRes.json();
-            setRelated(all.filter((r) => r._id !== id).slice(0, 4));
-          }
+          setLoading(false); // Unblock UI immediately so product shows without waiting
+
+          // Fetch related products non-blocking in background
+          fetch(`${API_URL}/products?category=${encodeURIComponent(p.category)}&limit=5`)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((all: ProductType[]) => {
+              if (!isCancelled && Array.isArray(all)) {
+                setRelated(all.filter((r) => r._id !== id).slice(0, 4));
+              }
+            })
+            .catch(() => {});
+          return;
         }
       } catch {
         // failed
       } finally {
-        setLoading(false);
+        if (!isCancelled) setLoading(false);
       }
     };
     fetchProduct();
+    return () => { isCancelled = true; };
   }, [id]);
 
   const handleAddToCart = () => {

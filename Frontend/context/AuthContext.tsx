@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 export interface User {
   _id: string;
@@ -13,6 +13,8 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  /** false until the stored session has been read on the client — guards must wait for it */
+  authReady: boolean;
   login: (userData: User, remember?: boolean) => void;
   logout: () => void;
 }
@@ -20,16 +22,44 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window !== 'undefined') {
+  // Start as null on both server and client so the first client render matches the
+  // server HTML (reading storage in the initializer caused hydration mismatches).
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    try {
       const stored = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
-      return stored ? JSON.parse(stored) : null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- storage is only readable after hydration
+      if (stored) setUser(JSON.parse(stored));
+    } catch {
+      localStorage.removeItem('userInfo');
+      sessionStorage.removeItem('userInfo');
     }
-    return null;
-  });
+    setAuthReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      document.cookie = 'lumina_auth=1; path=/; max-age=2592000; SameSite=Lax';
+      if (user.isAdmin) {
+        document.cookie = 'lumina_admin=1; path=/; max-age=2592000; SameSite=Lax';
+      }
+    }
+  }, [user]);
 
   const login = (userData: User, remember = true) => {
     setUser(userData);
+    const maxAge = remember ? 2592000 : 86400;
+    if (typeof document !== 'undefined') {
+      document.cookie = `lumina_auth=1; path=/; max-age=${maxAge}; SameSite=Lax`;
+      if (userData.isAdmin) {
+        document.cookie = `lumina_admin=1; path=/; max-age=${maxAge}; SameSite=Lax`;
+      } else {
+        document.cookie = 'lumina_admin=; path=/; max-age=0; SameSite=Lax';
+      }
+    }
+
     if (remember) {
       localStorage.setItem('userInfo', JSON.stringify(userData));
       sessionStorage.removeItem('userInfo');
@@ -41,12 +71,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
+    if (typeof document !== 'undefined') {
+      document.cookie = 'lumina_auth=; path=/; max-age=0; SameSite=Lax';
+      document.cookie = 'lumina_admin=; path=/; max-age=0; SameSite=Lax';
+    }
     localStorage.removeItem('userInfo');
     sessionStorage.removeItem('userInfo');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, authReady, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

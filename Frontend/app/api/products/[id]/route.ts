@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseAvailable } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
 import { getLocalProductById, updateLocalProduct, deleteLocalProduct } from '@/lib/localProducts';
 
@@ -8,11 +8,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  try {
-    const { data, error } = await supabase.from('Product').select('*').eq('id', id).single();
-    if (!error && data) return NextResponse.json(toClient(data));
-  } catch {
-    // Supabase unreachable; fall through to local store
+
+  if (await isSupabaseAvailable()) {
+    try {
+      const { data, error } = await supabase.from('Product').select('*').eq('id', id).single();
+      if (!error && data) return NextResponse.json(toClient(data));
+    } catch {
+      // Supabase unreachable; fall through to local store
+    }
   }
 
   const local = getLocalProductById(id);

@@ -22,9 +22,10 @@ const STATUS_CONFIG = {
 };
 
 export default function MyComplaintsPage() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,11 +33,19 @@ export default function MyComplaintsPage() {
     fetch('/api/complaints', {
       headers: { Authorization: `Bearer ${user.token}` },
     })
-      .then((r) => r.json())
-      .then(setComplaints)
-      .catch(() => {})
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        // Error responses are { message } objects, not arrays — never store them as the list
+        if (!r.ok || !Array.isArray(data)) {
+          throw new Error(data?.message || 'Could not load your complaints');
+        }
+        setComplaints(data);
+      })
+      .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [user]);
+
+  if (!authReady) return null;
 
   if (!user) {
     return (
@@ -74,6 +83,11 @@ export default function MyComplaintsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-white dark:bg-gray-800 rounded-2xl animate-pulse" />)}
+          </div>
+        ) : error ? (
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-red-100 dark:border-red-900/40 py-12 px-6 text-center">
+            <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">Something went wrong</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
           </div>
         ) : complaints.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 py-20 text-center">
