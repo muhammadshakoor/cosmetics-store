@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from './AuthContext';
+import { addCartItem, sanitizeCart, setCartQuantity } from '@/lib/cart';
 
 export interface CartItem {
   product: string;
@@ -22,7 +23,7 @@ interface CartContextType {
   itemCount: number;
   totalPrice: number;
   /** false until the saved cart has been read from localStorage */
-  hydrated: boolean;
+  cartReady: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -30,47 +31,37 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  // Don't persist until the stored cart has been read, otherwise the initial
-  // empty state overwrites it (and Strict Mode's double-run then reads back []).
-  const [hydrated, setHydrated] = useState(false);
+  const [cartReady, setCartReady] = useState(false);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('cartItems');
-      if (stored) setCartItems(JSON.parse(stored));
-    } catch { /* corrupt storage — start with an empty cart */ }
-    setHydrated(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- storage is only readable after hydration
+      if (stored) setCartItems(sanitizeCart(JSON.parse(stored)));
+    } catch { /* corrupted storage — start with an empty cart */ }
+    setCartReady(true);
   }, []);
 
+  // Only persist once the saved cart is loaded, otherwise the initial [] overwrites it
   useEffect(() => {
-    if (hydrated) localStorage.setItem('cartItems', JSON.stringify(cartItems));
-  }, [cartItems, hydrated]);
+    if (cartReady) {
+      try { localStorage.setItem('cartItems', JSON.stringify(cartItems)); } catch { /* keep the current cart if browser storage is unavailable */ }
+    }
+  }, [cartItems, cartReady]);
 
   const addToCart = (item: CartItem) => {
     if (user?.isAdmin) {
       toast.error('Admin accounts cannot add items to cart.');
       return;
     }
-    setCartItems((prev) => {
-      const existing = prev.find((x) => x.product === item.product);
-      if (existing) {
-        // Adding an item that's already in the cart increases its quantity, capped at stock
-        const qty = Math.min(existing.qty + item.qty, item.countInStock || existing.countInStock);
-        return prev.map((x) =>
-          x.product === item.product ? { ...x, qty, countInStock: item.countInStock } : x
-        );
-      }
-      return [...prev, item];
-    });
+    setCartItems((prev) => addCartItem(prev, item));
   };
 
   const removeFromCart = (id: string) =>
     setCartItems((prev) => prev.filter((x) => x.product !== id));
 
   const updateQty = (id: string, qty: number) =>
-    setCartItems((prev) =>
-      prev.map((x) => (x.product === id ? { ...x, qty } : x))
-    );
+    setCartItems((prev) => setCartQuantity(prev, id, qty));
 
   const clearCart = () => setCartItems([]);
 
@@ -78,7 +69,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const totalPrice = cartItems.reduce((a, c) => a + c.price * c.qty, 0);
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQty, clearCart, itemCount, totalPrice, hydrated }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQty, clearCart, itemCount, totalPrice, cartReady }}>
       {children}
     </CartContext.Provider>
   );

@@ -16,7 +16,7 @@ export default function Footer() {
               <span className="text-xl font-extrabold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent">Lumina</span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Premium organic cosmetics and handcrafted skincare. Cruelty-free, 100% natural, halal certified, delivered across Pakistan.
+              Explore cosmetics, handcrafted soaps, and skincare. Find product details and shop with delivery across Pakistan.
             </p>
             <ul className="mt-4 space-y-2 text-sm text-gray-500 dark:text-gray-400">
               <li>
@@ -73,8 +73,6 @@ export default function Footer() {
           <p className="text-xs text-gray-500 dark:text-gray-400 order-last sm:order-first">© {new Date().getFullYear()} Lumina. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300" aria-label="Accepted payment methods">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-gray-900 border border-rose-100 dark:border-gray-800"><Banknote size={12} aria-hidden="true" /> Cash on Delivery</span>
-            <span className="px-2.5 py-1 rounded-lg bg-white dark:bg-gray-900 border border-rose-100 dark:border-gray-800">JazzCash</span>
-            <span className="px-2.5 py-1 rounded-lg bg-white dark:bg-gray-900 border border-rose-100 dark:border-gray-800">EasyPaisa</span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Made with ♥ in Pakistan 🇵🇰</p>
         </div>

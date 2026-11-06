@@ -1,27 +1,15 @@
+import { randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { sendEmail, escapeHtml } from '@/lib/email';
+import { z } from 'zod';
+import { supabase } from '@/lib/supabase';
+import { rateLimit } from '@/lib/rateLimit';
 
-export async function POST(req: NextRequest) {
-  try {
-    const { email } = await req.json();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ message: 'Please enter a valid email address.' }, { status: 400 });
-    }
-    const subscriber = String(email).trim().toLowerCase();
-    console.log('[Newsletter] New subscriber:', subscriber);
-
-    // There's no subscribers table yet, so forward each sign-up to the store inbox
-    const inbox = process.env.CONTACT_EMAIL || process.env.ADMIN_EMAIL;
-    if (inbox) {
-      sendEmail(
-        inbox,
-        'New newsletter subscriber — Lumina',
-        `<p style="font-family:sans-serif;font-size:14px">New newsletter subscriber: <strong>${escapeHtml(subscriber)}</strong></p>`,
-      ).catch(() => {});
-    }
-
-    return NextResponse.json({ message: 'Subscribed successfully!' });
-  } catch {
-    return NextResponse.json({ message: 'Something went wrong. Please try again.' }, { status: 500 });
-  }
+export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, 'newsletter', 5, 900);
+  if (limited) return limited;
+  const parsed = z.object({ email: z.string().trim().email().max(254).toLowerCase(), consent: z.literal(true) }).safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ message: 'Enter a valid email and agree to receive store updates.' }, { status: 400 });
+  const { error } = await supabase.from('NewsletterSubscriber').upsert({ email: parsed.data.email, active: true, unsubscribeToken: randomBytes(32).toString('hex'), updatedAt: new Date().toISOString() }, { onConflict: 'email' });
+  if (error) return NextResponse.json({ message: 'We could not save your subscription. Please try again later.' }, { status: 503 });
+  return NextResponse.json({ message: 'Your subscription has been saved.' });
 }

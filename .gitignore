@@ -22,3 +22,6 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Disposable local integration-test databases
+.tmp/

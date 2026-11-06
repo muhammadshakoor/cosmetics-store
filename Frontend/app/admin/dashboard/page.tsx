@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
@@ -36,17 +36,14 @@ const CAT_META: Record<string, { label: string; color: string }> = {
   makeup:    { label: 'Makeup',         color: 'bg-pink-400' },
 };
 
-const emptySubscribe = () => () => {};
-
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const router = useRouter();
-  const isClient = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isClient) return;
+    if (!authReady) return;
     if (!user) { router.replace('/login'); return; }
     if (!user.isAdmin) return;
     fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${user.token}` } })
@@ -57,9 +54,9 @@ export default function AdminDashboard() {
       .then(setStats)
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
-  }, [user, router, isClient]);
+  }, [user, router, authReady]);
 
-  if (!isClient || !user) return null;
+  if (!user) return null;
 
   if (!user.isAdmin) {
     return (

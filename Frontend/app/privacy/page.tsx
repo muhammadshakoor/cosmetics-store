@@ -69,7 +69,7 @@ export default function PrivacyPage() {
                 <li>Unsubscribe from marketing emails at any time</li>
                 <li>Request a copy of your data</li>
               </ul>
-              <p className="leading-relaxed mt-3">To exercise any of these rights, contact us at <a href="mailto:support@lumina.pk" className="text-[#C2185B] dark:text-rose-400 hover:underline">support@lumina.pk</a>.</p>
+              <p className="leading-relaxed mt-3">To exercise any of these rights, use our <Link href="/contact" className="text-[#C2185B] hover:underline">Contact page</Link>.</p>
             </section>
 
             <section>
@@ -82,9 +82,8 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-lg font-bold text-[#1A0A0E] dark:text-gray-100 mb-3">8. Contact</h2>
               <p className="leading-relaxed">
-                For any privacy-related questions, email us at{' '}
-                <a href="mailto:support@lumina.pk" className="text-[#C2185B] dark:text-rose-400 hover:underline">support@lumina.pk</a> or visit our{' '}
-                <Link href="/contact" className="text-[#C2185B] dark:text-rose-400 hover:underline">Contact page</Link>.
+                For any privacy-related questions, visit our{' '}
+                <Link href="/contact" className="text-[#C2185B] hover:underline">Contact page</Link>.
               </p>
             </section>
           </div>

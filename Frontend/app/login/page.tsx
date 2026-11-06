@@ -4,9 +4,11 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { safeRedirectPath, rememberPostLoginRedirect } from '@/lib/site';
+import { rememberPostLoginRedirect } from '@/lib/site';
 import type { User } from '@/context/AuthContext';
-import { Mail, RefreshCw, Sparkles, ShieldCheck, Truck, Star, Eye, EyeOff } from 'lucide-react';
+import ResendVerificationButton from '@/components/ResendVerificationButton';
+import { safeRedirectPath } from '@/lib/browserState';
+import { Mail, Sparkles, ShieldCheck, Truck, Eye, EyeOff } from 'lucide-react';
 
 function BrandPanel() {
   return (
@@ -30,14 +32,14 @@ function BrandPanel() {
           <span className="text-rose-200">Confidence</span>
         </h2>
         <p className="text-white/70 text-base leading-relaxed mb-10 max-w-xs">
-          Handmade organic soaps, botanical lotions and chemical-free skincare — crafted in small batches and delivered across Pakistan.
+          Explore skincare, artisan soaps and everyday beauty favorites. Sign in to revisit your saved products and order history.
         </p>
         <div className="space-y-4">
           {[
-            { icon: <Sparkles size={16} />, text: '100% organic, halal & cruelty-free' },
-            { icon: <ShieldCheck size={16} />, text: 'Track every order from your account' },
-            { icon: <Truck size={16} />, text: 'Cash on Delivery nationwide' },
-            { icon: <Star size={16} />, text: 'Handmade in small batches' },
+            { icon: <Sparkles size={16} />, text: 'Keep your favorite products in one place' },
+            { icon: <ShieldCheck size={16} />, text: 'Track your account and order history' },
+            { icon: <Truck size={16} />, text: 'See delivery costs before placing an order' },
+            { icon: <Mail size={16} />, text: 'Email verification and password recovery' },
           ].map(({ icon, text }) => (
             <div key={text} className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-white shrink-0">{icon}</div>
@@ -48,13 +50,9 @@ function BrandPanel() {
       </div>
 
       <div className="relative z-10 bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-4 border border-white/20">
-        <div className="flex gap-0.5 mb-2">
-          {[1,2,3,4,5].map(i => <Star key={i} size={12} className="fill-amber-300 text-amber-300" />)}
-        </div>
-        <p className="text-white/90 text-sm italic leading-relaxed">
-          &ldquo;The Manjistha &amp; Rose soap cleared my blemishes and gave me a natural glow within 10 days. So gentle!&rdquo;
-        </p>
-        <p className="text-white/60 text-xs mt-2 font-medium">— Ayesha K., Lahore</p>
+        <p className="text-white font-semibold mb-2">Need a hand with an order?</p>
+        <p className="text-white/80 text-sm leading-relaxed">Find order updates in your profile or send our support team a message about your purchase.</p>
+        <Link href="/contact" className="inline-block mt-3 text-white text-sm underline">Contact support</Link>
       </div>
     </div>
   );
@@ -65,17 +63,7 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [error, setError] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      if (p.get('error') === 'google_cancelled') return 'Google sign-in was cancelled.';
-      if (p.get('error') === 'google_failed') return 'Google sign-in failed. Please try again.';
-      if (p.get('error') === 'facebook_cancelled') return 'Facebook sign-in was cancelled.';
-      if (p.get('error') === 'facebook_failed') return 'Facebook sign-in failed. Please try again.';
-      if (p.get('error') === 'facebook_no_email') return 'Your Facebook account has no email address. Please use another sign-in method.';
-    }
-    return '';
-  });
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
 
@@ -83,9 +71,16 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const { user, login } = useAuth();
   const redirect = safeRedirectPath(searchParams.get('redirect'));
+  const oauthError = ({
+    google_cancelled: 'Google sign-in was cancelled.',
+    google_failed: 'Google sign-in failed. Please try again.',
+    facebook_cancelled: 'Facebook sign-in was cancelled.',
+    facebook_failed: 'Facebook sign-in failed. Please try again.',
+    facebook_no_email: 'Your Facebook account has no email address. Please use another sign-in method.',
+  } as Record<string, string>)[searchParams.get('error') || ''] || '';
 
   useEffect(() => {
-    if (user) router.push(redirect);
+    if (user) router.replace(redirect);
   }, [user, router, redirect]);
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
@@ -105,7 +100,7 @@ function LoginForm() {
         throw new Error(data.message || 'Login failed');
       }
       login(data as User, rememberMe);
-      router.push(redirect);
+      router.replace(redirect);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -133,9 +128,9 @@ function LoginForm() {
             </Link>
           </p>
 
-          {error && (
-            <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm mb-5">
-              {error}
+          {(error || oauthError) && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm mb-5">
+              {error || oauthError}
             </div>
           )}
 
@@ -146,9 +141,9 @@ function LoginForm() {
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-0.5">Email not verified</p>
                   <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                    We sent a verification link to <strong>{unverifiedEmail}</strong>. Check your inbox.
+                    Verify <strong>{unverifiedEmail}</strong> to sign in. You can request a new link below.
                   </p>
-                  <ResendButton email={unverifiedEmail} />
+                  <ResendVerificationButton email={unverifiedEmail} />
                 </div>
               </div>
             </div>
@@ -231,33 +226,6 @@ function LoginForm() {
       {/* Right — Brand */}
       <BrandPanel />
     </div>
-  );
-}
-
-function ResendButton({ email }: { email: string }) {
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-
-  const handleResend = async () => {
-    setLoading(true);
-    try {
-      await fetch('/api/users/resend-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      setDone(true);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  };
-
-  if (done) return <p className="text-xs text-green-700 dark:text-green-400 font-semibold mt-2">New link sent! Check your inbox.</p>;
-
-  return (
-    <button onClick={handleResend} disabled={loading} className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 font-semibold hover:text-amber-900 disabled:opacity-50 transition-colors">
-      <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-      {loading ? 'Sending...' : 'Resend verification email'}
-    </button>
   );
 }
 

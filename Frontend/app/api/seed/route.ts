@@ -1,9 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase';
 
+export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ message: 'Not found' }, { status: 404 });
+  return handleSeed(request);
+}
+
+export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ message: 'Not found' }, { status: 404 });
+  return handleSeed(request);
+}
+
 const products = [
-  // ── Handcrafted Organic Soaps (Real WhatsApp items) ──
   {
     name: 'Manjistha & Rose Pure Organic Soap',
     image: '/products/organic/manjistha-rose-organic-soap.jpeg',
@@ -194,9 +203,23 @@ const products = [
   },
 ];
 
-export async function GET() {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ message: 'Seed not allowed in production' }, { status: 403 });
+async function handleSeed(request: NextRequest) {
+  const seedSecret = process.env.SEED_SECRET;
+  const authHeader = request.headers.get('x-seed-secret');
+  const querySecret = new URL(request.url).searchParams.get('secret');
+
+  if (process.env.NODE_ENV === 'production' && !seedSecret) {
+    return NextResponse.json(
+      { message: 'Database reset and seeding is strictly disabled in production unless SEED_SECRET is explicitly configured.' },
+      { status: 403 }
+    );
+  }
+
+  if (seedSecret && authHeader !== seedSecret && querySecret !== seedSecret) {
+    return NextResponse.json(
+      { message: 'Unauthorized: Invalid or missing x-seed-secret header or secret query parameter.' },
+      { status: 401 }
+    );
   }
 
   try {

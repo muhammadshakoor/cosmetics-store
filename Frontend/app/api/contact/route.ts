@@ -1,58 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendEmail, escapeHtml } from '@/lib/email';
+import { z } from 'zod';
+import { supabase } from '@/lib/supabase';
+import { rateLimit } from '@/lib/rateLimit';
 
-const SUBJECTS: Record<string, string> = {
-  order: 'Order Issue',
-  product: 'Product Question',
-  return: 'Return / Refund',
-  delivery: 'Delivery Issue',
-  other: 'Other',
-};
+const input = z.object({ name: z.string().trim().min(2).max(80), email: z.string().trim().email().max(254).toLowerCase(), subject: z.enum(['order', 'product', 'return', 'delivery', 'other']), message: z.string().trim().min(10).max(5000) });
 
 export async function POST(request: NextRequest) {
-  try {
-    const { name, email, subject, message, website } = await request.json();
-
-    // Honeypot: real visitors never see or fill this field
-    if (website) return NextResponse.json({ message: 'Message sent.' });
-
-    if (!name?.trim() || !email?.trim() || !subject || !message?.trim()) {
-      return NextResponse.json({ message: 'Please fill in all required fields.' }, { status: 400 });
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ message: 'Please enter a valid email address.' }, { status: 400 });
-    }
-    if (name.length > 100 || message.length > 5000) {
-      return NextResponse.json({ message: 'Your message is too long.' }, { status: 400 });
-    }
-
-    const inbox = process.env.CONTACT_EMAIL || process.env.ADMIN_EMAIL;
-    const topic = SUBJECTS[subject] || 'Other';
-    const sent = inbox && await sendEmail(
-      inbox,
-      `Contact form: ${topic} — ${name.trim()}`,
-      `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-        <h2 style="color:#C2185B">New message from the website</h2>
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
-          <tr><td style="padding:6px 0;color:#888;width:120px">From</td><td><strong>${escapeHtml(name.trim())}</strong> (${escapeHtml(email.trim())})</td></tr>
-          <tr><td style="padding:6px 0;color:#888">Topic</td><td>${escapeHtml(topic)}</td></tr>
-        </table>
-        <div style="margin-top:16px;padding:16px;background:#fdf2f6;border-radius:8px;font-size:14px;color:#333;line-height:1.6">
-          ${escapeHtml(message.trim()).replace(/\n/g, '<br/>')}
-        </div>
-        <p style="margin-top:16px;font-size:12px;color:#aaa">Reply to this email to answer the customer directly.</p>
-      </div>`,
-      email.trim(),
-    );
-
-    if (!sent) {
-      return NextResponse.json(
-        { message: 'We couldn’t send your message right now. Please reach us on WhatsApp instead.' },
-        { status: 503 },
-      );
-    }
-    return NextResponse.json({ message: 'Message sent.' });
-  } catch {
-    return NextResponse.json({ message: 'Something went wrong. Please try again.' }, { status: 500 });
-  }
+  const limited = await rateLimit(request, 'contact', 5, 900);
+  if (limited) return limited;
+  const parsed = input.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0].message }, { status: 400 });
+  const id = crypto.randomUUID();
+  const { name, email, subject, message } = parsed.data;
+  const { error } = await supabase.from('Complaint').insert({ id, userId: null, name, email, category: subject, subject: `Contact: ${subject}`, message, status: 'open', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  if (error) return NextResponse.json({ message: 'Your message could not be saved. Please try again later.' }, { status: 503 });
+  return NextResponse.json({ message: 'Your message has been saved for our support team.', reference: id.slice(-8).toUpperCase() }, { status: 201 });
 }

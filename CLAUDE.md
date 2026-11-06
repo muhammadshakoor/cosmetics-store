@@ -27,10 +27,11 @@ Full-stack e-commerce app for a cosmetics brand called **Lumina**. Customers can
 
 ### Authentication Flow
 1. Email/password → `POST /api/users/login` → returns `{ _id, name, email, isAdmin, picture?, token }`
-2. Google OAuth → `/api/auth/google` → callback → `/api/auth/google/callback` → redirect to `/auth/callback?token=...` → fetches `/api/users/profile` → `login()` in AuthContext
+2. Google OAuth → browser-bound state → provider callback → short HttpOnly handoff cookie → `/auth/callback` exchanges `/api/auth/session` → `login()` in AuthContext. Never put session tokens in URLs.
 3. Facebook OAuth → same pattern via `/api/auth/facebook/callback`
 4. Token stored in `localStorage` (remember me) or `sessionStorage` (session only), key: `userInfo`
-5. `useAuth()` hook from `AuthContext` provides `{ user, login, logout }`
+5. `useAuth()` hook from `AuthContext` provides `{ user, authReady, login, logout }`
+6. `user` is `null` on the server **and** on the first client render (stored session is read in a `useEffect`, to avoid hydration mismatches). `authReady` flips to `true` once storage is read — any redirect-on-`!user` guard must wait for it. `useCart()` has the same `cartReady` flag.
 
 ### User Object Shape
 ```ts
@@ -198,8 +199,10 @@ CREATE TABLE "User" (
 ## Navbar — Current Features
 - Sticky, scrolled state (shadow deepens on scroll)
 - Logo → Home
-- Desktop nav (shown from `lg`): Home, Shop, Skincare, Handmade Soaps, Body Care, Hair Care, Skin Quiz button
-- Persistent search bar under the header row on all screen sizes, with live product suggestions
+- Desktop nav: Home, **Rituals** (hover/click dropdown: Skincare, Handmade Soaps, Body Care, Hair Care, Fragrance), Shop All, Skin Quiz button
+- Active link (Home / Shop All) gets rose text + underline via `navLinkCls()`
+- Search: icon toggles a full-width search bar with autocomplete suggestions
+- **Mobile search**: Search icon in navbar → expands full-width search bar below header row; auto-focuses input; closes on route change or X button
 - Theme toggle (sun/moon)
 - Wishlist icon with badge count
 - Cart icon with badge count
@@ -207,9 +210,8 @@ CREATE TABLE "User" (
   - **With picture**: shows `<img>` (Google/Facebook photo), `referrerPolicy="no-referrer"`
   - **Without picture**: colored gradient initials circle (gradient chosen by `name.charCodeAt(0)`)
   - Dropdown shows: profile header (avatar + full name + email), My Profile, Admin links (if admin), My Complaints / Submit Complaint (if customer), Sign out
-- Hamburger (below `lg`) → drawer with nav links, Skin Quiz, account links, Sign in/out
-- Closing behavior: menus close on route change, on Escape, and the mobile drawer on any link tap (query-only navigations don't change the pathname)
-- `UserAvatar` lives in `components/UserAvatar.tsx` (also used on the profile page)
+- Mobile hamburger → drawer with all nav links + user profile section (profile, admin or complaints links, Sign out)
+- Closing behavior: mobile menu, mobile search, and user dropdown all close on route change
 
 ### Avatar Gradient Palette
 8 gradients assigned by `name.charCodeAt(0) % 8`:
@@ -226,10 +228,12 @@ const inputCls = 'w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600
 
 ### Admin Guard Pattern
 ```tsx
+const { user, authReady } = useAuth();
 useEffect(() => {
+  if (!authReady) return; // wait for stored session, or a logged-in user gets bounced to /login
   if (!user) { router.replace('/login'); return; }
   if (!user.isAdmin) { router.replace('/'); return; }
-}, [user, router]);
+}, [user, authReady, router]);
 if (!user?.isAdmin) return null;
 ```
 
@@ -266,7 +270,7 @@ Blocking inline script in `<head>` reads `lumina-theme` from localStorage and ad
 | Cart (add/remove/qty, persisted) | ✅ |
 | Coupon system (percent/flat, usage limits, expiry) | ✅ |
 | Wishlist (add/remove, badge count) | ✅ |
-| Checkout (3-step: address → payment → review); COD or JazzCash/EasyPaisa transfer (details sent via WhatsApp) | ✅ |
+| Checkout (3-step: address → payment → review); Cash on Delivery only (online wallet/card payments unavailable) | ✅ |
 | Order tracking with courier timeline | ✅ |
 | User auth (register, login, logout) | ✅ |
 | Email verification (Resend emails) | ✅ |
@@ -328,7 +332,9 @@ PORT=5000
 - No fake features: don't show payment options, discounts or loyalty points that the backend doesn't actually implement.
 
 ## Dev Notes
-- All pages use `'use client'` directive (client components only — no RSC data fetching)
+- **Database migrations**: `Frontend/supabase/migrations/` is authoritative. Apply every migration in filename order before deploying. Checkout writes are transactional RPCs and require the database; never substitute a local order in production.
+- **Offline fallback**: sample catalog/local complaints are development-only. Production data mutations fail safely when durable storage is unavailable.
+- Product detail pages fetch data on the server for metadata, structured product information, and the initial render; interactive controls remain client components.
 - `mounted` state guards are used where needed to prevent hydration mismatches (e.g., cart count, user menu)
 - Supabase auto-generated TypeScript types may not include custom columns (like `picture`) until the schema is refreshed — TS6133 hints on these are false positives at build time
 - The `@variant dark` in globals.css is Tailwind v4 syntax — do NOT use `darkMode: 'class'` in a config file

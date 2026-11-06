@@ -1,100 +1,101 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from './AuthContext';
+import { sanitizeWishlistIds } from '@/lib/browserState';
 
 interface WishlistContextType {
   wishlistIds: Set<string>;
   toggle: (productId: string) => Promise<void>;
   isWishlisted: (productId: string) => boolean;
   count: number;
-  /** true once the wishlist has been loaded (from the server or this browser) */
-  loaded: boolean;
+  wishlistReady: boolean;
+  wishlistError: string;
+  reloadWishlist: () => void;
 }
-
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
-const STORAGE_KEY = 'wishlist';
+const emptyIds = new Set<string>();
+interface WishlistState { owner: string; ids: Set<string>; ready: boolean; error: string; }
 
-function readLocal(): string[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const ids = stored ? JSON.parse(stored) : [];
-    return Array.isArray(ids) ? ids : [];
-  } catch {
-    return [];
-  }
-}
+export function WishlistProvider({ children }: { children: ReactNode }) {
+  const { user, authReady } = useAuth();
+  const owner = user?._id || 'guest';
+  const token = user?.token;
+  const [state, setState] = useState<WishlistState>({ owner: '', ids: new Set(), ready: false, error: '' });
+  const [reload, setReload] = useState(0);
+  const ids = useRef(new Set<string>());
+  const pending = useRef(new Set<string>());
+  const generation = useRef(0);
 
-export const WishlistProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
-  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
-  const [loaded, setLoaded] = useState(false);
-
-  const loadWishlist = useCallback(async () => {
-    if (!user) {
-      setWishlistIds(new Set(readLocal()));
-      setLoaded(true);
-      return;
-    }
-    try {
-      const headers = { Authorization: `Bearer ${user.token}` };
-      const res = await fetch('/api/wishlist', { headers });
-      if (res.ok) {
-        const data: { productId: string }[] = await res.json();
-        const ids = new Set(data.map((w) => w.productId));
-
-        // Items hearted while signed out are added to the account, then cleared locally
-        const guestIds = readLocal().filter((id) => !ids.has(id));
-        await Promise.all(guestIds.map((productId) =>
-          fetch('/api/wishlist', {
-            method: 'POST',
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId }),
-          }).then((r) => { if (r.ok) ids.add(productId); }).catch(() => {})
-        ));
-        try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
-
-        setWishlistIds(ids);
+  useEffect(() => {
+    if (!authReady) return;
+    const attempt = ++generation.current;
+    const controller = new AbortController();
+    pending.current.clear();
+    async function load() {
+      let loaded: string[];
+      try {
+        if (!token) {
+          try { loaded = sanitizeWishlistIds(JSON.parse(localStorage.getItem('wishlist') || '[]')); }
+          catch { loaded = []; }
+        } else {
+          const response = await fetch('/api/wishlist', { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal, cache: 'no-store' });
+          if (!response.ok) throw new Error('Your wishlist could not be loaded. Please retry.');
+          const data: unknown = await response.json();
+          if (!Array.isArray(data)) throw new Error('Your wishlist could not be loaded. Please retry.');
+          loaded = sanitizeWishlistIds(data.map((entry) => entry && typeof entry === 'object' && 'productId' in entry ? entry.productId : null));
+        }
+        if (attempt !== generation.current || controller.signal.aborted) return;
+        ids.current = new Set(loaded);
+        setState({ owner, ids: ids.current, ready: true, error: '' });
+      } catch (error) {
+        if (attempt !== generation.current || controller.signal.aborted) return;
+        ids.current = new Set();
+        setState({ owner, ids: ids.current, ready: true, error: error instanceof Error ? error.message : 'Your wishlist could not be loaded.' });
       }
-    } catch { /* ignore */ }
-    setLoaded(true);
-  }, [user]);
-
-  useEffect(() => { loadWishlist(); }, [loadWishlist]);
-
-  const toggle = async (productId: string) => {
-    const newSet = new Set(wishlistIds);
-    if (newSet.has(productId)) {
-      newSet.delete(productId);
-    } else {
-      newSet.add(productId);
     }
-    setWishlistIds(newSet);
+    void load();
+    return () => { controller.abort(); };
+  }, [authReady, owner, token, reload]);
 
-    if (!user) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...newSet])); } catch { /* ignore */ }
-      return;
+  const ready = authReady && state.owner === owner && state.ready;
+  const toggle = useCallback(async (productId: string) => {
+    if (!ready || state.error) { toast.error(state.error || 'Your wishlist is still loading.'); return; }
+    if (!sanitizeWishlistIds([productId]).length || pending.current.has(productId)) return;
+    const attempt = generation.current;
+    const previous = ids.current.has(productId);
+    if (!previous && ids.current.size >= 200) { toast.error('Your wishlist can hold up to 200 products.'); return; }
+    const desired = !previous;
+    function apply(wishlisted: boolean) {
+      const updated = new Set(ids.current);
+      if (wishlisted) updated.add(productId); else updated.delete(productId);
+      ids.current = updated;
+      setState({ owner, ids: updated, ready: true, error: '' });
     }
+    pending.current.add(productId);
+    apply(desired);
     try {
-      await fetch('/api/wishlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
-        body: JSON.stringify({ productId }),
-      });
-    } catch { /* ignore */ }
-  };
-
-  const isWishlisted = (productId: string) => wishlistIds.has(productId);
-
-  return (
-    <WishlistContext.Provider value={{ wishlistIds, toggle, isWishlisted, count: wishlistIds.size, loaded }}>
-      {children}
-    </WishlistContext.Provider>
-  );
-};
-
-export const useWishlist = () => {
+      if (!token) localStorage.setItem('wishlist', JSON.stringify([...ids.current]));
+      else {
+        const response = await fetch('/api/wishlist', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ productId, wishlisted: desired }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Your wishlist could not be saved.');
+        if (attempt === generation.current && typeof result.wishlisted === 'boolean') apply(result.wishlisted);
+      }
+    } catch (error) {
+      if (attempt === generation.current) {
+        apply(previous);
+        toast.error(!token ? 'Browser storage is unavailable. Your wishlist change was not saved.' : error instanceof Error ? error.message : 'Your wishlist could not be saved.');
+      }
+    } finally { if (attempt === generation.current) pending.current.delete(productId); }
+  }, [ready, state.error, owner, token]);
+  const wishlistIds = state.owner === owner ? state.ids : emptyIds;
+  const reloadWishlist = useCallback(() => setReload((value) => value + 1), []);
+  return <WishlistContext.Provider value={{ wishlistIds, toggle, isWishlisted: (productId) => wishlistIds.has(productId), count: wishlistIds.size, wishlistReady: ready, wishlistError: state.owner === owner ? state.error : '', reloadWishlist }}>{children}</WishlistContext.Provider>;
+}
+export function useWishlist() {
   const context = useContext(WishlistContext);
   if (!context) throw new Error('useWishlist must be used within WishlistProvider');
   return context;
-};
+}

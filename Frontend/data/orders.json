@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ad86768a-7ac3-4804-a8ea-13fdfcd9ecb8",
+    "userId": "user-fallback-id",
+    "address": "Blue Area, Jinah Avenue G-6/3",
+    "city": "Islamabad",
+    "postalCode": "44000",
+    "country": "Pakistan",
+    "phone": "03006413554",
+    "paymentMethod": "Cash on Delivery (COD)",
+    "itemsPrice": 5046,
+    "taxPrice": 0,
+    "shippingPrice": 0,
+    "totalPrice": 5046,
+    "discountAmount": 0,
+    "couponCode": null,
+    "isPaid": false,
+    "isDelivered": false,
+    "isCancelled": false,
+    "status": "confirmed",
+    "createdAt": "2026-10-15T12:57:16.460Z",
+    "updatedAt": "2026-10-15T12:57:16.460Z",
+    "orderItems": [
+      {
+        "id": "3f8e1e77-6ad1-4758-ae0d-e821f7f2ef8c",
+        "orderId": "ad86768a-7ac3-4804-a8ea-13fdfcd9ecb8",
+        "productId": "c4c2f968-1b65-4660-b352-eacf80a7c69b",
+        "name": "Rose Petal Glow Serum",
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop&auto=format",
+        "price": 48
+      },
+      {
+        "id": "b412034e-cf8f-4dee-9afd-e8cdb60b3e28",
+        "orderId": "ad86768a-7ac3-4804-a8ea-13fdfcd9ecb8",
+        "productId": "prod-12",
+        "name": "Artisan Organic Soaps Collection Gift Set",
+        "qty": 2,
+        "image": "/products/organic/artisan-organic-soaps-collection.jpeg",
+        "price": 2499
+      }
+    ]
+  }
+]

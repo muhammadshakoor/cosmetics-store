@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
+import { z } from 'zod';
+import { commerceError, escapeHtml } from '@/lib/commerce';
 
 export type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered';
 
@@ -21,34 +23,22 @@ export async function PUT(
     if (!user?.isAdmin) return NextResponse.json({ message: 'Not authorized as admin' }, { status: 401 });
 
     const { id } = await params;
-    const { status, trackingNumber, courierService } = await request.json();
-
-    const updateData: Record<string, unknown> = {
-      status,
-      updatedAt: new Date().toISOString(),
-    };
-    if (trackingNumber) updateData.trackingNumber = trackingNumber;
-    if (courierService) updateData.courierService = courierService;
-    if (status === 'delivered') {
-      updateData.isDelivered = true;
-      updateData.deliveredAt = new Date().toISOString();
-    }
-
-    const { data, error } = await supabase
-      .from('Order')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw new Error(error.message);
-
-    // Fetch customer info for email (non-blocking)
-    sendStatusEmail(id, status, trackingNumber, courierService).catch(() => {});
+    const { status, trackingNumber, courierService } = z.object({
+      status: z.enum(['confirmed', 'picked_up', 'on_the_way', 'delivered']),
+      trackingNumber: z.string().trim().max(150).optional(),
+      courierService: z.string().trim().max(100).optional(),
+    }).parse(await request.json());
+    const { data, error } = await supabase.rpc('checkout_transition_order', {
+      p_order_id: id, p_actor_id: user.id, p_status: status,
+      p_tracking_number: trackingNumber || null, p_courier_service: courierService || null,
+    });
+    if (error) throw error;
+    await sendStatusEmail(id, status, trackingNumber, courierService).catch(() => console.warn('[orders] Status email failed'));
 
     return NextResponse.json(toClient(data));
-  } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : 'Server error' }, { status: 500 });
+  } catch (error) {
+    const result = commerceError(error);
+    return NextResponse.json({ message: result.message }, { status: result.status });
   }
 }
 
@@ -80,8 +70,8 @@ async function sendStatusEmail(
 
   const trackingBlock = (trackingNumber || order.trackingNumber)
     ? `<p style="margin:16px 0">
-        <strong>Courier:</strong> ${courierService || order.courierService}<br/>
-        <strong>Tracking #:</strong> ${trackingNumber || order.trackingNumber}
+        <strong>Courier:</strong> ${escapeHtml(courierService || order.courierService || '')}<br/>
+        <strong>Tracking #:</strong> ${escapeHtml(trackingNumber || order.trackingNumber || '')}
       </p>`
     : '';
 
@@ -98,7 +88,7 @@ async function sendStatusEmail(
         <p style="color:rgba(255,255,255,0.85);margin:6px 0 0">Order #${shortId}</p>
       </div>
       <div style="padding:24px">
-        <p style="color:#555;margin-top:0">Hi ${customerUser.name}, your order status has been updated.</p>
+        <p style="color:#555;margin-top:0">Hi ${escapeHtml(customerUser.name)}, your order status has been updated.</p>
         ${trackingBlock}
         <div style="margin-top:24px;text-align:center">
           <a href="${siteUrl}/order/${orderId}" style="background:#C2185B;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block">
@@ -112,6 +102,7 @@ async function sendStatusEmail(
     </div>`;
 
   await fetch('https://api.resend.com/emails', {
+    signal: AbortSignal.timeout(5000),
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({

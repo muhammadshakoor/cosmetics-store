@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { signToken } from '@/lib/auth';
+import { getSiteUrl } from '@/lib/accountTokens';
+import { isValidOAuthState, oauthCookieOptions, oauthStateCookie, OAUTH_SESSION_COOKIE } from '@/lib/oauth';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const error = searchParams.get('error');
 
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
+  const SITE_URL = getSiteUrl();
+  const stateCookie = oauthStateCookie('facebook');
+  function redirect(path: string) {
+    const response = NextResponse.redirect(`${SITE_URL}${path}`);
+    response.cookies.set(stateCookie, '', oauthCookieOptions('/api/auth/facebook/callback', 0));
+    return response;
+  }
+
+  if (!isValidOAuthState(searchParams.get('state'), request.cookies.get(stateCookie)?.value)) {
+    return redirect('/login?error=facebook_failed');
+  }
 
   if (error || !code) {
-    return NextResponse.redirect(`${SITE_URL}/login?error=facebook_cancelled`);
+    return redirect('/login?error=facebook_cancelled');
   }
 
   try {
@@ -42,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     // Facebook may not return email if user hasn't granted it or has no email
     if (!email) {
-      return NextResponse.redirect(`${SITE_URL}/login?error=facebook_no_email`);
+      return redirect('/login?error=facebook_no_email');
     }
 
     const normalizedEmail = email.toLowerCase();
@@ -51,7 +63,7 @@ export async function GET(request: NextRequest) {
     // Find or create user
     let { data: user } = await supabase
       .from('User')
-      .select('id, name, email, isAdmin, picture')
+      .select('id, name, email, isAdmin, picture, authVersion')
       .eq('email', normalizedEmail)
       .single();
 
@@ -66,11 +78,12 @@ export async function GET(request: NextRequest) {
           password: '',
           isAdmin: false,
           emailVerified: true,
+          authVersion: 0,
           picture: picture || null,
           createdAt: now,
           updatedAt: now,
         })
-        .select('id, name, email, isAdmin, picture')
+        .select('id, name, email, isAdmin, picture, authVersion')
         .single();
 
       if (createError) throw new Error(createError.message);
@@ -85,10 +98,12 @@ export async function GET(request: NextRequest) {
 
     if (!user) throw new Error('Failed to find or create user');
 
-    const token = signToken(user.id);
-    return NextResponse.redirect(`${SITE_URL}/auth/callback?token=${token}`);
+    const token = signToken({ userId: user.id, authVersion: user.authVersion });
+    const response = redirect('/auth/callback');
+    response.cookies.set(OAUTH_SESSION_COOKIE, token, oauthCookieOptions('/api/auth/session', 60));
+    return response;
   } catch (err) {
     console.error('[facebook-oauth]', err);
-    return NextResponse.redirect(`${SITE_URL}/login?error=facebook_failed`);
+    return redirect('/login?error=facebook_failed');
   }
 }

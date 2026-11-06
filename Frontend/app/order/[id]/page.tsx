@@ -50,7 +50,7 @@ const COURIER_LINKS: Record<string, string> = {
 
 export default function OrderPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,12 +65,13 @@ export default function OrderPage() {
   const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (!authReady) return;
     if (!user) { router.replace(`/login?redirect=${encodeURIComponent(`order/${id}`)}`); return; }
     apiFetch<Order>(`/orders/${id}`, {}, user.token)
       .then(setOrder)
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [id, user, router]);
+  }, [id, user, authReady, router]);
 
   const handleCancel = async () => {
     if (!user || !order || !window.confirm('Cancel this order? This can\'t be undone.')) return;
@@ -133,12 +134,7 @@ export default function OrderPage() {
 
   const shortId = order._id.slice(-10).toUpperCase();
   const isCancelled = order.status === 'cancelled';
-  const awaitingWalletPayment = !order.isPaid && !isCancelled && /JazzCash|EasyPaisa/i.test(order.paymentMethod) && /awaiting/i.test(order.paymentMethod);
-  const helpLink = whatsappLink(
-    awaitingWalletPayment
-      ? `Hi Lumina! I placed order #${shortId} (Rs. ${Math.round(order.totalPrice).toLocaleString()}) and would like to pay by JazzCash/EasyPaisa. Please share your account details.`
-      : `Hi Lumina! I need help with my order #${shortId}.`
-  );
+  const helpLink = whatsappLink(`Hi Lumina! I need help with my order #${shortId}.`);
   const currentStepIndex = STATUS_ORDER.indexOf(order.status || 'placed');
   const trackingUrl = order.courierService && order.trackingNumber
     ? (COURIER_LINKS[order.courierService] || '') + order.trackingNumber
@@ -173,17 +169,6 @@ export default function OrderPage() {
           </p>
           {isCancelled && order.cancelReason && (
             <p className="text-sm text-red-600 dark:text-red-400 mb-2">{order.cancelReason}</p>
-          )}
-          {awaitingWalletPayment && (
-            <div className="max-w-md mx-auto mb-4 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 text-left print:hidden">
-              <p className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-1">Payment pending</p>
-              <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
-                Message us on WhatsApp to get our JazzCash / EasyPaisa account details. We&apos;ll dispatch your order as soon as payment is confirmed.
-              </p>
-              <a href={helpLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-[#25D366] hover:bg-[#1ebe5a] text-white text-xs font-bold rounded-xl transition-colors">
-                <MessageCircle size={14} aria-hidden="true" /> Get payment details on WhatsApp
-              </a>
-            </div>
           )}
           {order.trackingNumber && (
             <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-full shadow-sm">

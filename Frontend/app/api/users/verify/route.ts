@@ -22,22 +22,25 @@ export async function GET(request: NextRequest) {
   if (user.emailVerified)
     return NextResponse.json({ alreadyVerified: true, message: 'Email already verified' });
 
-  if (user.verifyTokenExpiry && new Date(user.verifyTokenExpiry) < new Date())
+  if (!user.verifyTokenExpiry || new Date(user.verifyTokenExpiry) <= new Date())
     return NextResponse.json(
       { expired: true, email: user.email, message: 'Verification link has expired. Request a new one.' },
       { status: 400 }
     );
 
   const now = new Date().toISOString();
-  await supabase.from('User').update({
+  const { data: verified, error } = await supabase.from('User').update({
     emailVerified: true,
     verifyToken: null,
     verifyTokenExpiry: null,
     updatedAt: now,
-  }).eq('id', user.id);
+  }).eq('id', user.id).eq('verifyToken', token).eq('emailVerified', false).gt('verifyTokenExpiry', now).select('id, name, email, isAdmin, picture, authVersion').maybeSingle();
+
+  if (error) return NextResponse.json({ message: 'Verification is temporarily unavailable. Please try again.' }, { status: 503 });
+  if (!verified) return NextResponse.json({ message: 'Invalid or already used verification link' }, { status: 400 });
 
   // Return JWT so the user is logged in immediately after verifying
-  const jwtToken = signToken(user.id);
-  const { password: _p, verifyToken: _vt, verifyTokenExpiry: _vte, ...safe } = user;
+  const jwtToken = signToken({ userId: verified.id, authVersion: verified.authVersion });
+  const safe = { id: verified.id, name: verified.name, email: verified.email, isAdmin: verified.isAdmin, picture: verified.picture };
   return NextResponse.json({ ...toClient({ ...safe, emailVerified: true }), token: jwtToken, verified: true });
 }

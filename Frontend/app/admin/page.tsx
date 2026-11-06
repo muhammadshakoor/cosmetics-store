@@ -13,7 +13,7 @@ const EMPTY_FORM = { name: '', brand: '', category: 'skincare', price: '', count
 type FormData = typeof EMPTY_FORM;
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const router = useRouter();
 
   const [products, setProducts] = useState<ProductType[]>([]);
@@ -41,13 +41,14 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    if (!authReady) return;
     if (!user) { router.replace('/login?redirect=admin'); return; }
     if (!user.isAdmin) return;
     fetchProducts();
     apiFetch<{ _id: string; isDelivered: boolean }[]>('/orders/all', {}, user.token)
       .then(orders => { setOrderCount(orders.length); setPendingCount(orders.filter(o => !o.isDelivered).length); })
       .catch(() => {});
-  }, [user, router, fetchProducts]);
+  }, [user, authReady, router, fetchProducts]);
 
   if (!user) return null;
 

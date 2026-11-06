@@ -16,7 +16,7 @@ interface Coupon {
 const EMPTY_FORM = { code: '', type: 'percent' as 'percent' | 'flat', value: '', minOrder: '', usageLimit: '100', expiresAt: '' };
 
 export default function AdminCouponsPage() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const router = useRouter();
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -39,10 +39,11 @@ export default function AdminCouponsPage() {
   }, [user]);
 
   useEffect(() => {
+    if (!authReady) return;
     if (!user) { router.replace('/login'); return; }
     if (!user.isAdmin) { router.replace('/'); return; }
     fetchCoupons();
-  }, [user, router, fetchCoupons]);
+  }, [user, authReady, router, fetchCoupons]);
 
   const handleCreate = async (e: { preventDefault(): void }) => {
     e.preventDefault();

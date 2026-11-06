@@ -1,31 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseAvailable } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
 import { filterLocalProducts, addLocalProduct } from '@/lib/localProducts';
+import { ProductInputSchema } from '@/types/api';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const keyword = searchParams.get('keyword') || '';
   const category = searchParams.get('category') || '';
-  const limit = parseInt(searchParams.get('limit') || '0');
+  const limit = Math.min(100, Math.max(0, parseInt(searchParams.get('limit') || '0', 10) || 0));
 
-  try {
-    let query = supabase.from('Product').select('*').order('createdAt', { ascending: false });
-    if (keyword) query = query.ilike('name', `%${keyword}%`);
-    if (category) query = query.ilike('category', category);
-    if (limit > 0) query = query.limit(limit);
+  if (await isSupabaseAvailable()) {
+    try {
+      let query = supabase.from('Product').select('*').order('createdAt', { ascending: false });
+      if (keyword) query = query.ilike('name', `%${keyword}%`);
+      if (category) query = query.ilike('category', category);
+      if (limit > 0) query = query.limit(limit);
 
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    if (data && data.length > 0) {
-      return NextResponse.json((data || []).map(toClient));
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+
+      // Database returned results
+      if (data) {
+        return NextResponse.json(data.map(toClient));
+      }
+    } catch (e) {
+      console.warn('[products API] Supabase query failed:', e instanceof Error ? e.message : e);
     }
-  } catch (e) {
-    // Supabase is offline or unconfigured; serve gracefully from local store
-    console.warn('[products API] Supabase query unavailable, serving from local store:', e instanceof Error ? e.message : e);
   }
 
-  // Graceful fallback to local store
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ message: 'The catalog is temporarily unavailable. Please try again.' }, { status: 503 });
+  // Sample data is available only in local development.
   const localList = filterLocalProducts({ keyword, category, limit });
   return NextResponse.json(localList.map(toClient));
 }
@@ -35,38 +40,55 @@ export async function POST(request: NextRequest) {
     const user = await getAuthUser(request);
     if (!user?.isAdmin) return NextResponse.json({ message: 'Not authorized as admin' }, { status: 401 });
 
-    const body = await request.json();
+    const rawBody = await request.json();
+    const parseResult = ProductInputSchema.safeParse(rawBody);
+
+    if (!parseResult.success) {
+      const firstError = parseResult.error.issues[0]?.message || 'Invalid product data';
+      return NextResponse.json({ message: firstError }, { status: 400 });
+    }
+
+    const { name, price, image, brand, category, description, countInStock } = parseResult.data;
+    const now = new Date().toISOString();
+    const productId = crypto.randomUUID();
+
     const productPayload = {
-      name: body.name,
-      price: parseFloat(body.price),
-      image: body.image,
-      brand: body.brand,
-      category: body.category,
-      description: body.description,
-      countInStock: parseInt(body.countInStock),
+      id: productId,
+      name,
+      price,
+      image,
+      brand,
+      category,
+      description,
+      countInStock,
       rating: 0,
       numReviews: 0,
       userId: user.id,
+      createdAt: now,
+      updatedAt: now,
     };
 
-    // Save to local store
-    const localCreated = addLocalProduct(productPayload);
+    // Primary: Insert into Supabase
+    const { data: createdProduct, error } = await supabase
+      .from('Product')
+      .insert(productPayload)
+      .select()
+      .single();
 
-    // Also attempt Supabase insert if reachable
-    try {
-      const now = new Date().toISOString();
-      await supabase.from('Product').insert({
-        id: localCreated.id,
-        ...productPayload,
-        createdAt: now,
-        updatedAt: now,
-      });
-    } catch {
-      // Ignored if Supabase is offline
+    if (error) {
+      console.error('[products API] Database insert failed:', error.message);
+      // Fallback in local development if Supabase table is not yet migrated
+      if (process.env.NODE_ENV !== 'production') {
+        const localCreated = addLocalProduct(productPayload);
+        return NextResponse.json(toClient(localCreated), { status: 201 });
+      }
+      return NextResponse.json({ message: 'Failed to create product in database' }, { status: 500 });
     }
 
-    return NextResponse.json(toClient(localCreated), { status: 201 });
+    return NextResponse.json(toClient(createdProduct), { status: 201 });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : 'Server error' }, { status: 500 });
+    console.error('[products API] Unexpected error creating product:', e);
+    return NextResponse.json({ message: 'Server error creating product' }, { status: 500 });
   }
 }
+

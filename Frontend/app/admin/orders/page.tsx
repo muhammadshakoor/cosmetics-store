@@ -40,7 +40,7 @@ interface Order {
 }
 
 export default function AdminOrdersPage() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -66,10 +66,11 @@ export default function AdminOrdersPage() {
   }, [user]);
 
   useEffect(() => {
+    if (!authReady) return;
     if (!user) { router.replace('/login?redirect=admin/orders'); return; }
     if (!user.isAdmin) { router.replace('/'); return; }
     fetchOrders();
-  }, [user, router, fetchOrders]);
+  }, [user, authReady, router, fetchOrders]);
 
   const updateStatus = async (orderId: string, status: OrderStatus, courier?: string, tracking?: string) => {
     if (!user) return;
@@ -285,19 +286,7 @@ export default function AdminOrdersPage() {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="orders-tracking-number" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tracking Number <span className="text-gray-400">(optional)</span></label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const autoTrack = 'PX-' + Math.floor(10000000 + Math.random() * 90000000);
-                      setTrackingNumber(autoTrack);
-                      setSelectedCourier('PostEx');
-                      toast.success(`🚀 Auto-booked PostEx shipment: ${autoTrack}`);
-                    }}
-                    className="text-xs text-[#C2185B] font-bold hover:underline"
-                  >
-                    ⚡ Auto-Book Shipment
-                  </button>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tracking Number <span className="text-gray-400">(optional)</span></label>
                 </div>
                 <input id="orders-tracking-number" type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="e.g. PX123456789" className={`w-full px-4 py-3 rounded-2xl text-sm font-mono ${inputCls}`} />
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Customer will see this and can click to track on courier website.</p>

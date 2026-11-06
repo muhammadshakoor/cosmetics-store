@@ -26,7 +26,7 @@ const STATUS_CONFIG = {
 };
 
 export default function AdminComplaintsPage() {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const router = useRouter();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,17 +35,21 @@ export default function AdminComplaintsPage() {
   const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!authReady) return;
     if (!user) { router.replace('/login'); return; }
     if (!user.isAdmin) { router.replace('/'); return; }
 
     fetch('/api/complaints', {
       headers: { Authorization: `Bearer ${user.token}` },
     })
-      .then((r) => r.json())
-      .then(setComplaints)
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok || !Array.isArray(data)) throw new Error(data?.message);
+        setComplaints(data);
+      })
       .catch(() => toast.error('Failed to load complaints'))
       .finally(() => setLoading(false));
-  }, [user, router]);
+  }, [user, authReady, router]);
 
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);

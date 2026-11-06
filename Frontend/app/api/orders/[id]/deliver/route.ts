@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
+import { commerceError } from '@/lib/commerce';
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getAuthUser(request);
     if (!user?.isAdmin) return NextResponse.json({ message: 'Not authorized as admin' }, { status: 401 });
-
     const { id } = await params;
-    const { data, error } = await supabase
-      .from('Order')
-      .update({ isDelivered: true, deliveredAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw new Error(error.message);
+    const { data, error } = await supabase.rpc('checkout_transition_order', { p_order_id: id, p_actor_id: user.id, p_status: 'delivered' });
+    if (error) throw error;
     return NextResponse.json(toClient(data));
-  } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : 'Server error' }, { status: 500 });
+  } catch (error) {
+    const result = commerceError(error);
+    return NextResponse.json({ message: result.message }, { status: result.status });
   }
 }
