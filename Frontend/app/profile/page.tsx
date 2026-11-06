@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
@@ -13,6 +13,7 @@ import {
 import toast from 'react-hot-toast';
 
 import OrderStatusBadge from '@/components/OrderStatusBadge';
+import SignOutDialog from '@/components/SignOutDialog';
 import type { Order, OrderStatus } from '@/types/api';
 
 export default function ProfilePage() {
@@ -20,6 +21,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const signingOut = useRef(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const handleCancel = async (orderId: string) => {
@@ -39,7 +42,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!authReady) return;
-    if (!user) { router.replace('/login'); return; }
+    if (!user) { if (!signingOut.current) router.replace('/login?redirect=profile'); return; }
     apiFetch<Order[]>('/orders/myorders', {}, user.token)
       .then(data => setOrders(Array.isArray(data) ? data : [])).catch(() => setOrders([]))
       .finally(() => setLoading(false));
@@ -171,7 +174,7 @@ export default function ProfilePage() {
                   <ArrowRight size={15} />
                 </Link>
                 <button
-                  onClick={() => { logout(); router.push('/'); }}
+                  onClick={() => setSignOutOpen(true)}
                   className="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-red-500 border border-red-100 dark:border-red-900/40 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors mt-3 cursor-pointer"
                 >
                   Sign Out
@@ -339,6 +342,7 @@ export default function ProfilePage() {
         </div>
 
       </div>
+      <SignOutDialog open={signOutOpen} onCancel={() => setSignOutOpen(false)} onConfirm={() => { signingOut.current = true; setSignOutOpen(false); logout(); router.push('/'); }} />
     </div>
   );
 }

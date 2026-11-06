@@ -17,25 +17,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Protect Customer Account & Checkout Routes
-  if (pathname.startsWith('/profile') || pathname.startsWith('/checkout') || pathname.startsWith('/complaints/my')) {
-    if (!authCookie) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-    return NextResponse.next();
-  }
+  // Customer pages (/profile, /checkout, /complaints/my) are deliberately NOT redirected here.
+  // The lumina_auth cookie is only a browser-set hint, and Next.js caches prefetched middleware
+  // redirects, which sent signed-in customers to the login page. Those pages check the real
+  // session themselves (useAuth + authReady) and their APIs verify the token on the server.
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    '/admin/:path*',
-    '/profile/:path*',
-    '/checkout/:path*',
-    '/complaints/my/:path*',
-  ],
+  matcher: ['/admin/:path*'],
 };
 

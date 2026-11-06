@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
 import SkinQuizModal from '@/components/SkinQuizModal';
+import SignOutDialog from '@/components/SignOutDialog';
 import { API_URL } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
 
@@ -59,6 +60,7 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,10 +145,16 @@ export default function Navbar() {
     }
   };
 
+  // Sign out buttons only open the confirmation popup; the session ends in confirmLogout
   const handleLogout = () => {
-    logout();
     setUserMenuOpen(false);
     setMobileOpen(false);
+    setSignOutOpen(true);
+  };
+
+  const confirmLogout = () => {
+    setSignOutOpen(false);
+    logout();
     router.push('/');
   };
 
@@ -561,6 +569,7 @@ export default function Navbar() {
       </div>
 
       <SkinQuizModal isOpen={quizOpen} onClose={() => setQuizOpen(false)} />
+      <SignOutDialog open={signOutOpen} onCancel={() => setSignOutOpen(false)} onConfirm={confirmLogout} />
     </header>
   );
 }
