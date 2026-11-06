@@ -62,7 +62,7 @@ function ForgotPasswordForm() {
               </div>
 
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm text-center mb-6">
+                <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm text-center mb-6">
                   {error}
                 </div>
               )}
@@ -79,7 +79,7 @@ function ForgotPasswordForm() {
                 </div>
                 <button
                   type="submit" disabled={status === 'loading'}
-                  className="w-full py-3 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed"
+                  className="w-full py-3 bg-[#C2185B] hover:bg-[#A31555] disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed"
                 >
                   {status === 'loading' ? 'Sending...' : 'Send Reset Link'}
                 </button>

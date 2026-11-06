@@ -6,6 +6,8 @@ import { Filter, Search, X, ChevronDown } from 'lucide-react';
 import ProductCard, { type ProductType } from '@/components/ProductCard';
 import { API_URL } from '@/lib/api';
 
+type SortKey = 'newest' | 'price_asc' | 'price_desc' | 'rating';
+
 const CATEGORIES = [
   { label: 'All', value: '' }, { label: 'Skincare', value: 'skincare' },
   { label: 'Handmade Soaps', value: 'soaps' }, { label: 'Body Care', value: 'bodycare' },

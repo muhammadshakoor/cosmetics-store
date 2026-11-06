@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/context/AuthContext';
@@ -21,13 +21,17 @@ function VerifyEmailContent() {
   const [resent, setResent] = useState(false);
 
   const token = searchParams.get('token');
+  const started = useRef(false);
 
   useEffect(() => {
+    // Tokens are single-use, and `login` changes identity after signing in — only verify once
+    if (started.current) return;
+    started.current = true;
     if (!token) {
       setStatus('no-token');
       return;
     }
-    fetch(`/api/users/verify?token=${token}`)
+    fetch(`/api/users/verify?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.verified) {
@@ -72,12 +76,12 @@ function VerifyEmailContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-3xl shadow-xl p-8 sm:p-10 border border-gray-100 text-center">
 
           {/* Logo */}
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center mx-auto mb-6 shadow-md">
+          <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center mx-auto mb-6 shadow-md">
             <span className="text-white font-bold text-xl">L</span>
           </div>
 

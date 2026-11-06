@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/context/AuthContext';
+import { POST_LOGIN_REDIRECT_KEY } from '@/lib/site';
+import { safeRedirectPath } from '@/lib/browserState';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -12,7 +14,12 @@ export default function AuthCallbackPage() {
   const [failed, setFailed] = useState(false);
   const finishLogin = useEffectEvent((profile: User) => {
     login(profile, true);
-    router.replace('/');
+    let target = '/';
+    try {
+      target = safeRedirectPath(sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY));
+      sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+    } catch { /* storage unavailable */ }
+    router.replace(target);
   });
 
   useEffect(() => {

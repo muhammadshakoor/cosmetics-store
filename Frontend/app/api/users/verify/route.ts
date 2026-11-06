@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { signToken, toClient } from '@/lib/auth';
+import { signToken, toClient, RESET_TOKEN_PREFIX } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');
   if (!token)
     return NextResponse.json({ message: 'Verification token is missing' }, { status: 400 });
+  // Password-reset tokens live in the same column but must never log anyone in here
+  if (token.startsWith(RESET_TOKEN_PREFIX))
+    return NextResponse.json({ message: 'Invalid or already used verification link' }, { status: 400 });
 
   const { data: user } = await supabase
     .from('User')

@@ -162,9 +162,13 @@ Frontend/
 │   └── ThemeContext.tsx        # theme toggle, localStorage persistence
 │
 └── lib/
-    ├── auth.ts                 # signToken(), getAuthUser(), toClient()
+    ├── auth.ts                 # signToken(), getAuthUser(), toClient(), RESET_TOKEN_PREFIX
     ├── supabase.ts             # Supabase client (server-side)
     ├── api.ts                  # Client-side fetch helpers
+    ├── site.ts                 # Contact details (WhatsApp/phone/email), shipping constants, safeRedirectPath()
+    ├── email.ts                # sendEmail() via Resend + escapeHtml() — escape ALL user input in emails
+    ├── coupons.ts              # evaluateCoupon() — server-side source of truth for discounts
+    ├── localProducts.ts        # Fallback product catalog (data/products.json) when Supabase is unavailable
     └── theme.ts                # Brand color palette + semantic tokens
 ```
 
@@ -266,11 +270,11 @@ Blocking inline script in `<head>` reads `lumina-theme` from localStorage and ad
 | Cart (add/remove/qty, persisted) | ✅ |
 | Coupon system (percent/flat, usage limits, expiry) | ✅ |
 | Wishlist (add/remove, badge count) | ✅ |
-| Checkout (3-step: address → payment → review) | ✅ |
+| Checkout (3-step: address → payment → review); Cash on Delivery only (online wallet/card payments unavailable) | ✅ |
 | Order tracking with courier timeline | ✅ |
 | User auth (register, login, logout) | ✅ |
 | Email verification (Resend emails) | ✅ |
-| Forgot password | ✅ |
+| Forgot / reset password (`/forgot-password` → email → `/reset-password?token=reset_…`) | ✅ |
 | Google OAuth | ✅ |
 | Facebook OAuth | ✅ |
 | Remember me (localStorage vs sessionStorage) | ✅ |
@@ -284,10 +288,10 @@ Blocking inline script in `<head>` reads `lumina-theme` from localStorage and ad
 | Admin: complaints management | ✅ |
 | Customer complaints form + my complaints | ✅ |
 | WhatsApp floating button | ✅ |
-| Zanderio AI chat widget (loaded via `next/script` in `layout.tsx`) | ✅ |
-| Newsletter signup | ✅ |
-| Jewelry category | ✅ |
-| Mobile search in navbar | ✅ |
+| Skin Quiz (recommends real catalog products by skin type + goal) | ✅ |
+| Contact form (`/api/contact`, emails CONTACT_EMAIL/ADMIN_EMAIL; WhatsApp fallback) | ✅ |
+| Newsletter signup (forwards sign-ups to the store inbox) | ✅ |
+| Guest wishlist (localStorage, merged into the account on sign-in) | ✅ |
 | User avatar (gradient initials + profile photo) | ✅ |
 
 ---
@@ -305,7 +309,10 @@ GOOGLE_CLIENT_SECRET=...
 FACEBOOK_APP_ID=...
 FACEBOOK_APP_SECRET=...
 RESEND_API_KEY=...
-NEXT_PUBLIC_WHATSAPP_NUMBER=...
+RESEND_FROM_EMAIL=...            # optional sender, e.g. "Lumina <orders@yourdomain.pk>"
+ADMIN_EMAIL=...                  # receives new-order, complaint, contact and newsletter emails
+CONTACT_EMAIL=...                # optional; overrides ADMIN_EMAIL for contact/newsletter
+NEXT_PUBLIC_WHATSAPP_NUMBER=923157320217   # defaults to this in lib/site.ts
 ```
 
 ### Backend (`.env`)
@@ -316,6 +323,13 @@ PORT=5000
 ```
 
 ---
+
+## Security Rules
+- **Never trust prices from the client.** `POST /api/orders` accepts only product IDs, quantities, address, phone, payment choice and coupon code; it re-prices from the catalog, checks stock and re-validates the coupon via `evaluateCoupon()`.
+- `?redirect=` values must go through `safeRedirectPath()` (prevents open redirects like `//evil.com`).
+- Password-reset tokens share `User.verifyToken` but are prefixed `reset_`; `/api/users/verify` rejects them.
+- Wrap all user-supplied text in `escapeHtml()` before putting it into an email.
+- No fake features: don't show payment options, discounts or loyalty points that the backend doesn't actually implement.
 
 ## Dev Notes
 - **Database migrations**: `Frontend/supabase/migrations/` is authoritative. Apply every migration in filename order before deploying. Checkout writes are transactional RPCs and require the database; never substitute a local order in production.

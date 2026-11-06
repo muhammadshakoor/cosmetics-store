@@ -161,7 +161,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Marquee Strip ── */}
-      <div className="bg-[#1A0A0E] text-white py-3 overflow-hidden">
+      <div className="bg-[#1A0A0E] text-white py-3 overflow-hidden" aria-hidden="true">
         <div className="flex gap-12 animate-marquee text-xs font-semibold tracking-widest uppercase whitespace-nowrap">
           {[...marqueeItems, ...marqueeItems, ...marqueeItems].map((item, i) => (
             <span key={i} className="shrink-0">{item}</span>
@@ -176,7 +176,7 @@ export default function HomePage() {
             <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-2">Explore Our Range</p>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Shop by Category</h2>
           </div>
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:pb-0 md:grid md:grid-cols-5">
+          <div className="flex overflow-x-auto scrollbar-none snap-x snap-mandatory gap-4 -mx-4 px-4 pb-4 md:mx-0 md:px-0 md:pb-0 md:grid md:grid-cols-5">
             {categories.map((cat) => (
               <Link key={cat.slug} href={`/products?category=${cat.slug}`} className="group relative overflow-hidden rounded-3xl aspect-[3/4] block shrink-0 snap-center w-[65%] sm:w-[45%] md:w-auto">
                 <ProductImage src={cat.image} alt={cat.name} sizes="(max-width: 640px) 65vw, (max-width: 768px) 45vw, 20vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -207,13 +207,13 @@ export default function HomePage() {
             </Link>
           </div>
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-3xl h-80 bg-gray-100 dark:bg-gray-800 animate-pulse" />)}
             </div>
           ) : productsError ? (
             <div role="alert" className="py-12 text-center"><p className="mb-4 text-gray-600 dark:text-gray-400">We could not load the latest products.</p><button onClick={() => { setLoading(true); setProductsAttempt((attempt) => attempt + 1); }} className="rounded-xl bg-rose-700 px-5 py-3 font-semibold text-white">Try again</button></div>
           ) : products.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {products.map((p) => <ProductCard key={p._id} product={p} />)}
             </div>
           ) : (
@@ -237,7 +237,7 @@ export default function HomePage() {
             { icon: '💬', title: 'Customer Support', desc: 'Get help with your products and orders' },
           ].map(({ icon, title, desc }) => (
             <div key={title} className="bg-white dark:bg-gray-800 rounded-3xl p-6 text-center shadow-sm border border-rose-50 dark:border-gray-700 hover:shadow-md hover:-translate-y-1 transition-all">
-              <div className="text-3xl mb-3">{icon}</div>
+              <div className="text-3xl mb-3" aria-hidden="true">{icon}</div>
               <h3 className="font-bold text-[#1A0A0E] dark:text-gray-100 text-sm mb-1">{title}</h3>
               <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{desc}</p>
             </div>
