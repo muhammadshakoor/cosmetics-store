@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import type { ProductType } from '@/components/ProductCard';
-import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag, BarChart2, MessageSquareWarning, Download, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, ShieldAlert, Upload, ShoppingBag, Package, ArrowRight, Tag, BarChart2, MessageSquareWarning, Download } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 

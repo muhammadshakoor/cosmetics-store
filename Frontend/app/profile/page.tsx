@@ -6,9 +6,9 @@ import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { 
-  User, Package, ArrowRight, XCircle, Truck, 
-  MapPin, Sparkles, Heart, ShieldCheck, 
-  MessageSquareWarning, Clock, HelpCircle, ExternalLink 
+  User, Package, ArrowRight, Truck,
+  Sparkles, Heart, ShieldCheck,
+  MessageSquareWarning, Clock, HelpCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -50,7 +50,6 @@ export default function ProfilePage() {
   const validOrders = orders.filter(o => o.status !== 'cancelled');
   const beautyPoints = validOrders.reduce((sum, o) => sum + Math.floor(o.totalPrice / 100), 0);
   const activeOrdersCount = orders.filter(o => ['placed', 'confirmed', 'picked_up', 'on_the_way'].includes(o.status)).length;
-  const totalSpent = validOrders.reduce((sum, o) => sum + o.totalPrice, 0);
 
   return (
     <div className="min-h-screen bg-gray-50/70 dark:bg-gray-950 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">

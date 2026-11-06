@@ -1,256 +1,109 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Sparkles, CheckCircle2, ArrowRight, ShoppingBag, RefreshCw } from 'lucide-react';
+import { useEffect, useId, useState } from 'react';
+import Link from 'next/link';
+import { X, Sparkles, ArrowRight, ShoppingBag, RefreshCw } from 'lucide-react';
+import AccessibleDialog from './AccessibleDialog';
+import ProductImage from './ProductImage';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import type { Product } from '@/types/api';
 import toast from 'react-hot-toast';
 
-interface SkinQuizModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const QUIZ_STEPS = [
-  {
-    title: 'What is your primary skin type?',
-    subtitle: 'Select the option that best describes your skin on a typical day.',
-    options: [
-      { id: 'oily', label: 'Oily', desc: 'Shiny, enlarged pores, prone to breakouts', icon: '✨' },
-      { id: 'dry', label: 'Dry', desc: 'Tight, flaky, dull, rough texture', icon: '💧' },
-      { id: 'combo', label: 'Combination', desc: 'Oily T-zone, normal or dry cheeks', icon: '⚖️' },
-      { id: 'sensitive', label: 'Sensitive', desc: 'Redness, easily irritated, stingy', icon: '🌸' },
-      { id: 'normal', label: 'Normal', desc: 'Balanced, smooth, minimal concerns', icon: '🌿' },
-    ],
-  },
-  {
-    title: 'What is your main skincare goal?',
-    subtitle: 'Choose your top target focus for visible improvements.',
-    options: [
-      { id: 'hydration', label: 'Deep Hydration & Plumping', desc: 'Dehydrated, dull skin needing intense moisture', icon: '🌊' },
-      { id: 'brightening', label: 'Brightening & Glow', desc: 'Uneven skin tone, hyperpigmentation, sun spots', icon: '🌟' },
-      { id: 'acne', label: 'Blemish & Pore Control', desc: 'Active breakouts, clogged pores, excess sebum', icon: '🎯' },
-      { id: 'antiaging', label: 'Anti-Aging & Firming', desc: 'Fine lines, loss of elasticity, dullness', icon: '⏳' },
-    ],
-  },
-  {
-    title: 'What formula texture do you prefer?',
-    subtitle: 'Select your ideal everyday product feel.',
-    options: [
-      { id: 'gel', label: 'Lightweight Gel / Fluid', desc: 'Quick absorbing, non-greasy, refreshing', icon: '🧊' },
-      { id: 'cream', label: 'Rich Nourishing Cream', desc: 'Deep moisture barrier protection', icon: '🧈' },
-      { id: 'serum', label: 'Potent Active Serum', desc: 'High concentration fast-acting formulas', icon: '🧴' },
-    ],
-  },
+const QUESTIONS = [
+  { title: 'How would you describe your skin?', options: [
+    { id: 'oily', label: 'Oily', description: 'Often shiny' }, { id: 'dry', label: 'Dry', description: 'Often feels tight or dry' },
+    { id: 'combo', label: 'Combination', description: 'A mix of oily and dry areas' }, { id: 'sensitive', label: 'Sensitive', description: 'Easily irritated' },
+    { id: 'normal', label: 'Balanced', description: 'Usually comfortable' },
+  ] },
+  { title: 'What would you like to focus on?', options: [
+    { id: 'hydration', label: 'Moisture', description: 'Hydration and comfort' }, { id: 'brightening', label: 'Radiance', description: 'A brighter-looking complexion' },
+    { id: 'acne', label: 'Cleansing', description: 'Oil and pore care' }, { id: 'antiaging', label: 'Texture', description: 'Smoothness and suppleness' },
+  ] },
+  { title: 'Which texture do you prefer?', options: [
+    { id: 'gel', label: 'Lightweight', description: 'Gel, fluid, or toner' }, { id: 'cream', label: 'Rich', description: 'Cream, lotion, or balm' },
+    { id: 'serum', label: 'Serum', description: 'A concentrated liquid texture' },
+  ] },
 ];
 
-const ROUTINE_PRESETS: Record<string, { name: string; brand: string; price: number; image: string; id: string }[]> = {
-  oily: [
-    { id: 'sk-1', name: 'Hydra-Boost Niacinamide Gel Moisturizer', brand: 'Lumina Skin', price: 1850, image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop&auto=format' },
-    { id: 'sk-2', name: 'Salicylic Clarifying Foam Cleanser', brand: 'Lumina Skin', price: 1450, image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=400&fit=crop&auto=format' },
-    { id: 'sk-3', name: 'Pore Minimizing Zinc Serum 30ml', brand: 'Lumina Skin', price: 2100, image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop&auto=format' },
-  ],
-  dry: [
-    { id: 'sk-4', name: 'Rose Petal Deep Glow Serum', brand: 'Lumina Botanicals', price: 2450, image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop&auto=format' },
-    { id: 'sk-5', name: 'Ceramide Barrier Repair Moisture Balm', brand: 'Lumina Botanicals', price: 2200, image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop&auto=format' },
-    { id: 'sk-6', name: 'Gentle Milk Nourishing Cleanser', brand: 'Lumina Botanicals', price: 1600, image: 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=400&h=400&fit=crop&auto=format' },
-  ],
-  default: [
-    { id: 'sk-7', name: 'Vitamin C Radiance Glow Essence', brand: 'Lumina Skin', price: 2250, image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&h=400&fit=crop&auto=format' },
-    { id: 'sk-8', name: 'Daily Defense Peptide Cream', brand: 'Lumina Skin', price: 1950, image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop&auto=format' },
-    { id: 'sk-9', name: 'Gentle Foaming Hydrating Wash', brand: 'Lumina Skin', price: 1350, image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=400&fit=crop&auto=format' },
-  ],
+const SKIN_TERMS: Record<string, string[]> = {
+  oily: ['oil control', 'charcoal', 'clarifying', 'neem', 'niacinamide'], dry: ['moistur', 'hydrat', 'nourish', 'coconut', 'milk'],
+  combo: ['balance', 'gentle', 'aloe', 'niacinamide'], sensitive: ['gentle', 'sooth', 'sensitive', 'aloe'], normal: ['daily', 'gentle', 'hydrat'],
 };
+const GOAL_TERMS: Record<string, string[]> = {
+  hydration: ['hydrat', 'moistur', 'nourish', 'hyaluronic'], brightening: ['radiance', 'glow', 'brighten', 'vitamin c', 'turmeric'],
+  acne: ['charcoal', 'cleanser', 'neem', 'clarifying', 'pores'], antiaging: ['smooth', 'firm', 'supple', 'peptide'],
+};
+const TEXTURE_TERMS: Record<string, string[]> = { gel: ['gel', 'fluid', 'toner', 'lightweight'], cream: ['cream', 'lotion', 'balm', 'butter'], serum: ['serum', 'essence'] };
 
-export default function SkinQuizModal({ isOpen, onClose }: SkinQuizModalProps) {
-  const { addToCart } = useCart();
-  const [stepIndex, setStepIndex] = useState(0);
+function rankProducts(products: Product[], answers: Record<number, string>) {
+  const groups = [{ terms: SKIN_TERMS[answers[0]] || [], weight: 3 }, { terms: GOAL_TERMS[answers[1]] || [], weight: 4 }, { terms: TEXTURE_TERMS[answers[2]] || [], weight: 2 }];
+  return products.filter((product) => product.countInStock > 0 && ['skincare', 'soaps', 'bodycare'].includes(product.category.toLowerCase()))
+    .map((product) => { const text = `${product.name} ${product.description}`.toLowerCase(); return { product, score: groups.reduce((sum, group) => sum + group.terms.filter((term) => text.includes(term)).length * group.weight, 0) }; })
+    .sort((a, b) => b.score - a.score || b.product.rating - a.product.rating || a.product.name.localeCompare(b.product.name))
+    .slice(0, 3);
+}
+
+export default function SkinQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const titleId = useId();
+  const questionId = useId();
+  const { addToCart, cartItems } = useCart();
+  const { user } = useAuth();
+  const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [addingBundle, setAddingBundle] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [result, setResult] = useState<{ products: Product[]; error: string; attempt: number } | null>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const controller = new AbortController();
+    fetch('/api/products', { signal: controller.signal })
+      .then(async (response) => { if (!response.ok) throw new Error('The catalog could not be loaded.'); return response.json(); })
+      .then((products: Product[]) => { if (!Array.isArray(products)) throw new Error('The catalog could not be loaded.'); if (!controller.signal.aborted) setResult({ products, error: '', attempt: retry }); })
+      .catch(() => { if (!controller.signal.aborted) setResult({ products: [], error: 'We could not load available products. Please try again.', attempt: retry }); });
+    return () => controller.abort();
+  }, [isOpen, retry]);
 
-  const currentStep = QUIZ_STEPS[stepIndex];
+  function reset() { setStep(0); setAnswers({}); setCompleted(false); }
+  function close() { onClose(); reset(); }
+  function select(option: string) {
+    setAnswers((previous) => ({ ...previous, [step]: option }));
+    if (step < QUESTIONS.length - 1) setStep(step + 1);
+    else setCompleted(true);
+  }
+  const loading = !result || result.attempt !== retry;
+  const recommendations = rankProducts(result?.products || [], answers);
+  const total = recommendations.reduce((sum, item) => sum + item.product.price, 0);
 
-  const handleSelectOption = (optionId: string) => {
-    const updated = { ...answers, [stepIndex]: optionId };
-    setAnswers(updated);
+  function addRecommendations() {
+    if (user?.isAdmin) { toast.error('Use a customer account to shop.'); return; }
+    const available = recommendations.filter(({ product }) => (cartItems.find((item) => item.product === product._id)?.qty || 0) < product.countInStock);
+    if (available.length === 0) { toast.error('These products are already at their stock limit in your cart.'); return; }
+    available.forEach(({ product }) => addToCart({ product: product._id, name: product.name, image: product.image, price: product.price, qty: 1, countInStock: product.countInStock }));
+    toast.success(`${available.length} product${available.length === 1 ? '' : 's'} added at current catalog prices`);
+    close();
+  }
 
-    if (stepIndex < QUIZ_STEPS.length - 1) {
-      setStepIndex(stepIndex + 1);
-    } else {
-      setIsCompleted(true);
-    }
-  };
-
-  const handleReset = () => {
-    setStepIndex(0);
-    setAnswers({});
-    setIsCompleted(false);
-  };
-
-  const selectedSkinType = answers[0] || 'default';
-  const routine = ROUTINE_PRESETS[selectedSkinType] || ROUTINE_PRESETS.default;
-  const rawTotal = routine.reduce((sum, item) => sum + item.price, 0);
-  const discountedTotal = Math.round(rawTotal * 0.85); // 15% bundle discount
-
-  const handleAddBundleToCart = () => {
-    setAddingBundle(true);
-    routine.forEach((item) => {
-      addToCart({
-        product: item.id,
-        name: item.name,
-        image: item.image,
-        price: Math.round(item.price * 0.85),
-        qty: 1,
-        countInStock: 20,
-      });
-    });
-
-    toast.success('🎉 3-Step Routine Bundle added to cart with 15% discount!');
-    setTimeout(() => {
-      setAddingBundle(false);
-      onClose();
-      handleReset();
-    }, 1200);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-rose-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
-        
-        {/* Modal Header */}
-        <div className="bg-linear-to-r from-[#C2185B] to-pink-600 px-6 py-5 text-white relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-          >
-            <X size={18} />
-          </button>
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles size={18} className="text-amber-300" />
-            <span className="text-xs font-bold uppercase tracking-widest text-rose-100">Skin Routine Finder</span>
-          </div>
-          <h2 className="text-xl font-extrabold">Find Your Perfect Skincare Routine</h2>
-        </div>
-
-        {/* Modal Body */}
-        <div className="p-6">
-          {!isCompleted ? (
-            <div>
-              {/* Progress Indicator */}
-              <div className="flex items-center justify-between text-xs text-gray-400 font-semibold mb-2">
-                <span>Step {stepIndex + 1} of {QUIZ_STEPS.length}</span>
-                <span>{Math.round(((stepIndex + 1) / QUIZ_STEPS.length) * 100)}% Completed</span>
-              </div>
-              <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-6">
-                <div
-                  className="h-full bg-[#C2185B] transition-all duration-300 rounded-full"
-                  style={{ width: `${((stepIndex + 1) / QUIZ_STEPS.length) * 100}%` }}
-                />
-              </div>
-
-              {/* Question */}
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">{currentStep.title}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">{currentStep.subtitle}</p>
-
-              {/* Options list */}
-              <div className="space-y-3">
-                {currentStep.options.map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleSelectOption(opt.id)}
-                    className="w-full flex items-center justify-between p-4 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-rose-300 dark:hover:border-rose-500 hover:bg-rose-50/50 dark:hover:bg-gray-700/50 transition-all text-left group"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{opt.icon}</span>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-[#C2185B] transition-colors">
-                          {opt.label}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{opt.desc}</p>
-                      </div>
-                    </div>
-                    <ArrowRight size={16} className="text-gray-300 dark:text-gray-600 group-hover:text-[#C2185B] group-hover:translate-x-1 transition-all shrink-0" />
-                  </button>
-                ))}
-              </div>
-
-              {stepIndex > 0 && (
-                <button
-                  onClick={() => setStepIndex(stepIndex - 1)}
-                  className="mt-6 text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                >
-                  ← Back to previous question
-                </button>
-              )}
-            </div>
-          ) : (
-            /* Results Screen */
-            <div>
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle2 size={26} className="text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Your Recommended Routine</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Tailored for <span className="font-bold text-[#C2185B] capitalize">{selectedSkinType}</span> skin needs.
-                </p>
-              </div>
-
-              {/* Products List */}
-              <div className="space-y-3 mb-6">
-                {routine.map((item, idx) => (
-                  <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-2xl border border-gray-100 dark:border-gray-700">
-                    <span className="w-6 h-6 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                      {idx + 1}
-                    </span>
-                    <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover shrink-0 bg-white dark:bg-gray-800" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500">{item.brand}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs font-bold text-[#C2185B]">Rs. {Math.round(item.price * 0.85).toLocaleString()}</p>
-                      <p className="text-[10px] text-gray-400 line-through">Rs. {item.price.toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Price summary */}
-              <div className="bg-rose-50 dark:bg-rose-900/20 rounded-2xl p-4 mb-6 border border-rose-100 dark:border-rose-900/30 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-[#C2185B] font-bold uppercase tracking-wider">Routine Bundle Discount</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">You save <span className="font-bold text-green-600 dark:text-green-400">Rs. {Math.round(rawTotal - discountedTotal).toLocaleString()} (15% OFF)</span></p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-black text-gray-900 dark:text-gray-100">Rs. {discountedTotal.toLocaleString()}</p>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleReset}
-                  className="px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-2xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5 transition-colors"
-                >
-                  <RefreshCw size={14} /> Retake Quiz
-                </button>
-                <button
-                  onClick={handleAddBundleToCart}
-                  disabled={addingBundle}
-                  className="flex-1 py-3 bg-[#C2185B] hover:bg-[#A31555] text-white rounded-2xl text-xs font-bold shadow-lg shadow-rose-200 dark:shadow-none flex items-center justify-center gap-2 transition-all disabled:opacity-60"
-                >
-                  <ShoppingBag size={14} />
-                  {addingBundle ? 'Adding Routine...' : 'Add 3-Step Routine (15% OFF)'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-      </div>
+  return <AccessibleDialog isOpen={isOpen} onClose={close} labelledBy={titleId} className="max-w-xl">
+    <div className="relative bg-rose-700 px-6 py-5 pr-14 text-white"><div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-widest"><Sparkles aria-hidden="true" size={17} /> Product Finder</div><h2 id={titleId} className="text-xl font-extrabold">Explore skincare for your preferences</h2><button aria-label="Close product finder" onClick={close} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 hover:bg-white/20"><X size={18} /></button></div>
+    <div className="p-6">
+      {!completed ? <section aria-labelledby={questionId}>
+        <p className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">Question {step + 1} of {QUESTIONS.length}</p>
+        <progress aria-label="Quiz progress" value={step + 1} max={QUESTIONS.length} className="mb-6 h-2 w-full accent-rose-600" />
+        <h3 id={questionId} aria-live="polite" className="mb-5 text-lg font-bold">{QUESTIONS[step].title}</h3>
+        <div className="space-y-3">{QUESTIONS[step].options.map((option) => <button key={option.id} onClick={() => select(option.id)} className="flex w-full items-center justify-between rounded-2xl border border-gray-300 p-4 text-left hover:border-rose-500 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-500 dark:border-gray-600 dark:hover:bg-gray-700"><span><span className="block text-sm font-bold">{option.label}</span><span className="mt-1 block text-xs text-gray-600 dark:text-gray-400">{option.description}</span></span><ArrowRight aria-hidden="true" size={16} /></button>)}</div>
+        {step > 0 && <button onClick={() => setStep(step - 1)} className="mt-5 text-sm font-semibold text-rose-700 dark:text-rose-400">Back to previous question</button>}
+      </section> : <section aria-label="Product suggestions" aria-live="polite">
+        <h3 className="mb-2 text-xl font-bold">Products to explore</h3>
+        <p className="mb-5 text-sm text-gray-600 dark:text-gray-400">Suggestions match your skin, focus, and texture preferences against catalog descriptions. Check each product&apos;s details before choosing.</p>
+        {loading ? <p role="status" className="py-8 text-center">Loading available products…</p> : result?.error ? <div role="alert"><p className="mb-4 text-sm">{result.error}</p><button onClick={() => setRetry((attempt) => attempt + 1)} className="rounded-xl bg-rose-700 px-4 py-2 font-semibold text-white">Retry loading products</button></div> : recommendations.length === 0 ? <p className="py-6 text-sm">No skincare, soap, or body care products are currently available. <Link href="/products" onClick={close} className="font-semibold text-rose-700 underline dark:text-rose-400">Browse the catalog</Link></p> : <>
+          <div className="mb-5 space-y-3">{recommendations.map(({ product, score }) => <Link key={product._id} href={`/products/${product._id}`} onClick={close} className="flex items-center gap-3 rounded-2xl border border-gray-200 p-3 hover:border-rose-400 dark:border-gray-700"><span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl"><ProductImage src={product.image} alt={product.name} sizes="56px" className="object-cover" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-bold">{product.name}</span><span className="mt-1 block text-xs text-gray-600 dark:text-gray-400">{score > 0 ? 'Matches your preferences' : 'Available to explore'}</span></span><span className="shrink-0 text-sm font-bold text-rose-700 dark:text-rose-400">Rs. {product.price.toLocaleString('en-PK')}</span></Link>)}</div>
+          <p className="mb-5 flex justify-between rounded-2xl bg-rose-50 p-4 text-sm dark:bg-rose-950/30"><span>Products total</span><strong>Rs. {total.toLocaleString('en-PK')}</strong></p>
+          <button onClick={addRecommendations} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-700 px-4 py-3 text-sm font-bold text-white hover:bg-rose-800"><ShoppingBag size={17} /> Add {recommendations.length} products to cart</button>
+        </>}
+        <button onClick={reset} className="mt-5 flex items-center gap-2 text-sm font-semibold text-rose-700 dark:text-rose-400"><RefreshCw size={15} /> Retake quiz</button>
+      </section>}
     </div>
-  );
+  </AccessibleDialog>;
 }

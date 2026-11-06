@@ -27,7 +27,7 @@ Full-stack e-commerce app for a cosmetics brand called **Lumina**. Customers can
 
 ### Authentication Flow
 1. Email/password → `POST /api/users/login` → returns `{ _id, name, email, isAdmin, picture?, token }`
-2. Google OAuth → `/api/auth/google` → callback → `/api/auth/google/callback` → redirect to `/auth/callback?token=...` → fetches `/api/users/profile` → `login()` in AuthContext
+2. Google OAuth → browser-bound state → provider callback → short HttpOnly handoff cookie → `/auth/callback` exchanges `/api/auth/session` → `login()` in AuthContext. Never put session tokens in URLs.
 3. Facebook OAuth → same pattern via `/api/auth/facebook/callback`
 4. Token stored in `localStorage` (remember me) or `sessionStorage` (session only), key: `userInfo`
 5. `useAuth()` hook from `AuthContext` provides `{ user, authReady, login, logout }`
@@ -318,8 +318,9 @@ PORT=5000
 ---
 
 ## Dev Notes
-- **Offline fallback**: when `isSupabaseAvailable()` is false or a query fails, products/orders/complaints read and write local JSON files in `Frontend/data/` (`lib/localProducts.ts`, `lib/localOrders.ts`, `lib/localComplaints.ts`). The complaints GET merges Supabase and local results.
-- All pages use `'use client'` directive (client components only — no RSC data fetching)
+- **Database migrations**: `Frontend/supabase/migrations/` is authoritative. Apply every migration in filename order before deploying. Checkout writes are transactional RPCs and require the database; never substitute a local order in production.
+- **Offline fallback**: sample catalog/local complaints are development-only. Production data mutations fail safely when durable storage is unavailable.
+- Product detail pages fetch data on the server for metadata, structured product information, and the initial render; interactive controls remain client components.
 - `mounted` state guards are used where needed to prevent hydration mismatches (e.g., cart count, user menu)
 - Supabase auto-generated TypeScript types may not include custom columns (like `picture`) until the schema is refreshed — TS6133 hints on these are false positives at build time
 - The `@variant dark` in globals.css is Tailwind v4 syntax — do NOT use `darkMode: 'class'` in a config file

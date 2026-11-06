@@ -143,31 +143,35 @@ export const ProductInputSchema = z.object({
 });
 
 export const OrderItemSchema = z.object({
+  productId: z.string().trim().min(1).max(128).optional(),
   _id: z.string().optional(),
   id: z.string().optional(),
   product: z.string().optional(),
-  name: z.string().min(1),
-  qty: z.coerce.number().int().positive('Quantity must be at least 1'),
-  image: z.string().min(1),
-  price: z.coerce.number().positive(),
+  qty: z.number().int().min(1, 'Quantity must be at least 1').max(999),
+}).transform((item, ctx) => {
+  const productId = (item.productId || item._id || item.product || item.id || '').trim();
+  if (!productId || productId.length > 128) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'A valid product ID is required' });
+    return z.NEVER;
+  }
+  return { productId, qty: item.qty };
 });
 
-export const CreateOrderInputSchema = z.object({
-  orderItems: z.array(OrderItemSchema).min(1, 'Order must contain at least one item'),
+export const QuoteInputSchema = z.object({
+  orderItems: z.array(OrderItemSchema).min(1, 'Order must contain at least one item').max(100),
+  couponCode: z.string().trim().max(64).transform(value => value.toUpperCase()).nullable().optional(),
+});
+
+export const CreateOrderInputSchema = QuoteInputSchema.extend({
   shippingAddress: z.object({
-    address: z.string().trim().min(5, 'Address is too short'),
-    city: z.string().trim().min(2, 'City is required'),
-    postalCode: z.string().trim().min(2, 'Postal code is required'),
-    country: z.string().trim().min(2, 'Country is required'),
+    address: z.string().trim().min(5, 'Address is too short').max(300),
+    city: z.string().trim().min(2, 'City is required').max(100),
+    postalCode: z.string().trim().regex(/^\d{5}$/, 'Enter a valid 5-digit postal code'),
+    country: z.literal('Pakistan'),
   }),
-  phone: z.string().trim().min(7, 'A valid contact phone number is required'),
-  paymentMethod: z.string().trim().min(2, 'Payment method is required'),
-  itemsPrice: z.coerce.number().nonnegative(),
-  taxPrice: z.coerce.number().nonnegative().default(0),
-  shippingPrice: z.coerce.number().nonnegative().default(0),
-  totalPrice: z.coerce.number().positive('Total price must be positive'),
-  couponCode: z.string().nullable().optional(),
-  discountAmount: z.coerce.number().nonnegative().default(0),
+  phone: z.string().trim().regex(/^(?:\+?92|0)3\d{9}$/, 'Enter a valid Pakistani mobile number'),
+  paymentMethod: z.literal('Cash on Delivery (COD)'),
+  expectedTotalPrice: z.number().finite().nonnegative().optional(),
 });
 
 export const ReviewInputSchema = z.object({

@@ -7,15 +7,19 @@ export async function GET(request: NextRequest) {
   if (!user?.isAdmin) return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
 
   const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const localDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  const startOfToday = new Date(`${localDate}T00:00:00+05:00`).toISOString();
+  const startOfMonth = new Date(`${localDate.slice(0, 7)}-01T00:00:00+05:00`).toISOString();
 
-  const { data: orders } = await supabase
+  const { data: orders, error: ordersError } = await supabase
     .from('Order')
-    .select('id, totalPrice, status, isCancelled, createdAt');
+    .select('id, totalPrice, status, isCancelled, isPaid, createdAt');
+
+  if (ordersError) return NextResponse.json({ message: 'Order reporting is temporarily unavailable.' }, { status: 503 });
 
   const allOrders = orders || [];
-  const activeOrders = allOrders.filter((o) => !o.isCancelled);
+  const activeOrders = allOrders.filter((o) => !o.isCancelled && o.status !== 'cancelled' && o.isPaid);
+  const paidIds = new Set(activeOrders.map((order) => order.id));
 
   const totalRevenue = activeOrders.reduce((s, o) => s + o.totalPrice, 0);
   const monthRevenue = activeOrders
@@ -35,21 +39,23 @@ export async function GET(request: NextRequest) {
   // Monthly revenue — last 6 months
   const monthlyRevenue: Record<string, number> = {};
   for (const o of activeOrders) {
-    const month = (o.createdAt as string).slice(0, 7);
+    const month = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit' }).format(new Date(o.createdAt));
     monthlyRevenue[month] = (monthlyRevenue[month] || 0) + o.totalPrice;
   }
 
   // Top products + category breakdown
-  const { data: items } = await supabase
+  const { data: items, error: itemsError } = await supabase
     .from('OrderItem')
-    .select('productId, name, qty, price, Product(image)');
+    .select('orderId, productId, name, qty, price, Product(image)');
+  if (itemsError) return NextResponse.json({ message: 'Sales reporting is temporarily unavailable.' }, { status: 503 });
+  const paidItems = (items || []).filter((item) => paidIds.has(item.orderId));
 
   const productRevenue: Record<string, { name: string; image: string; revenue: number; sold: number }> = {};
-  for (const item of items || []) {
+  for (const item of paidItems) {
     if (!productRevenue[item.productId]) {
       productRevenue[item.productId] = {
         name: item.name,
-        image: (item.Product as unknown as Array<{ image: string }>)?.[0]?.image ?? '',
+        image: (Array.isArray(item.Product) ? item.Product[0] : item.Product)?.image ?? '',
         revenue: 0,
         sold: 0,
       };
@@ -63,12 +69,13 @@ export async function GET(request: NextRequest) {
     .slice(0, 5)
     .map(([id, d]) => ({ id, ...d }));
 
-  const { data: products } = await supabase.from('Product').select('id, category');
+  const { data: products, error: productsError } = await supabase.from('Product').select('id, category');
+  if (productsError) return NextResponse.json({ message: 'Product reporting is temporarily unavailable.' }, { status: 503 });
   const catMap: Record<string, string> = {};
   for (const p of products || []) catMap[p.id] = p.category;
 
   const categoryRevenue: Record<string, number> = {};
-  for (const item of items || []) {
+  for (const item of paidItems) {
     const cat = catMap[item.productId] || 'other';
     categoryRevenue[cat] = (categoryRevenue[cat] || 0) + item.price * item.qty;
   }

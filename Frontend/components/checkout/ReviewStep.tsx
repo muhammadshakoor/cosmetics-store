@@ -3,6 +3,8 @@
 import React from 'react';
 import { CheckCircle, Lock } from 'lucide-react';
 import type { ShippingAddress } from '@/types/api';
+import { formatPrice } from '@/lib/store';
+import ProductImage from '@/components/ProductImage';
 
 interface CartItemType {
   product: string;
@@ -17,6 +19,7 @@ interface ReviewStepProps {
   paymentMethod: string;
   cartItems: CartItemType[];
   loading: boolean;
+  disabled?: boolean;
   onEditShipping: () => void;
   onEditPayment: () => void;
   onBack: () => void;
@@ -28,6 +31,7 @@ export default function ReviewStep({
   paymentMethod,
   cartItems,
   loading,
+  disabled = false,
   onEditShipping,
   onEditPayment,
   onBack,
@@ -57,6 +61,8 @@ export default function ReviewStep({
           </div>
           <button
             type="button"
+            aria-label="Edit shipping address"
+            disabled={loading}
             onClick={onEditShipping}
             className="text-xs text-rose-500 hover:text-rose-700 font-medium"
           >
@@ -76,6 +82,8 @@ export default function ReviewStep({
           </div>
           <button
             type="button"
+            aria-label="Edit payment method"
+            disabled={loading}
             onClick={onEditPayment}
             className="text-xs text-rose-500 hover:text-rose-700 font-medium"
           >
@@ -88,11 +96,7 @@ export default function ReviewStep({
       <div className="space-y-3 mb-6">
         {cartItems.map((item) => (
           <div key={item.product} className="flex items-center gap-3">
-            <img
-              src={item.image}
-              alt={item.name}
-              className="w-14 h-14 object-cover rounded-xl bg-gray-100 dark:bg-gray-700 shrink-0"
-            />
+            <div className="relative w-14 h-14 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-700 shrink-0"><ProductImage src={item.image} alt={item.name} sizes="56px" className="object-cover" /></div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
                 {item.name}
@@ -100,7 +104,7 @@ export default function ReviewStep({
               <p className="text-xs text-gray-400 dark:text-gray-500">Qty: {item.qty}</p>
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Rs. {Math.round(item.price * item.qty).toLocaleString()}
+              {formatPrice(item.price * item.qty)}
             </p>
           </div>
         ))}
@@ -110,6 +114,7 @@ export default function ReviewStep({
       <div className="flex gap-3">
         <button
           type="button"
+          disabled={loading}
           onClick={onBack}
           className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-medium rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
@@ -118,7 +123,7 @@ export default function ReviewStep({
         <button
           type="button"
           onClick={onPlaceOrder}
-          disabled={loading}
+          disabled={loading || disabled}
           className="flex-1 flex items-center justify-center gap-2 py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Lock size={14} />

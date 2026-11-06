@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from './AuthContext';
+import { addCartItem, sanitizeCart, setCartQuantity } from '@/lib/cart';
 
 export interface CartItem {
   product: string;
@@ -36,14 +37,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       const stored = localStorage.getItem('cartItems');
       // eslint-disable-next-line react-hooks/set-state-in-effect -- storage is only readable after hydration
-      if (stored) setCartItems(JSON.parse(stored));
+      if (stored) setCartItems(sanitizeCart(JSON.parse(stored)));
     } catch { /* corrupted storage — start with an empty cart */ }
     setCartReady(true);
   }, []);
 
   // Only persist once the saved cart is loaded, otherwise the initial [] overwrites it
   useEffect(() => {
-    if (cartReady) localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    if (cartReady) {
+      try { localStorage.setItem('cartItems', JSON.stringify(cartItems)); } catch { /* keep the current cart if browser storage is unavailable */ }
+    }
   }, [cartItems, cartReady]);
 
   const addToCart = (item: CartItem) => {
@@ -51,24 +54,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       toast.error('Admin accounts cannot add items to cart.');
       return;
     }
-    setCartItems((prev) => {
-      const existing = prev.find((x) => x.product === item.product);
-      if (existing) {
-        return prev.map((x) =>
-          x.product === item.product ? { ...x, qty: item.qty } : x
-        );
-      }
-      return [...prev, item];
-    });
+    setCartItems((prev) => addCartItem(prev, item));
   };
 
   const removeFromCart = (id: string) =>
     setCartItems((prev) => prev.filter((x) => x.product !== id));
 
   const updateQty = (id: string, qty: number) =>
-    setCartItems((prev) =>
-      prev.map((x) => (x.product === id ? { ...x, qty } : x))
-    );
+    setCartItems((prev) => setCartQuantity(prev, id, qty));
 
   const clearCart = () => setCartItems([]);
 

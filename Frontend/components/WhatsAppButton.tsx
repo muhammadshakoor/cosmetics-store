@@ -1,19 +1,20 @@
 'use client';
 
-const rawPhone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '923157320217';
-const cleanPhone = rawPhone.replace(/\D/g, '');
-const PHONE = cleanPhone.startsWith('0') ? '92' + cleanPhone.slice(1) : (cleanPhone || '923157320217');
+import { usePathname } from 'next/navigation';
+import { WHATSAPP_URL } from '@/lib/store';
 const MESSAGE = encodeURIComponent('Hi! I have a question about Lumina Organic Cosmetics.');
 
 export default function WhatsAppButton() {
-  const href = `https://wa.me/${PHONE}?text=${MESSAGE}`;
+  const pathname = usePathname();
+  if (!WHATSAPP_URL) return null;
+  const href = `${WHATSAPP_URL}?text=${MESSAGE}`;
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"
-      className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:scale-110 transition-transform"
+      className={`fixed ${pathname.startsWith('/products/') ? 'bottom-24 sm:bottom-6' : 'bottom-6'} right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:scale-110 transition-transform`}
       style={{ background: '#25D366' }}
     >
       <svg viewBox="0 0 24 24" width="28" height="28" fill="white" xmlns="http://www.w3.org/2000/svg">

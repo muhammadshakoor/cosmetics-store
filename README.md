@@ -1,380 +1,83 @@
-# Lumina — Cosmetics E-Commerce Store
+# Lumina cosmetics store
 
-A complete, production-ready cosmetics e-commerce store built with **Next.js**, **Supabase**, and **Tailwind CSS**. Supports JazzCash, EasyPaisa, and Cash on Delivery — built for Pakistani market.
+Next.js storefront and admin tools for a cosmetics shop in Pakistan. The active app is **Frontend/**. **Backend/** is a legacy Express implementation and is not needed for deployment.
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
-![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?logo=supabase)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38bdf8?logo=tailwindcss)
+## Shopping and operations
 
----
+- Catalog search, URL-based filters, sorting, wishlist, and a persisted cart.
+- Server-rendered product details with individual metadata and product structured data.
+- Skin quiz recommendations drawn from actual available products.
+- Cash on Delivery checkout. Online wallet/card payments and installment payments are unavailable until a real provider is integrated.
+- Prices, coupons, shipping, and stock checked by the server; transactional order creation and inventory updates.
+- Persistent checkout attempt keys allow safe retries after an interrupted response.
+- Customer order tracking, verified-purchase reviews, complaints, and admin order management.
+- Email verification, Google/Facebook OAuth, and single-use password recovery with session revocation.
+- Contact requests saved to the admin complaints inbox; newsletter consent and restock subscriptions stored in Supabase.
 
-## What This Project Does
+## Local setup
 
-Lumina is a full-stack cosmetics store where:
-- **Customers** can browse products, add to cart, checkout, and track orders
-- **Admins** can add, edit, and delete products from a panel
-- **Payments** supported: Cash on Delivery, JazzCash, EasyPaisa
+Use a Node.js version supported by the installed Next.js release (Node 20.9 or newer).
 
----
-
-## Tech Stack
-
-| Layer | Technology | Why |
-|---|---|---|
-| Frontend + Backend | **Next.js 16** (App Router) | One app — no separate backend server needed |
-| Language | **TypeScript** | Type safety, fewer bugs |
-| Styling | **Tailwind CSS 4** | Fast, responsive UI |
-| Database | **Supabase** (PostgreSQL) | Free, connects over HTTPS — no port blocking |
-| Auth | **JWT + bcryptjs** | Secure, stateless login |
-| Images | **Cloudinary** | Upload real product photos |
-| Hosting | **Vercel** (free) | Perfect for Next.js |
-
----
-
-## Project Structure
-
-```
-cosmetics-store/
-├── Backend/              # Old Express API (not used — kept for reference)
-└── Frontend/             # Main app — Next.js + Supabase
-    ├── app/
-    │   ├── page.tsx              # Home page
-    │   ├── products/             # Product listing + detail
-    │   ├── cart/                 # Shopping cart
-    │   ├── checkout/             # 3-step checkout
-    │   ├── order/[id]/           # Order confirmation
-    │   ├── login/                # Login
-    │   ├── register/             # Register
-    │   ├── profile/              # My orders
-    │   ├── admin/                # Admin panel (admin only)
-    │   └── api/                  # Backend API routes
-    │       ├── users/            # Register, Login, Profile
-    │       ├── products/         # CRUD products
-    │       ├── orders/           # Create, list, view orders
-    │       ├── upload/           # Cloudinary image upload
-    │       └── seed/             # One-time database seed
-    ├── components/
-    │   ├── Navbar.tsx
-    │   ├── Footer.tsx
-    │   └── ProductCard.tsx
-    ├── context/
-    │   ├── AuthContext.tsx       # Login state
-    │   └── CartContext.tsx       # Cart state (localStorage)
-    ├── lib/
-    │   ├── api.ts                # Frontend fetch helper
-    │   ├── auth.ts               # JWT helpers
-    │   └── supabase.ts           # Supabase client
-    └── prisma/
-        └── schema.prisma         # Database schema reference
-```
-
----
-
-## All Pages
-
-| URL | Page | Who can access |
-|---|---|---|
-| `/` | Home — hero, categories, featured products | Everyone |
-| `/products` | All products with search + category filter | Everyone |
-| `/products/[id]` | Product detail page | Everyone |
-| `/cart` | Shopping cart | Everyone |
-| `/checkout` | 3-step checkout (shipping → payment → review) | Logged in users |
-| `/order/[id]` | Order confirmation + details | Order owner |
-| `/login` | Login | Everyone |
-| `/register` | Create account | Everyone |
-| `/profile` | My account + order history | Logged in users |
-| `/admin` | Admin panel — manage products | Admin only |
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) v18 or higher
-- A free [Supabase](https://supabase.com) account
-- A free [Cloudinary](https://cloudinary.com) account (for image uploads)
-
----
-
-### Step 1 — Clone the repository
-
-```bash
-git clone https://github.com/muhammadshakoor/cosmetics-store.git
-cd cosmetics-store/Frontend
-npm install
-```
-
----
-
-### Step 2 — Set up Supabase
-
-1. Go to [supabase.com](https://supabase.com) → Create a free project
-2. Choose **Southeast Asia (Singapore)** as region
-3. Once the project is ready, go to **SQL Editor** in the left sidebar
-4. Click **New Query**, paste this SQL, and click **Run**:
-
-```sql
-CREATE TABLE "User" (
-  "id" TEXT NOT NULL PRIMARY KEY,
-  "name" TEXT NOT NULL,
-  "email" TEXT NOT NULL UNIQUE,
-  "password" TEXT NOT NULL,
-  "isAdmin" BOOLEAN NOT NULL DEFAULT false,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE "Product" (
-  "id" TEXT NOT NULL PRIMARY KEY,
-  "name" TEXT NOT NULL,
-  "image" TEXT NOT NULL,
-  "brand" TEXT NOT NULL,
-  "category" TEXT NOT NULL,
-  "description" TEXT NOT NULL,
-  "price" DOUBLE PRECISION NOT NULL,
-  "countInStock" INTEGER NOT NULL DEFAULT 0,
-  "rating" DOUBLE PRECISION NOT NULL DEFAULT 0,
-  "numReviews" INTEGER NOT NULL DEFAULT 0,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "userId" TEXT NOT NULL,
-  FOREIGN KEY ("userId") REFERENCES "User"("id")
-);
-
-CREATE TABLE "Order" (
-  "id" TEXT NOT NULL PRIMARY KEY,
-  "userId" TEXT NOT NULL,
-  "address" TEXT NOT NULL,
-  "city" TEXT NOT NULL,
-  "postalCode" TEXT NOT NULL,
-  "country" TEXT NOT NULL,
-  "paymentMethod" TEXT NOT NULL,
-  "itemsPrice" DOUBLE PRECISION NOT NULL,
-  "taxPrice" DOUBLE PRECISION NOT NULL,
-  "shippingPrice" DOUBLE PRECISION NOT NULL,
-  "totalPrice" DOUBLE PRECISION NOT NULL,
-  "isPaid" BOOLEAN NOT NULL DEFAULT false,
-  "paidAt" TIMESTAMP(3),
-  "isDelivered" BOOLEAN NOT NULL DEFAULT false,
-  "deliveredAt" TIMESTAMP(3),
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY ("userId") REFERENCES "User"("id")
-);
-
-CREATE TABLE "OrderItem" (
-  "id" TEXT NOT NULL PRIMARY KEY,
-  "orderId" TEXT NOT NULL,
-  "productId" TEXT NOT NULL,
-  "name" TEXT NOT NULL,
-  "qty" INTEGER NOT NULL,
-  "image" TEXT NOT NULL,
-  "price" DOUBLE PRECISION NOT NULL,
-  FOREIGN KEY ("orderId") REFERENCES "Order"("id"),
-  FOREIGN KEY ("productId") REFERENCES "Product"("id")
-);
-```
-
-5. Go to **Project Settings → API**, copy:
-   - **Project URL** (e.g. `https://xxxx.supabase.co`)
-   - **service_role** key (long secret key)
-
----
-
-### Step 3 — Configure environment
-
-Create a file `Frontend/.env.local`:
-
-```env
-# Supabase
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# JWT (change this to any random string)
-JWT_SECRET=your_random_secret_key_here
-
-# Cloudinary (optional — for image upload in admin)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_UPLOAD_PRESET=lumina_unsigned
-```
-
----
-
-### Step 4 — Run the store
-
-```bash
+```powershell
 cd Frontend
+npm ci
+Copy-Item .env.example .env.local
+```
+
+Fill in the values described in `Frontend/.env.example`. Never expose the Supabase service-role key through a `NEXT_PUBLIC_` variable.
+
+Apply all SQL migrations in **Frontend/supabase/migrations/** in filename order using the Supabase SQL editor or your database migration workflow:
+
+1. `202611040000_base.sql` — base tables, indexes, wishlist/review access.
+2. `202611040001_checkout.sql` — atomic checkout, idempotency, inventory, coupons, and order transitions.
+3. `202611040002_accounts.sql` — account fields, password recovery, session revocation, and account table access.
+4. `202611040003_support.sql` — support inbox, subscriptions, notification leases, and shared rate limiting.
+
+These migrations do not seed demo data or delete existing customer data. Back up an existing database before schema changes. Existing duplicate wishlist/review entries must be resolved before their unique indexes can be added. These SQL migrations are authoritative; the older Prisma schema/seeder is retained as a legacy reference.
+
+```powershell
 npm run dev
 ```
 
-Open **http://localhost:3000**
+Open http://localhost:3001. Local sample products can be shown when the development database is unavailable. Checkout and customer submissions require the migrated database; production never substitutes sample products or local JSON writes for a failed database operation.
 
----
+For local sample accounts/products only, use `/api/seed` in development. It is disabled in production. For production, register and verify a real account, then assign its admin role through your trusted database administration process. Do not deploy demo passwords.
 
-### Step 5 — Seed sample data
+## Vercel deployment
 
-Open your browser and visit:
+Set the project root directory to **Frontend**, use the Next.js preset, and build with `npm run build`. No separate Express server is needed.
+
+**Apply all database migrations before deploying this version.** Checkout, recovery, rate limits, and support forms fail safely when their database operations are unavailable.
+
+Required environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Server-only database access |
+| `JWT_SECRET` | Strong random session-signing secret |
+| `NEXT_PUBLIC_SITE_URL` | Canonical HTTPS production URL, without a trailing slash |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Verification, recovery, order, and restock email; use a verified sender |
+| `CRON_SECRET` | Authentication for the scheduled pending-restock job |
+
+Optional configuration:
+
+- `ADMIN_EMAIL` for operational notifications.
+- `NEXT_PUBLIC_WHATSAPP_NUMBER`, `NEXT_PUBLIC_SUPPORT_EMAIL` for real customer support channels. Unconfigured channels are hidden.
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET` for durable product image uploads. Production uploads fail if storage is unavailable; they never write into the deployment filesystem.
+- Google/Facebook client IDs and secrets. Register each exact `/api/auth/google/callback` or `/api/auth/facebook/callback` URL with the provider.
+
+`Frontend/vercel.json` schedules a daily pending-restock batch. Updating a product also attempts a small immediate batch; failures remain pending. For an additional retry, an authenticated admin can POST `/api/notifications`. Restock emails include an unsubscribe link. Newsletter signup saves consent; it does not fabricate a coupon or automatically run marketing campaigns. Cart-recovery email remains explicitly unavailable.
+
+Before accepting orders, check a customer registration/verification, password recovery, COD checkout, order cancellation/fulfilment, image upload, and support request against your configured preview environment. A successful build alone cannot verify provider configuration or your live database.
+
+## Validation
+
+```powershell
+npm run lint
+npm test
+npm run build
 ```
-http://localhost:3000/api/seed
-```
 
-This creates:
-- **Admin account:** `admin@lumina.com` / `admin123`
-- **Test account:** `user@lumina.com` / `user123`
-- **8 sample products** (skincare, makeup, fragrance, hair care)
+Tests use Node's built-in runner with the installed TypeScript loader. External email/provider calls are mocked. Database tests skip unless `CHECKOUT_TEST_DATABASE_URL` points to a disposable local `checkout_test` database on a non-default port. Never point tests at a real store database.
 
-> ⚠️ Only works in development mode. Blocked in production.
-
----
-
-## How to Add Products (Admin Guide)
-
-### Method 1 — Admin Panel (recommended)
-
-1. Run the store (`npm run dev`)
-2. Open **http://localhost:3000/login**
-3. Login with `admin@lumina.com` / `admin123`
-4. Click **"Admin"** in the top-right navbar → **"Admin Panel"**
-5. Click **"+ Add Product"**
-6. Fill in all fields:
-   - **Name** — product name (e.g. `Rose Face Wash`)
-   - **Brand** — your brand name
-   - **Category** — choose from: `skincare`, `makeup`, `fragrance`, `haircare`
-   - **Price** — in dollars (e.g. `29.99`)
-   - **Stock Qty** — how many items available
-   - **Image** — upload from device OR paste an image URL
-   - **Description** — product details, ingredients, how to use
-7. Click **"Create Product"** — it goes live immediately
-
-### Method 2 — Edit or Delete a product
-
-In the Admin Panel, each product has two buttons:
-- **✏️ Edit** — change any product details
-- **🗑️ Delete** — permanently remove the product
-
-### Getting product images
-
-- **Upload your own photo** — use the upload button in the admin form
-- **Free stock photos** — go to [unsplash.com](https://unsplash.com), find a cosmetics photo, right-click → Copy image address, paste in the Image URL field
-- **Google Images** — search for your product, right-click image → Copy image address
-
----
-
-## How to Check Orders
-
-### As Admin
-Currently orders are visible per-user in their profile. To see all orders, go to your Supabase dashboard → **Table Editor → Order** — all orders are listed there.
-
-### As Customer
-1. Login to your account
-2. Click your name → **"My Profile"**
-3. All your orders are listed with status (Processing / Delivered)
-4. Click any order to see full details
-
----
-
-## How Payments Work
-
-The store supports three payment methods at checkout:
-
-| Method | How it works |
-|---|---|
-| **Cash on Delivery (COD)** | Customer pays when order arrives. No setup needed. |
-| **JazzCash** | Customer selects JazzCash — you contact them to collect payment. For automated JazzCash integration, a merchant account from JazzCash is required. |
-| **EasyPaisa** | Same as JazzCash — manual collection or merchant API integration. |
-
-For full automated JazzCash/EasyPaisa integration, register at:
-- JazzCash: [jazzcash.com.pk/merchants](https://www.jazzcash.com.pk)
-- EasyPaisa: [easypaisa.com.pk/merchant](https://www.easypaisa.com.pk)
-
----
-
-## API Endpoints
-
-All API routes are inside the Next.js app — no separate server.
-
-### Users
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/api/users` | Public | Register |
-| POST | `/api/users/login` | Public | Login |
-| GET | `/api/users/profile` | Private | Get profile |
-
-### Products
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/api/products` | Public | Get all (supports `?keyword=` `?category=` `?limit=`) |
-| GET | `/api/products/:id` | Public | Get one product |
-| POST | `/api/products` | Admin | Create product |
-| PUT | `/api/products/:id` | Admin | Update product |
-| DELETE | `/api/products/:id` | Admin | Delete product |
-
-### Orders
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/api/orders` | Private | Place order |
-| GET | `/api/orders/myorders` | Private | My orders |
-| GET | `/api/orders/:id` | Private | Order detail |
-
-### Utility
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/api/seed` | Dev only | Seed sample data |
-| POST | `/api/upload` | Admin | Upload image to Cloudinary |
-
----
-
-## Deployment to Production
-
-### Deploy to Vercel (Recommended)
-
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) → **Add New Project** → Import your repository
-3. Set **Root Directory** to `Frontend`
-4. Copy all required keys from [`Frontend/.env.example`](Frontend/.env.example) into your Vercel Project Environment Variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `JWT_SECRET` (generate a strong random secret with `openssl rand -base64 32`)
-   - `NEXT_PUBLIC_SITE_URL` (set to your custom domain, e.g. `https://yourbrand.com`)
-   - `CLOUDINARY_CLOUD_NAME` & `CLOUDINARY_UPLOAD_PRESET`
-   - `SEED_SECRET` (optional, guards `/api/seed` in production)
-   - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `ADMIN_EMAIL` (for order & verification emails)
-5. Click **Deploy** — your application builds and deploys globally with edge middleware.
-
-### Connecting a Custom Domain (e.g. `yourbrand.com`)
-1. In your Vercel project dashboard, go to **Settings** → **Domains**.
-2. Enter your custom domain (e.g., `yourbrand.com` and `www.yourbrand.com`).
-3. Add the DNS records provided by Vercel in your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.):
-   - **A Record**: `@` → `76.76.21.21`
-   - **CNAME Record**: `www` → `cname.vercel-dns.com`
-4. Vercel will automatically provision a free SSL certificate (HTTPS).
-5. Update `NEXT_PUBLIC_SITE_URL` in Vercel Environment Variables to your custom domain so verification and reset links work properly.
-
----
-
-## Test Credentials
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@lumina.com` | `admin123` |
-| Customer | `user@lumina.com` | `user123` |
-
----
-
-## Cost Breakdown
-
-| Service | Free Tier | When to upgrade |
-|---|---|---|
-| Vercel | ✅ Free forever | When you exceed 100GB bandwidth/month |
-| Supabase | ✅ Free (500MB DB) | When you exceed 500MB storage |
-| Cloudinary | ✅ Free (25GB storage) | When you have 10,000+ product images |
-
-**Total cost to run this store: $0/month**
-
----
-
-## License
-
-MIT — free to use for personal and commercial projects.
+The database bootstrap and SQL regression files in `Frontend/tests/` cover transaction rollback, prices, stock, coupons, idempotent retries, concurrent orders, status transitions, reset-token consumption, and database permissions.

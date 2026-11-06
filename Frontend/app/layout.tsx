@@ -7,7 +7,7 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 
 export const metadata: Metadata = {
   title: 'Lumina – Premium Cosmetics & Beauty',
-  description: 'Shop the finest cosmetics, skincare, and beauty products. Cruelty-free and sustainably sourced.',
+  description: 'Explore cosmetics, skincare, and handcrafted soaps with delivery across Pakistan.',
   keywords: 'cosmetics, beauty, skincare, makeup, fragrance',
 };
 
@@ -28,8 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased min-h-screen flex flex-col font-sans">
         <Providers>
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-xl focus:bg-white focus:px-4 focus:py-3 focus:text-rose-700">Skip to content</a>
           <Navbar />
-          <main className="flex-1 pt-16">
+          <main id="main-content" tabIndex={-1} className="flex-1 pt-16">
             {children}
           </main>
           <Footer />

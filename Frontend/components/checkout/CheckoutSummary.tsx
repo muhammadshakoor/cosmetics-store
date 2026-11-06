@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Lock } from 'lucide-react';
+import { formatPrice } from '@/lib/store';
 
 interface CartItemType {
   product: string;
@@ -38,7 +39,7 @@ export default function CheckoutSummary({
               {item.name} × {item.qty}
             </span>
             <span className="font-medium shrink-0">
-              Rs. {Math.round(item.price * item.qty).toLocaleString()}
+              {formatPrice(item.price * item.qty)}
             </span>
           </div>
         ))}
@@ -47,31 +48,31 @@ export default function CheckoutSummary({
       <div className="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2 text-sm">
         <div className="flex justify-between text-gray-500 dark:text-gray-400">
           <span>Subtotal</span>
-          <span>Rs. {Math.round(totalPrice).toLocaleString()}</span>
+          <span>{formatPrice(totalPrice)}</span>
         </div>
 
         {discountAmount > 0 && (
           <div className="flex justify-between text-rose-600 dark:text-rose-400 font-medium">
             <span>Coupon Discount</span>
-            <span>- Rs. {Math.round(discountAmount).toLocaleString()}</span>
+            <span>− {formatPrice(discountAmount)}</span>
           </div>
         )}
 
         <div className="flex justify-between text-gray-500 dark:text-gray-400">
           <span>Shipping</span>
           <span className={shippingCost === 0 ? 'text-green-600 font-medium' : ''}>
-            {shippingCost === 0 ? 'FREE' : `Rs. ${shippingCost}`}
+            {shippingCost === 0 ? 'FREE' : formatPrice(shippingCost)}
           </span>
         </div>
 
         <div className="flex justify-between font-bold text-gray-900 dark:text-gray-100 text-base border-t border-gray-100 dark:border-gray-700 pt-3 mt-1">
           <span>Total</span>
-          <span>Rs. {Math.round(finalPayable).toLocaleString()}</span>
+          <span>{formatPrice(finalPayable)}</span>
         </div>
       </div>
 
       <div className="mt-5 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 justify-center">
-        <Lock size={12} /> Secure & encrypted checkout
+        <Lock size={12} aria-hidden="true" /> Review your details before ordering
       </div>
     </div>
   );

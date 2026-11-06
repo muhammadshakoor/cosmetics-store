@@ -1,18 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Clock, MessageCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, MessageCircle } from 'lucide-react';
+import { SUPPORT_EMAIL, SUPPORT_PHONE, WHATSAPP_URL } from '@/lib/store';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [error, setError] = useState('');
+  const [reference, setReference] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('loading');
-    await new Promise(r => setTimeout(r, 800));
-    setStatus('success');
-    setForm({ name: '', email: '', subject: '', message: '' });
+    setError('');
+    try {
+      const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Your message could not be saved.');
+      setReference(data.reference);
+      setStatus('success');
+      setForm({ name: '', email: '', subject: '', message: '' });
+    } catch (err) { setError(err instanceof Error ? err.message : 'Please try again.'); setStatus('idle'); }
   };
 
   return (
@@ -31,12 +40,11 @@ export default function ContactPage() {
           {/* Contact Info */}
           <div className="space-y-5">
             {[
-              { icon: <MessageCircle size={20} className="text-[#C2185B]" />, title: 'WhatsApp', detail: '+92 300 0000000', sub: 'Chat with us directly', href: 'https://wa.me/923000000000' },
-              { icon: <Mail size={20} className="text-[#C2185B]" />, title: 'Email', detail: 'support@lumina.pk', sub: 'We reply within 24 hours', href: 'mailto:support@lumina.pk' },
-              { icon: <Phone size={20} className="text-[#C2185B]" />, title: 'Phone', detail: '+92 300 0000000', sub: 'Mon–Sat, 10am – 7pm', href: 'tel:+923000000000' },
-              { icon: <MapPin size={20} className="text-[#C2185B]" />, title: 'Location', detail: 'Lahore, Pakistan', sub: 'Serving customers nationwide', href: null },
-              { icon: <Clock size={20} className="text-[#C2185B]" />, title: 'Business Hours', detail: 'Monday – Saturday', sub: '10:00 AM – 7:00 PM PKT', href: null },
-            ].map(({ icon, title, detail, sub, href }) => (
+              { icon: <MessageCircle size={20} className="text-[#C2185B]" />, title: 'WhatsApp', detail: SUPPORT_PHONE, sub: 'Chat with our support team', href: WHATSAPP_URL },
+              { icon: <Mail size={20} className="text-[#C2185B]" />, title: 'Email', detail: SUPPORT_EMAIL, sub: 'Include your order reference if available', href: `mailto:${SUPPORT_EMAIL}` },
+              { icon: <Phone size={20} className="text-[#C2185B]" />, title: 'Phone', detail: SUPPORT_PHONE, sub: 'Contact customer support', href: `tel:${SUPPORT_PHONE}` },
+              { icon: <MapPin size={20} className="text-[#C2185B]" />, title: 'Delivery', detail: 'Across Pakistan', sub: 'Shipping costs are shown before you order', href: null },
+            ].filter(({ detail }) => Boolean(detail)).map(({ icon, title, detail, sub, href }) => (
               <div key={title} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-rose-50 dark:border-gray-700 shadow-sm flex items-start gap-4">
                 <div className="w-10 h-10 bg-rose-50 dark:bg-rose-900/30 rounded-xl flex items-center justify-center shrink-0">{icon}</div>
                 <div>
@@ -58,8 +66,8 @@ export default function ContactPage() {
             {status === 'success' ? (
               <div className="text-center py-12">
                 <div className="text-5xl mb-4">🎉</div>
-                <h3 className="text-lg font-bold text-[#1A0A0E] dark:text-gray-100 mb-2">Message Sent!</h3>
-                <p className="text-gray-400 dark:text-gray-500 text-sm mb-6">We&apos;ll get back to you within 24 hours.</p>
+                <h3 role="status" className="text-lg font-bold text-[#1A0A0E] dark:text-gray-100 mb-2">Message received</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Your message is saved for our support team. Reference: <strong>{reference}</strong>.</p>
                 <button
                   onClick={() => setStatus('idle')}
                   className="px-6 py-2.5 bg-[#C2185B] text-white font-semibold rounded-2xl text-sm hover:bg-[#A31555] transition-colors"
@@ -69,20 +77,21 @@ export default function ContactPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Name *</label>
+                    <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Name *</label>
                     <input
-                      required type="text" value={form.name}
+                      id="contact-name" name="name" autoComplete="name" minLength={2} maxLength={80} required type="text" value={form.name}
                       onChange={e => setForm({ ...form, name: e.target.value })}
                       placeholder="Your name"
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email *</label>
+                    <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email *</label>
                     <input
-                      required type="email" value={form.email}
+                      id="contact-email" name="email" autoComplete="email" maxLength={254} required type="email" value={form.email}
                       onChange={e => setForm({ ...form, email: e.target.value })}
                       placeholder="you@example.com"
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent"
@@ -90,9 +99,9 @@ export default function ContactPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Subject *</label>
+                  <label htmlFor="contact-subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Subject *</label>
                   <select
-                    required value={form.subject}
+                    id="contact-subject" name="subject" required value={form.subject}
                     onChange={e => setForm({ ...form, subject: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent"
                   >
@@ -105,9 +114,9 @@ export default function ContactPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Message *</label>
+                  <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Message *</label>
                   <textarea
-                    required rows={5} value={form.message}
+                    id="contact-message" name="message" minLength={10} maxLength={5000} required rows={5} value={form.message}
                     onChange={e => setForm({ ...form, message: e.target.value })}
                     placeholder="Tell us how we can help..."
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent resize-none"

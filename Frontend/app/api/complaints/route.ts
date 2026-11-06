@@ -1,132 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, isSupabaseAvailable } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
 import { addLocalComplaint, getLocalComplaints, type LocalComplaint } from '@/lib/localComplaints';
+import { ComplaintInputSchema } from '@/lib/complaints';
+import { rateLimit } from '@/lib/rateLimit';
+import { escapeHtml, sendEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, orderId, category, subject, message } = await request.json();
-
-    if (!name || !email || !category || !subject || !message) {
-      return NextResponse.json({ message: 'All required fields must be filled.' }, { status: 400 });
-    }
-
-    const user = await getAuthUser(request).catch(() => null);
+    const limited = await rateLimit(request, 'complaints', 5, 900);
+    if (limited) return limited;
+    const parsed = ComplaintInputSchema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0]?.message || 'Check the complaint details.' }, { status: 400 });
+    const user = await getAuthUser(request);
+    if (request.headers.has('authorization') && !user) return NextResponse.json({ message: 'Your session has expired. Sign in again.' }, { status: 401 });
     const now = new Date().toISOString();
-
-    const payload: LocalComplaint = {
-      id: crypto.randomUUID(),
-      userId: user?.id || null,
-      name,
-      email,
-      orderId: orderId || null,
-      category,
-      subject,
-      message,
-      status: 'open',
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    let complaint: LocalComplaint | null = null;
-    if (await isSupabaseAvailable()) {
-      try {
-        const { data, error } = await supabase.from('Complaint').insert(payload).select().single();
-        if (error) throw new Error(error.message);
-        complaint = data;
-      } catch (e) {
-        console.warn('[complaints API] Supabase insert failed, saving locally:', e instanceof Error ? e.message : e);
-      }
+    const payload: LocalComplaint = { ...parsed.data, id: crypto.randomUUID(), userId: user?.id || null, status: 'open', createdAt: now, updatedAt: now };
+    const { data, error } = await supabase.from('Complaint').insert(payload).select().single();
+    let complaint: LocalComplaint;
+    if (error || !data) {
+      if (process.env.NODE_ENV !== 'development') return NextResponse.json({ message: 'Complaints are temporarily unavailable. Your message has not been saved; please try again later.' }, { status: 503 });
+      complaint = addLocalComplaint(payload);
+    } else complaint = data;
+    if (process.env.RESEND_API_KEY) {
+      const notifications = [
+        sendEmail({ to: complaint.email, subject: 'We received your complaint — Lumina', html: `<p>Hi ${escapeHtml(complaint.name)},</p><p>Your complaint about <strong>${escapeHtml(complaint.subject)}</strong> has been saved for our team to review.</p><p>Reference: ${escapeHtml(complaint.id)}</p>` }),
+      ];
+      if (process.env.ADMIN_EMAIL) notifications.push(sendEmail({ to: process.env.ADMIN_EMAIL, replyTo: complaint.email, subject: `New complaint: ${complaint.subject}`, html: `<h2>Customer complaint</h2><p>${escapeHtml(complaint.name)} (${escapeHtml(complaint.email)})</p><p>${escapeHtml(complaint.category)} — ${escapeHtml(complaint.subject)}</p><p>Order: ${escapeHtml(complaint.orderId || 'Not supplied')}</p><p>${escapeHtml(complaint.message).replace(/\n/g, '<br/>')}</p><p>Reference: ${escapeHtml(complaint.id)}</p>` }));
+      const results = await Promise.allSettled(notifications);
+      if (results.some((result) => result.status === 'rejected')) console.warn('[complaints] Complaint saved; an email notification could not be delivered.');
     }
-    // Fallback: Supabase offline or table missing
-    if (!complaint) complaint = addLocalComplaint(payload);
-
-    notifyAdmin(complaint, name, email, orderId, category, subject, message).catch(() => {});
-    confirmUser(email, name, subject).catch(() => {});
-
-    return NextResponse.json({ message: 'Complaint submitted successfully.' }, { status: 201 });
-  } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : 'Server error' }, { status: 500 });
+    return NextResponse.json({ id: complaint.id, message: 'Complaint submitted successfully.' }, { status: 201 });
+  } catch {
+    return NextResponse.json({ message: 'We could not save your complaint. Please try again later.' }, { status: 503 });
   }
 }
 
 export async function GET(request: NextRequest) {
-  const user = await getAuthUser(request);
-  if (!user) return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
-
-  // Admin sees all complaints; regular users only their own
-  const userId = user.isAdmin ? undefined : user.id;
-  let remote: LocalComplaint[] = [];
-
-  if (await isSupabaseAvailable()) {
-    try {
-      let query = supabase.from('Complaint').select('*').order('createdAt', { ascending: false });
-      if (userId) query = query.eq('userId', userId);
-      const { data, error } = await query;
-      if (error) throw new Error(error.message);
-      remote = data ?? [];
-    } catch (e) {
-      console.warn('[complaints API] Supabase query failed, using local store:', e instanceof Error ? e.message : e);
-    }
+  try {
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
+    const userId = user.isAdmin ? undefined : user.id;
+    let query = supabase.from('Complaint').select('*').order('createdAt', { ascending: false }).limit(200);
+    if (userId) query = query.eq('userId', userId);
+    const { data, error } = await query;
+    if (error && process.env.NODE_ENV !== 'development') return NextResponse.json({ message: 'Complaints are temporarily unavailable. Please try again later.' }, { status: 503 });
+    const remote: LocalComplaint[] = data || [];
+    if (process.env.NODE_ENV !== 'development') return NextResponse.json(remote);
+    const seen = new Set(remote.map((complaint) => complaint.id));
+    const complaints = [...remote, ...getLocalComplaints(userId).filter((complaint) => !seen.has(complaint.id))]
+      .sort((first, second) => second.createdAt.localeCompare(first.createdAt)).slice(0, 200);
+    return NextResponse.json(complaints);
+  } catch {
+    return NextResponse.json({ message: 'Complaints are temporarily unavailable. Please try again later.' }, { status: 503 });
   }
-
-  // Merge in complaints saved locally while Supabase was unreachable
-  const seen = new Set(remote.map((c) => c.id));
-  const merged = [...remote, ...getLocalComplaints(userId).filter((c) => !seen.has(c.id))]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return NextResponse.json(merged);
-}
-
-async function resendEmail(to: string, subject: string, html: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return;
-  const from = process.env.RESEND_FROM_EMAIL || 'Lumina Store <support@resend.dev>';
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to, subject, html }),
-  });
-}
-
-async function notifyAdmin(
-  complaint: { id: string },
-  name: string, email: string,
-  orderId: string, category: string, subject: string, message: string
-) {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail) return;
-  await resendEmail(
-    adminEmail,
-    `New Complaint: ${subject} — Lumina`,
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-      <h2 style="color:#C2185B">New Customer Complaint</h2>
-      <table style="width:100%;border-collapse:collapse;font-size:14px">
-        <tr><td style="padding:6px 0;color:#888;width:120px">From</td><td><strong>${name}</strong> (${email})</td></tr>
-        <tr><td style="padding:6px 0;color:#888">Category</td><td>${category}</td></tr>
-        ${orderId ? `<tr><td style="padding:6px 0;color:#888">Order ID</td><td>${orderId}</td></tr>` : ''}
-        <tr><td style="padding:6px 0;color:#888">Subject</td><td><strong>${subject}</strong></td></tr>
-      </table>
-      <div style="margin-top:16px;padding:16px;background:#fdf2f6;border-radius:8px;font-size:14px;color:#333;line-height:1.6">
-        ${message.replace(/\n/g, '<br/>')}
-      </div>
-      <p style="margin-top:16px;font-size:12px;color:#aaa">Complaint ID: ${complaint.id}</p>
-    </div>`
-  );
-}
-
-async function confirmUser(email: string, name: string, subject: string) {
-  await resendEmail(
-    email,
-    'We received your complaint — Lumina',
-    `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #f0e8ea">
-      <div style="background:linear-gradient(135deg,#C2185B,#e91e8c);padding:28px 24px;text-align:center">
-        <h1 style="color:#fff;margin:0;font-size:22px">We got your message, ${name}!</h1>
-      </div>
-      <div style="padding:24px">
-        <p style="color:#555;margin-top:0">Thank you for reaching out. We have received your complaint regarding <strong>"${subject}"</strong> and our team will review it and get back to you within <strong>24–48 hours</strong>.</p>
-        <p style="color:#555">If you have any additional information to share, simply reply to this email.</p>
-        <p style="color:#888;font-size:13px;margin-top:24px">— The Lumina Support Team</p>
-      </div>
-    </div>`
-  );
 }

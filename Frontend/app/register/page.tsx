@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import ResendVerificationButton from '@/components/ResendVerificationButton';
+import { safeRedirectPath } from '@/lib/browserState';
 import { Mail, CheckCircle, Sparkles, ShieldCheck, Truck, Gift, Eye, EyeOff } from 'lucide-react';
 
 function BrandPanel() {
@@ -28,14 +30,14 @@ function BrandPanel() {
           <span className="text-rose-200">Beauty Family</span>
         </h2>
         <p className="text-white/70 text-base leading-relaxed mb-10 max-w-xs">
-          Create your free account and unlock exclusive deals, early access to new arrivals, and a personalised shopping experience.
+          Create your free account to keep your favorites together, follow order updates and review your purchases.
         </p>
         <div className="space-y-4">
           {[
-            { icon: <Gift size={16} />,       text: 'Welcome discount on your first order' },
-            { icon: <Sparkles size={16} />,   text: 'Personalised product recommendations' },
-            { icon: <ShieldCheck size={16} />, text: 'Save addresses & track orders easily' },
-            { icon: <Truck size={16} />,       text: 'Free delivery on orders above Rs. 2,000' },
+            { icon: <Gift size={16} />,       text: 'Keep an account wishlist of your favorites' },
+            { icon: <Sparkles size={16} />,   text: 'Review products from delivered orders' },
+            { icon: <ShieldCheck size={16} />, text: 'Revisit your order history and status' },
+            { icon: <Truck size={16} />,       text: 'See shipping costs in your order summary' },
           ].map(({ icon, text }) => (
             <div key={text} className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-white shrink-0">{icon}</div>
@@ -47,9 +49,9 @@ function BrandPanel() {
 
       <div className="relative z-10 grid grid-cols-3 gap-4">
         {[
-          { value: '10K+', label: 'Happy Customers' },
-          { value: '200+', label: 'Products' },
-          { value: '4.9★', label: 'Avg. Rating' },
+          { value: 'Save', label: 'Your favorites' },
+          { value: 'Shop', label: 'Explore products' },
+          { value: 'Track', label: 'Your orders' },
         ].map(({ value, label }) => (
           <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-4 text-center border border-white/20">
             <p className="text-white font-extrabold text-xl">{value}</p>
@@ -75,10 +77,10 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = safeRedirectPath(searchParams.get('redirect'));
 
   useEffect(() => {
-    if (user) router.push(`/${redirect}`);
+    if (user) router.replace(redirect);
   }, [user, router, redirect]);
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
@@ -127,7 +129,7 @@ function RegisterForm() {
               ))}
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Didn&apos;t receive it? Check your spam folder.</p>
-            <ResendButton email={sentTo} />
+            <ResendVerificationButton email={sentTo} />
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-5">
               Wrong email?{' '}
               <button onClick={() => setSentTo('')} className="text-rose-500 hover:text-rose-700 font-medium">Go back</button>
@@ -156,7 +158,7 @@ function RegisterForm() {
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 mb-1 text-center">Create your account</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 text-center">
             Already have an account?{' '}
-            <Link href={`/login${redirect !== '/' ? `?redirect=${redirect}` : ''}`} className="text-rose-600 hover:text-rose-700 font-semibold">
+            <Link href={`/login${redirect !== '/' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-rose-600 hover:text-rose-700 font-semibold">
               Sign in
             </Link>
           </p>
@@ -259,32 +261,6 @@ function RegisterForm() {
         </div>
       </div>
     </div>
-  );
-}
-
-function ResendButton({ email }: { email: string }) {
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-
-  const handleResend = async () => {
-    setLoading(true);
-    try {
-      await fetch('/api/users/resend-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      setDone(true);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  };
-
-  if (done) return <p className="text-sm text-green-600 dark:text-green-400 font-medium">New verification email sent!</p>;
-
-  return (
-    <button onClick={handleResend} disabled={loading} className="text-sm text-rose-500 hover:text-rose-700 font-medium disabled:opacity-50">
-      {loading ? 'Sending...' : 'Resend verification email'}
-    </button>
   );
 }
 

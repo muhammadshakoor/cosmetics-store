@@ -14,7 +14,7 @@ export default function Footer() {
               <span className="text-xl font-extrabold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent">Lumina</span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Premium organic cosmetics and handcrafted skincare. Cruelty-free, 100% natural, halal certified, delivered across Pakistan.
+              Explore cosmetics, handcrafted soaps, and skincare. Find product details and shop with delivery across Pakistan.
             </p>
           </div>
 

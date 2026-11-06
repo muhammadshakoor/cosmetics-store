@@ -19,6 +19,7 @@ export interface TokenPayload {
   email?: string;
   name?: string;
   isAdmin?: boolean;
+  authVersion?: number;
 }
 
 export function signToken(user: TokenPayload | string) {
@@ -36,8 +37,9 @@ export async function getAuthUser(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, secret) as TokenPayload;
 
-    // Fast-path: Offline demo accounts
-    if (decoded.userId === 'user-fallback-id' || decoded.email === 'user@lumina.com') {
+    // Synthetic identities are only accepted by the development server. Never
+    // infer privileges from email or replace a database user's ID.
+    if (process.env.NODE_ENV === 'development' && decoded.userId === 'user-fallback-id') {
       return {
         id: 'user-fallback-id',
         name: decoded.name || 'Test User',
@@ -45,7 +47,7 @@ export async function getAuthUser(request: NextRequest) {
         isAdmin: false,
       };
     }
-    if (decoded.userId === 'admin-fallback-id' || decoded.email === 'admin@lumina.com') {
+    if (process.env.NODE_ENV === 'development' && decoded.userId === 'admin-fallback-id') {
       return {
         id: 'admin-fallback-id',
         name: decoded.name || 'Admin User',
@@ -59,26 +61,16 @@ export async function getAuthUser(request: NextRequest) {
       try {
         const { data: user, error } = await supabase
           .from('User')
-          .select('id, name, email, isAdmin, picture')
+          .select('id, name, email, isAdmin, picture, authVersion')
           .eq('id', decoded.userId)
           .single();
 
-        if (!error && user) {
-          return user;
+        if (!error && user && (decoded.authVersion ?? 0) === user.authVersion) {
+          return { id: user.id, name: user.name, email: user.email, isAdmin: user.isAdmin, picture: user.picture };
         }
       } catch (dbErr) {
         console.warn('[auth] Supabase database query failed:', dbErr instanceof Error ? dbErr.message : dbErr);
       }
-    }
-
-    // If database is offline/unreachable in development, gracefully trust verified token
-    if (process.env.NODE_ENV !== 'production' && decoded.userId) {
-      return {
-        id: decoded.userId,
-        name: decoded.name || 'Test User',
-        email: decoded.email || 'user@lumina.com',
-        isAdmin: !!decoded.isAdmin,
-      };
     }
 
     return null;

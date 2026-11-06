@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { StoredComplaintSchema } from './complaints';
 
 export type ComplaintStatus = 'open' | 'in_progress' | 'resolved';
 
@@ -20,23 +21,20 @@ export interface LocalComplaint {
 const COMPLAINTS_FILE = path.join(process.cwd(), 'data', 'complaints.json');
 
 function readComplaints(): LocalComplaint[] {
-  try {
-    if (!fs.existsSync(COMPLAINTS_FILE)) return [];
-    return JSON.parse(fs.readFileSync(COMPLAINTS_FILE, 'utf8'));
-  } catch (err) {
-    console.warn('[localComplaints] Failed to read complaints file:', err);
-    return [];
-  }
+  if (process.env.NODE_ENV !== 'development') throw new Error('Local complaints storage is available only in development.');
+  if (!fs.existsSync(COMPLAINTS_FILE)) return [];
+  const stored: unknown = JSON.parse(fs.readFileSync(COMPLAINTS_FILE, 'utf8'));
+  if (!Array.isArray(stored)) throw new Error('Local complaints storage is corrupt.');
+  return stored.map((value) => StoredComplaintSchema.parse(value));
 }
 
 function saveComplaints(complaints: LocalComplaint[]) {
-  try {
-    const dir = path.dirname(COMPLAINTS_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(COMPLAINTS_FILE, JSON.stringify(complaints, null, 2), 'utf8');
-  } catch (err) {
-    console.warn('[localComplaints] Failed to write complaints file:', err);
-  }
+  if (process.env.NODE_ENV !== 'development') throw new Error('Local complaints storage is available only in development.');
+  const dir = path.dirname(COMPLAINTS_FILE);
+  fs.mkdirSync(dir, { recursive: true });
+  const temporary = `${COMPLAINTS_FILE}.${crypto.randomUUID()}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(complaints, null, 2), 'utf8');
+  fs.renameSync(temporary, COMPLAINTS_FILE);
 }
 
 export function addLocalComplaint(complaint: LocalComplaint): LocalComplaint {

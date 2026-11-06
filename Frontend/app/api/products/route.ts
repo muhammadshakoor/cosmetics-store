@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const keyword = searchParams.get('keyword') || '';
   const category = searchParams.get('category') || '';
-  const limit = parseInt(searchParams.get('limit') || '0', 10);
+  const limit = Math.min(100, Math.max(0, parseInt(searchParams.get('limit') || '0', 10) || 0));
 
   if (await isSupabaseAvailable()) {
     try {
@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fallback to local catalog
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ message: 'The catalog is temporarily unavailable. Please try again.' }, { status: 503 });
+  // Sample data is available only in local development.
   const localList = filterLocalProducts({ keyword, category, limit });
   return NextResponse.json(localList.map(toClient));
 }

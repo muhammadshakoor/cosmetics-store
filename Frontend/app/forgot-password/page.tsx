@@ -42,8 +42,8 @@ function ForgotPasswordForm() {
               </div>
               <h2 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Check Your Email</h2>
               <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
-                We&apos;ve sent a password reset link to <span className="font-semibold text-gray-700 dark:text-gray-200">{email}</span>.
-                Check your inbox (and spam folder just in case).
+                If <span className="font-semibold text-gray-700 dark:text-gray-200">{email}</span> has a Lumina account, you will receive a password reset link.
+                Check your inbox and spam folder. If it does not arrive, try again later or contact support.
               </p>
               <Link href="/login" className="inline-flex items-center gap-2 text-sm text-[#C2185B] font-semibold hover:underline">
                 <ArrowLeft size={14} /> Back to Sign In
@@ -69,9 +69,9 @@ function ForgotPasswordForm() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
+                  <label htmlFor="reset-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
                   <input
-                    type="email" required value={email}
+                    id="reset-email" type="email" autoComplete="email" required value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"

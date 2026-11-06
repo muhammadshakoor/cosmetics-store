@@ -3,10 +3,12 @@ import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ message: 'Not found' }, { status: 404 });
   return handleSeed(request);
 }
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ message: 'Not found' }, { status: 404 });
   return handleSeed(request);
 }
 

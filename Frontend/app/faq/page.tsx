@@ -26,7 +26,7 @@ const faqs = [
   {
     category: 'Payments',
     items: [
-      { q: 'What payment methods do you accept?', a: 'We accept Cash on Delivery (COD), JazzCash, and EasyPaisa. Credit/debit card payments are coming soon.' },
+      { q: 'What payment methods do you accept?', a: 'Cash on Delivery (COD) is currently available. Pay the total shown at checkout when your parcel arrives. Online wallet and card payments are currently unavailable.' },
       { q: 'How do I use a coupon code?', a: 'Add items to your cart and go to the cart page. You\'ll see a "Coupon Code" field — enter your code and click Apply. The discount will be applied before checkout.' },
     ],
   },
@@ -34,7 +34,7 @@ const faqs = [
     category: 'Returns & Refunds',
     items: [
       { q: 'What is your return policy?', a: 'We offer a 7-day return policy for damaged or incorrect items. The product must be unused and in its original packaging. Contact us within 7 days of delivery to initiate a return.' },
-      { q: 'How do I request a refund?', a: 'Email us at support@lumina.pk or contact us via WhatsApp with your order ID and reason for return. Refunds are processed within 5–7 business days.' },
+      { q: 'How do I request a refund?', a: 'Use our Contact page or submit a complaint with your order ID and reason for return. Our support team will review your request and explain the available next steps.' },
     ],
   },
 ];
@@ -89,16 +89,14 @@ export default function FAQPage() {
         {/* Still need help */}
         <div className="mt-10 bg-[#C2185B] rounded-3xl p-8 text-center">
           <h3 className="text-xl font-extrabold text-white mb-2">Still Need Help?</h3>
-          <p className="text-rose-100 text-sm mb-6">Our team is available Mon–Sat, 10am–7pm PKT</p>
+          <p className="text-rose-100 text-sm mb-6">Send your question and order reference to our support team.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href="https://wa.me/923000000000"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/complaints"
               className="px-6 py-3 bg-white text-[#C2185B] font-bold rounded-2xl text-sm hover:bg-rose-50 transition-colors"
             >
-              💬 WhatsApp Us
-            </a>
+              Submit a Complaint
+            </Link>
             <Link
               href="/contact"
               className="px-6 py-3 bg-[#1A0A0E] text-white font-bold rounded-2xl text-sm hover:bg-black transition-colors"
