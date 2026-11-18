@@ -3,17 +3,20 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { CheckCircle, Package, Truck, MapPin, CreditCard, ArrowRight, Star, ExternalLink, Printer, XCircle, MessageCircle } from 'lucide-react';
 import { whatsappLink } from '@/lib/site';
 import toast from 'react-hot-toast';
+import AccessibleDialog from '@/components/AccessibleDialog';
 
 type OrderStatus = 'placed' | 'confirmed' | 'picked_up' | 'on_the_way' | 'delivered' | 'cancelled';
 
 interface OrderItem { _id: string; name: string; qty: number; image: string; price: number; productId: string; }
 interface Order {
   _id: string;
+  userId: string;
+  reviewedProductIds: string[] | null;
   orderItems: OrderItem[];
   shippingAddress: { address: string; city: string; postalCode: string; country: string };
   paymentMethod: string;
@@ -52,33 +55,41 @@ export default function OrderPage() {
   const { id } = useParams<{ id: string }>();
   const { user, authReady } = useAuth();
   const router = useRouter();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [result, setResult] = useState<{ key: string; order: Order | null; error: string; notFound: boolean } | null>(null);
+  const [retry, setRetry] = useState(0);
+  const requestKey = JSON.stringify([id, user?._id, user?.token, retry]);
+  const loading = result?.key !== requestKey;
+  const order = result?.key === requestKey ? result.order : null;
+  const loadError = result?.key === requestKey ? result.error : '';
+  const notFound = result?.key === requestKey && result.notFound;
   const [cancelling, setCancelling] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [reviewFormKey, setReviewFormKey] = useState('');
   const [reviewProductId, setReviewProductId] = useState('');
   const [reviewProductName, setReviewProductName] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
+  const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
     if (!authReady) return;
     if (!user) { router.replace(`/login?redirect=${encodeURIComponent(`order/${id}`)}`); return; }
-    apiFetch<Order>(`/orders/${id}`, {}, user.token)
-      .then(setOrder)
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
-  }, [id, user, authReady, router]);
+    const controller = new AbortController();
+    apiFetch<Order>(`/orders/${id}`, { signal: controller.signal, cache: 'no-store' }, user.token)
+      .then(order => { if (!controller.signal.aborted) setResult({ key: requestKey, order, error: '', notFound: false }); })
+      .catch(cause => {
+        if (!controller.signal.aborted) setResult({ key: requestKey, order: null, notFound: cause instanceof ApiError && [403, 404].includes(cause.status), error: cause instanceof ApiError && cause.status === 401 ? 'Please sign in again to view this order.' : 'We could not load your order. Please try again; this does not mean your order was not placed.' });
+      });
+    return () => controller.abort();
+  }, [id, user, authReady, router, requestKey]);
 
   const handleCancel = async () => {
     if (!user || !order || !window.confirm('Cancel this order? This can\'t be undone.')) return;
     setCancelling(true);
     try {
       await apiFetch(`/orders/${order._id}/cancel`, { method: 'PUT', body: JSON.stringify({ reason: 'Cancelled by customer' }) }, user.token);
-      setOrder({ ...order, status: 'cancelled' });
+      setResult(prev => prev?.key === requestKey ? { ...prev, order: { ...order, status: 'cancelled' } } : prev);
       toast.success('Your order has been cancelled');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to cancel order');
@@ -89,12 +100,19 @@ export default function OrderPage() {
 
   const openReview = (productId: string, productName: string) => {
     setReviewProductId(productId); setReviewProductName(productName);
-    setReviewRating(5); setReviewComment(''); setShowReview(true);
+    setReviewRating(5); setReviewComment(''); setReviewError(''); setReviewFormKey(requestKey); setShowReview(true);
+  };
+
+  const rememberReview = (productId: string) => {
+    setResult(prev => prev?.key === requestKey && prev.order ? {
+      ...prev, order: { ...prev.order, reviewedProductIds: [...new Set([...(prev.order.reviewedProductIds || []), productId])] },
+    } : prev);
   };
 
   const handleReview = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     if (!user || !order) return;
+    setReviewError('');
     setSubmittingReview(true);
     try {
       await apiFetch('/reviews', {
@@ -102,10 +120,13 @@ export default function OrderPage() {
         body: JSON.stringify({ productId: reviewProductId, orderId: order._id, rating: reviewRating, comment: reviewComment }),
       }, user.token);
       toast.success('Review submitted! Thank you 🌟');
-      setReviewedProducts(prev => new Set([...prev, reviewProductId]));
+      rememberReview(reviewProductId);
       setShowReview(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to submit review');
+      if (err instanceof ApiError && err.status === 409) {
+        rememberReview(reviewProductId); setShowReview(false);
+        toast.success('You have already reviewed this product.');
+      } else setReviewError(err instanceof Error ? err.message : 'Failed to submit review');
     } finally {
       setSubmittingReview(false);
     }
@@ -117,14 +138,15 @@ export default function OrderPage() {
     </div>
   );
   if (!order) {
-    if (!notFound) return null;
+    if (!notFound && !loadError) return null;
     return (
       <div className="min-h-[60vh] bg-[#FFF8F5] dark:bg-gray-950 flex items-center justify-center px-4">
-        <div className="text-center">
+        <div className="text-center" role={notFound ? undefined : 'alert'}>
           <Package size={40} className="text-rose-300 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-[#1A0A0E] dark:text-gray-100 mb-2">Order not found</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">This order doesn&apos;t exist or belongs to another account.</p>
-          <Link href="/profile" className="inline-flex items-center gap-2 px-6 py-3 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl transition-colors text-sm">
+          <h1 className="text-2xl font-bold text-[#1A0A0E] dark:text-gray-100 mb-2">{notFound ? 'Order not found' : 'Order details are unavailable'}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{notFound ? 'This order does not exist or belongs to another account.' : loadError}</p>
+          {!notFound && <div className="mb-5 flex flex-wrap justify-center gap-4"><button onClick={() => setRetry(value => value + 1)} className="rounded-xl bg-rose-700 px-5 py-3 font-semibold text-white">Retry loading order</button><Link href={`/login?redirect=${encodeURIComponent(`order/${id}`)}`} className="py-3 font-semibold text-rose-700 underline dark:text-rose-400">Sign in again</Link></div>}
+          <Link href="/profile" className="button-primary text-sm">
             View my orders <ArrowRight size={14} />
           </Link>
         </div>
@@ -134,6 +156,8 @@ export default function OrderPage() {
 
   const shortId = order._id.slice(-10).toUpperCase();
   const isCancelled = order.status === 'cancelled';
+  const reviewedProducts = new Set(order.reviewedProductIds || []);
+  const canReview = order.userId === user?._id && Array.isArray(order.reviewedProductIds);
   const helpLink = whatsappLink(`Hi Lumina! I need help with my order #${shortId}.`);
   const currentStepIndex = STATUS_ORDER.indexOf(order.status || 'placed');
   const trackingUrl = order.courierService && order.trackingNumber
@@ -153,7 +177,7 @@ export default function OrderPage() {
             : 'bg-white dark:bg-gray-800 border border-rose-100 dark:border-rose-900/30 shadow-sm'
         }`}>
           <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${order.status === 'delivered' ? 'bg-green-100 dark:bg-green-900/40' : 'bg-rose-50 dark:bg-rose-900/20'}`}>
-            {isCancelled ? <XCircle size={32} className="text-red-500" /> : order.status === 'delivered' ? <CheckCircle size={32} className="text-green-500" /> : <Package size={32} className="text-[#C2185B]" />}
+            {isCancelled ? <XCircle size={32} className="text-red-500" /> : order.status === 'delivered' ? <CheckCircle size={32} className="text-green-500" /> : <Package size={32} className="text-brand" />}
           </div>
           <h1 className="text-2xl font-extrabold text-[#1A0A0E] dark:text-gray-100 mb-1">
             {isCancelled                   ? 'Order Cancelled' :
@@ -172,10 +196,10 @@ export default function OrderPage() {
           )}
           {order.trackingNumber && (
             <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-full shadow-sm">
-              <Truck size={14} className="text-[#C2185B]" />
+              <Truck size={14} className="text-brand" />
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{order.courierService}: <span className="font-mono">{order.trackingNumber}</span></span>
               {trackingUrl && (
-                <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[#C2185B] font-bold hover:underline ml-1">
+                <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-brand font-bold hover:underline ml-1">
                   Track <ExternalLink size={11} />
                 </a>
               )}
@@ -212,7 +236,7 @@ export default function OrderPage() {
                       )}
                     </div>
                     {current && (
-                      <span className="shrink-0 mt-1.5 text-[10px] font-bold text-[#C2185B] dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 px-2.5 py-1 rounded-full">
+                      <span className="shrink-0 mt-1.5 text-[10px] font-bold text-brand dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 px-2.5 py-1 rounded-full">
                         Current Status
                       </span>
                     )}
@@ -226,6 +250,9 @@ export default function OrderPage() {
         {/* ── Order Items ── */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6">
           <h2 className="text-lg font-bold text-[#1A0A0E] dark:text-gray-100 mb-5">Order Items</h2>
+          {order.status === 'delivered' && order.userId === user?._id && !Array.isArray(order.reviewedProductIds) && (
+            <p role="alert" className="mb-4 text-sm text-gray-600 dark:text-gray-300">Your review status could not be loaded. <button type="button" onClick={() => setRetry(value => value + 1)} className="font-semibold text-rose-700 underline dark:text-rose-400">Retry review status</button></p>
+          )}
           <div className="space-y-4">
             {order.orderItems.map((item) => {
               const pid = item.productId || item._id;
@@ -239,10 +266,10 @@ export default function OrderPage() {
                   </div>
                   <div className="text-right shrink-0 space-y-1">
                     <p className="text-sm font-bold text-[#1A0A0E] dark:text-gray-100">Rs. {Math.round(item.qty * item.price).toLocaleString()}</p>
-                    {order.status === 'delivered' && (
+                    {order.status === 'delivered' && canReview && (
                       reviewed
                         ? <p className="text-xs text-green-600 dark:text-green-400 font-semibold">✓ Reviewed</p>
-                        : <button onClick={() => openReview(pid, item.name)} className="flex items-center gap-1 text-xs text-[#C2185B] font-bold hover:underline ml-auto">
+                        : <button onClick={() => openReview(pid, item.name)} className="flex items-center gap-1 text-xs text-brand font-bold hover:underline ml-auto">
                             <Star size={11} /> Rate Product
                           </button>
                     )}
@@ -276,9 +303,9 @@ export default function OrderPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-6 text-sm print:hidden">
-          <a href={helpLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-[#128C7E] dark:text-[#25D366] hover:underline">
+          {helpLink ? <a href={helpLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-[#128C7E] dark:text-[#25D366] hover:underline">
             <MessageCircle size={15} aria-hidden="true" /> Need help with this order?
-          </a>
+          </a> : <Link href="/contact" className="inline-flex items-center gap-1.5 font-semibold text-rose-700 dark:text-rose-400 hover:underline"><MessageCircle size={15} aria-hidden="true" /> Need help with this order?</Link>}
           {CANCELLABLE.includes(order.status) && (
             <button type="button" onClick={handleCancel} disabled={cancelling} className="font-semibold text-red-600 dark:text-red-400 hover:underline disabled:opacity-50">
               {cancelling ? 'Cancelling...' : 'Cancel order'}
@@ -294,22 +321,22 @@ export default function OrderPage() {
           >
             <Printer size={15} /> Print Receipt
           </button>
-          <Link href="/products" className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-rose-200 dark:border-rose-900/40 text-[#C2185B] font-semibold rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm">
+          <Link href="/products" className="button-secondary flex-1 text-sm">
             Continue Shopping
           </Link>
-          <Link href="/profile" className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#C2185B] text-white font-semibold rounded-2xl hover:bg-[#A31555] transition-colors text-sm">
+          <Link href="/profile" className="button-primary flex-1 text-sm">
             My Orders <ArrowRight size={14} />
           </Link>
         </div>
       </div>
 
       {/* ── Review Modal ── */}
-      {showReview && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-60 px-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="review-title" className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md p-6">
+      <AccessibleDialog isOpen={showReview && reviewFormKey === requestKey} onClose={() => setShowReview(false)} labelledBy="review-title" className="max-w-md">
+          <div className="p-6">
             <h2 id="review-title" className="text-xl font-bold text-[#1A0A0E] dark:text-gray-100 mb-1">Rate Your Purchase</h2>
             <p className="text-sm text-gray-400 dark:text-gray-500 mb-5">{reviewProductName}</p>
             <form onSubmit={handleReview} className="space-y-5">
+              {reviewError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{reviewError}</p>}
               <div>
                 <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Rating *</p>
                 <div className="flex items-center gap-2">
@@ -326,21 +353,20 @@ export default function OrderPage() {
               <div>
                 <label htmlFor="review-comment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Your Review *</label>
                 <textarea id="review-comment"
-                  required rows={4} value={reviewComment} onChange={e => setReviewComment(e.target.value)}
+                  required minLength={3} maxLength={500} rows={4} value={reviewComment} onChange={e => setReviewComment(e.target.value)}
                   placeholder="Share your experience — quality, packaging, results on your skin..."
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none"
+                  className="form-input resize-none"
                 />
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setShowReview(false)} className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-medium rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
-                <button type="submit" disabled={submittingReview} className="flex-1 py-3 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl disabled:opacity-60">
+                <button type="button" onClick={() => setShowReview(false)} className="button-secondary flex-1">Cancel</button>
+                <button type="submit" disabled={submittingReview} className="button-primary flex-1">
                   {submittingReview ? 'Submitting...' : 'Submit Review'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
+      </AccessibleDialog>
     </div>
   );
 }

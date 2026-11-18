@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 import toast from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 import { sanitizeWishlistIds } from '@/lib/browserState';
+import { mergeGuestWishlist, readGuestWishlist } from '@/lib/wishlist';
 
 interface WishlistContextType {
   wishlistIds: Set<string>;
@@ -12,18 +13,20 @@ interface WishlistContextType {
   count: number;
   wishlistReady: boolean;
   wishlistError: string;
+  wishlistNotice: string;
   reloadWishlist: () => void;
 }
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 const emptyIds = new Set<string>();
-interface WishlistState { owner: string; ids: Set<string>; ready: boolean; error: string; }
+interface WishlistState { key: string; ids: Set<string>; ready: boolean; error: string; notice: string; }
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const { user, authReady } = useAuth();
   const owner = user?._id || 'guest';
   const token = user?.token;
-  const [state, setState] = useState<WishlistState>({ owner: '', ids: new Set(), ready: false, error: '' });
+  const [state, setState] = useState<WishlistState>({ key: '', ids: new Set(), ready: false, error: '', notice: '' });
   const [reload, setReload] = useState(0);
+  const requestKey = JSON.stringify([owner, token, reload]);
   const ids = useRef(new Set<string>());
   const pending = useRef(new Set<string>());
   const generation = useRef(0);
@@ -35,11 +38,20 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     pending.current.clear();
     async function load() {
       let loaded: string[];
+      let notice = '';
       try {
         if (!token) {
-          try { loaded = sanitizeWishlistIds(JSON.parse(localStorage.getItem('wishlist') || '[]')); }
+          try { loaded = readGuestWishlist(localStorage); }
           catch { loaded = []; }
         } else {
+          try {
+            const merged = await mergeGuestWishlist(localStorage, token, controller.signal);
+            if (merged.pendingIds.length) notice = 'Your account wishlist is full. Some favorites remain saved in this browser. Remove account items, then retry adding browser favorites.';
+            else if (merged.unavailableIds.length) notice = 'Some browser favorites are no longer available. Your other favorites have been added to your account.';
+          } catch {
+            if (controller.signal.aborted) return;
+            notice = 'Your browser favorites could not be added to your account yet. They remain saved in this browser. Retry to add them.';
+          }
           const response = await fetch('/api/wishlist', { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal, cache: 'no-store' });
           if (!response.ok) throw new Error('Your wishlist could not be loaded. Please retry.');
           const data: unknown = await response.json();
@@ -48,18 +60,18 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         }
         if (attempt !== generation.current || controller.signal.aborted) return;
         ids.current = new Set(loaded);
-        setState({ owner, ids: ids.current, ready: true, error: '' });
+        setState({ key: requestKey, ids: ids.current, ready: true, error: '', notice });
       } catch (error) {
         if (attempt !== generation.current || controller.signal.aborted) return;
         ids.current = new Set();
-        setState({ owner, ids: ids.current, ready: true, error: error instanceof Error ? error.message : 'Your wishlist could not be loaded.' });
+        setState({ key: requestKey, ids: ids.current, ready: true, error: error instanceof Error ? error.message : 'Your wishlist could not be loaded.', notice });
       }
     }
     void load();
     return () => { controller.abort(); };
-  }, [authReady, owner, token, reload]);
+  }, [authReady, owner, token, requestKey]);
 
-  const ready = authReady && state.owner === owner && state.ready;
+  const ready = authReady && state.key === requestKey && state.ready;
   const toggle = useCallback(async (productId: string) => {
     if (!ready || state.error) { toast.error(state.error || 'Your wishlist is still loading.'); return; }
     if (!sanitizeWishlistIds([productId]).length || pending.current.has(productId)) return;
@@ -71,7 +83,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       const updated = new Set(ids.current);
       if (wishlisted) updated.add(productId); else updated.delete(productId);
       ids.current = updated;
-      setState({ owner, ids: updated, ready: true, error: '' });
+      setState(current => ({ key: requestKey, ids: updated, ready: true, error: '', notice: current.key === requestKey ? current.notice : '' }));
     }
     pending.current.add(productId);
     apply(desired);
@@ -89,10 +101,10 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         toast.error(!token ? 'Browser storage is unavailable. Your wishlist change was not saved.' : error instanceof Error ? error.message : 'Your wishlist could not be saved.');
       }
     } finally { if (attempt === generation.current) pending.current.delete(productId); }
-  }, [ready, state.error, owner, token]);
-  const wishlistIds = state.owner === owner ? state.ids : emptyIds;
+  }, [ready, state.error, requestKey, token]);
+  const wishlistIds = state.key === requestKey ? state.ids : emptyIds;
   const reloadWishlist = useCallback(() => setReload((value) => value + 1), []);
-  return <WishlistContext.Provider value={{ wishlistIds, toggle, isWishlisted: (productId) => wishlistIds.has(productId), count: wishlistIds.size, wishlistReady: ready, wishlistError: state.owner === owner ? state.error : '', reloadWishlist }}>{children}</WishlistContext.Provider>;
+  return <WishlistContext.Provider value={{ wishlistIds, toggle, isWishlisted: (productId) => wishlistIds.has(productId), count: wishlistIds.size, wishlistReady: ready, wishlistError: state.key === requestKey ? state.error : '', wishlistNotice: state.key === requestKey ? state.notice : '', reloadWishlist }}>{children}</WishlistContext.Provider>;
 }
 export function useWishlist() {
   const context = useContext(WishlistContext);

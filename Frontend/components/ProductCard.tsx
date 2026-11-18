@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
 import ProductImage from './ProductImage';
 import toast from 'react-hot-toast';
+import { cartAdditionFeedback } from '@/lib/cart';
 import type { Product } from '@/types/api';
 
 export type ProductType = Product;
@@ -29,7 +30,7 @@ export default function ProductCard({ product }: { product: ProductType }) {
   const handleAddToCart = () => {
     if (product.countInStock === 0) return;
     if (user?.isAdmin) { toast.error('Use a customer account to shop.'); return; }
-    addToCart({
+    const addition = addToCart({
       product: product._id,
       name: product.name,
       image: product.image,
@@ -37,7 +38,10 @@ export default function ProductCard({ product }: { product: ProductType }) {
       qty: 1,
       countInStock: product.countInStock,
     });
-    toast.success(`${product.name} added!`, { duration: 1800 });
+    const feedback = cartAdditionFeedback(addition, product.name);
+    if (feedback.kind === 'success') toast.success(feedback.message, { duration: 1800 });
+    else if (feedback.kind === 'partial') toast(feedback.message);
+    else toast.error(feedback.message);
   };
 
   const catClass = categoryColors[product.category?.toLowerCase()] || 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
@@ -86,7 +90,7 @@ export default function ProductCard({ product }: { product: ProductType }) {
               <button
                 onClick={handleAddToCart}
                 aria-label={`Add ${product.name} to cart`}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-white text-xs font-bold rounded-2xl transition-all bg-[#C2185B] hover:bg-[#A31555]"
+                className="w-full min-h-11 flex items-center justify-center gap-2 py-2.5 text-white text-xs font-bold rounded-2xl transition-all bg-[#C2185B] hover:bg-[#A31555]"
               >
                 <ShoppingCart size={13} />
                 Add to Cart
@@ -97,7 +101,7 @@ export default function ProductCard({ product }: { product: ProductType }) {
 
         {/* Info */}
         <div className="p-4">
-          <p className="text-[10px] text-[#C2185B] font-bold uppercase tracking-widest mb-1">{product.brand}</p>
+          <p className="text-[10px] text-brand font-bold uppercase tracking-widest mb-1">{product.brand}</p>
           <h3 className="font-semibold text-[#1A0A0E] dark:text-gray-100 text-sm leading-snug mb-2.5 line-clamp-2 group-hover:text-[#C2185B] transition-colors">
             <Link href={`/products/${product._id}`}>{product.name}</Link>
           </h3>

@@ -18,6 +18,12 @@ export const brandColors = {
 } as const;
 
 export const lightTheme = {
+  brand:        '#C2185B',
+  brandHover:   '#A31555',
+  brandText:    '#C2185B',
+  focusRing:    '#C2185B',
+  fieldBorder:  '#6B7280',
+  fieldBg:      '#FFFFFF',
   background:   '#FFF8F5',
   foreground:   '#1A0A0E',
   surface:      '#FFFFFF',
@@ -28,6 +34,12 @@ export const lightTheme = {
 } as const;
 
 export const darkTheme = {
+  brand:        '#C2185B',
+  brandHover:   '#A31555',
+  brandText:    '#FDA4AF',
+  focusRing:    '#FDA4AF',
+  fieldBorder:  '#9CA3AF',
+  fieldBg:      '#111827',
   background:   '#0F0A0B',
   foreground:   '#F5ECF0',
   surface:      '#1C1317',
@@ -36,6 +48,20 @@ export const darkTheme = {
   muted:        '#9CA3AF',
   mutedBg:      '#1C1317',
 } as const;
+
+export function resolveTheme(saved: unknown, prefersDark: boolean): 'light' | 'dark' {
+  return saved === 'light' || saved === 'dark' ? saved : prefersDark ? 'dark' : 'light';
+}
+
+/** Storage failures must not prevent the OS preference from setting first paint. */
+export const themeInitScript = `
+(function(){
+  var saved=null;
+  try{saved=localStorage.getItem('lumina-theme');}catch(e){}
+  var prefersDark=false;
+  try{prefersDark=window.matchMedia('(prefers-color-scheme:dark)').matches;}catch(e){}
+  document.documentElement.classList.toggle('dark',saved==='dark'||(saved!=='light'&&prefersDark));
+})();`;
 
 // Category badge colors (used in ProductCard)
 export const categoryColors = {

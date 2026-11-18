@@ -12,7 +12,7 @@ interface ShippingStepProps {
 
 export default function ShippingStep({ shipping, onChange, onSubmit }: ShippingStepProps) {
   const inputCls =
-    'w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm';
+    'form-input';
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 sm:p-8">
@@ -97,7 +97,7 @@ export default function ShippingStep({ shipping, onChange, onSubmit }: ShippingS
         <p className="text-xs text-gray-500 dark:text-gray-400">Delivery is available within Pakistan. Your shipping charge is included in the order summary.</p>
         <button
           type="submit"
-          className="w-full py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all"
+          className="button-primary w-full shadow-lg"
         >
           Continue to Payment
         </button>

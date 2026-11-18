@@ -25,13 +25,14 @@ export default function AccessibleDialog({ isOpen, onClose, labelledBy, describe
       dialog.close();
       document.body.style.overflow = previousOverflow;
       if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
+      else document.getElementById('main-content')?.focus();
     };
   }, [isOpen]);
   return (
     <dialog ref={dialogRef} aria-modal="true" aria-labelledby={labelledBy} aria-describedby={describedBy}
       onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
-      className={`m-auto w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto rounded-3xl border border-rose-100 bg-white p-0 text-gray-900 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${className}`}>
+      className={`m-auto w-[calc(100%_-_2rem)] max-h-[90dvh] overflow-y-auto rounded-3xl border border-rose-100 bg-white p-0 text-gray-900 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${className}`}>
       {isOpen && children}
     </dialog>
   );

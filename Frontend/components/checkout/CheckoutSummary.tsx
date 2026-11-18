@@ -60,7 +60,7 @@ export default function CheckoutSummary({
 
         <div className="flex justify-between text-gray-500 dark:text-gray-400">
           <span>Shipping</span>
-          <span className={shippingCost === 0 ? 'text-green-600 font-medium' : ''}>
+          <span className={shippingCost === 0 ? 'text-green-700 dark:text-green-300 font-medium' : ''}>
             {shippingCost === 0 ? 'FREE' : formatPrice(shippingCost)}
           </span>
         </div>
@@ -71,7 +71,7 @@ export default function CheckoutSummary({
         </div>
       </div>
 
-      <div className="mt-5 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 justify-center">
+      <div className="mt-5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 justify-center">
         <Lock size={12} aria-hidden="true" /> Review your details before ordering
       </div>
     </div>

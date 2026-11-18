@@ -38,8 +38,10 @@ test('complaints enforce bounded content and known categories', () => {
 
 let databaseResult;
 let operation;
+let rpcArguments;
 let localWrites = 0;
 const mockSupabase = {
+  rpc(name, args) { operation = `rpc:${name}`; rpcArguments = args; return Promise.resolve(databaseResult); },
   from(table) {
     const query = {
       select() { return this; }, eq() { return this; }, order() { return this; }, limit() { return this; },
@@ -59,6 +61,8 @@ Module._load = function (name, parent, isMain) {
   if (name === '@/lib/auth') return { getAuthUser: async () => ({ id: 'customer', isAdmin: false }) };
   if (name === '@/lib/localComplaints') return { addLocalComplaint: () => { localWrites++; }, getLocalComplaints: () => [] };
   if (name === '@/lib/complaints') return require('../lib/complaints.ts');
+  if (name === '@/lib/complaintInbox') return require('../lib/complaintInbox.ts');
+  if (name === '@/lib/pagination') return require('../lib/pagination.ts');
   if (name === '@/lib/rateLimit') return { rateLimit: async () => null };
   if (name === '@/lib/email') return { escapeHtml: (value) => value, sendEmail: async () => {} };
   return originalLoad.call(this, name, parent, isMain);
@@ -86,9 +90,23 @@ test('wishlist returns singular product relations and surfaces failed optimistic
   databaseResult = { data: null, error: { code: 'database-unavailable' } };
   const failed = await wishlist.POST(new Request('http://localhost/api/wishlist', { method: 'POST', body: JSON.stringify({ productId: 'product', wishlisted: true }) }));
   assert.equal(failed.status, 503);
-  assert.equal(operation, 'upsert:Wishlist');
-  databaseResult = { data: null, error: null };
+  assert.equal(operation, 'rpc:set_account_wishlist');
+  assert.deepEqual(rpcArguments, { p_user_id: 'customer', p_product_id: 'product', p_wishlisted: true });
+  databaseResult = { data: { wishlisted: false }, error: null };
   const removed = await wishlist.POST(new Request('http://localhost/api/wishlist', { method: 'POST', body: JSON.stringify({ productId: 'product', wishlisted: false }) }));
-  assert.equal(operation, 'delete:Wishlist');
+  assert.equal(operation, 'rpc:set_account_wishlist');
+  assert.deepEqual(rpcArguments, { p_user_id: 'customer', p_product_id: 'product', p_wishlisted: false });
   assert.equal((await removed.json()).wishlisted, false);
+});
+
+test('wishlist atomic mutations distinguish unavailable products, a full list, and invalid results', async () => {
+  for (const [message, status] of [['WISHLIST_PRODUCT', 404], ['WISHLIST_FULL', 409], ['internal database details', 503]]) {
+    databaseResult = { data: null, error: { message } };
+    const response = await wishlist.POST(new Request('http://localhost/api/wishlist', { method: 'POST', body: JSON.stringify({ productId: 'product' }) }));
+    assert.equal(response.status, status);
+    assert.equal(rpcArguments.p_wishlisted, null);
+    assert.doesNotMatch((await response.json()).message, /internal database details/);
+  }
+  databaseResult = { data: {}, error: null };
+  assert.equal((await wishlist.POST(new Request('http://localhost/api/wishlist', { method: 'POST', body: JSON.stringify({ productId: 'product', wishlisted: true }) }))).status, 503);
 });

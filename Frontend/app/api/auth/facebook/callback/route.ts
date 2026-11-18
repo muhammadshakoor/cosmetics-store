@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { signInOAuthAccount } from '@/lib/oauthAccount';
 import { signToken } from '@/lib/auth';
 import { getSiteUrl } from '@/lib/accountTokens';
 import { isValidOAuthState, oauthCookieOptions, oauthStateCookie, OAUTH_SESSION_COOKIE } from '@/lib/oauth';
@@ -35,14 +35,15 @@ export async function GET(request: NextRequest) {
     tokenUrl.searchParams.set('redirect_uri', redirectUri);
     tokenUrl.searchParams.set('code', code);
 
-    const tokenRes = await fetch(tokenUrl.toString());
+    const tokenRes = await fetch(tokenUrl.toString(), { signal: AbortSignal.timeout(10000) });
     if (!tokenRes.ok) throw new Error('Failed to exchange code for token');
     const tokenData = await tokenRes.json();
     const accessToken: string = tokenData.access_token;
 
     // Get Facebook user info including profile picture
     const userInfoRes = await fetch(
-      `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
+      'https://graph.facebook.com/me?fields=id,name,email,picture.type(large)',
+      { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(10000) }
     );
     if (!userInfoRes.ok) throw new Error('Failed to get Facebook user info');
     const fbUser = await userInfoRes.json();
@@ -57,46 +58,7 @@ export async function GET(request: NextRequest) {
       return redirect('/login?error=facebook_no_email');
     }
 
-    const normalizedEmail = email.toLowerCase();
-    const now = new Date().toISOString();
-
-    // Find or create user
-    let { data: user } = await supabase
-      .from('User')
-      .select('id, name, email, isAdmin, picture, authVersion')
-      .eq('email', normalizedEmail)
-      .single();
-
-    if (!user) {
-      const newId = crypto.randomUUID();
-      const { data: created, error: createError } = await supabase
-        .from('User')
-        .insert({
-          id: newId,
-          name: name || email.split('@')[0],
-          email: normalizedEmail,
-          password: '',
-          isAdmin: false,
-          emailVerified: true,
-          authVersion: 0,
-          picture: picture || null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .select('id, name, email, isAdmin, picture, authVersion')
-        .single();
-
-      if (createError) throw new Error(createError.message);
-      user = created;
-    } else {
-      await supabase
-        .from('User')
-        .update({ emailVerified: true, picture: picture || null, updatedAt: now })
-        .eq('id', user.id);
-      if (user && picture) (user as Record<string, unknown>).picture = picture;
-    }
-
-    if (!user) throw new Error('Failed to find or create user');
+    const user = await signInOAuthAccount(email, name || email.split('@')[0], picture || null);
 
     const token = signToken({ userId: user.id, authVersion: user.authVersion });
     const response = redirect('/auth/callback');

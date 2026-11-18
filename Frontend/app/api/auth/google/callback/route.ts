@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { signInOAuthAccount } from '@/lib/oauthAccount';
 import { signToken } from '@/lib/auth';
 import { getSiteUrl } from '@/lib/accountTokens';
 import { isValidOAuthState, oauthCookieOptions, oauthStateCookie, OAUTH_SESSION_COOKIE } from '@/lib/oauth';
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!tokenRes.ok) {
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
     // Get Google user info
     const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!userInfoRes.ok) {
@@ -64,47 +66,7 @@ export async function GET(request: NextRequest) {
       throw new Error('Google account has no verified email');
     }
 
-    const normalizedEmail = email.toLowerCase();
-    const now = new Date().toISOString();
-
-    // Find or create user
-    let { data: user } = await supabase
-      .from('User')
-      .select('id, name, email, isAdmin, picture, authVersion')
-      .eq('email', normalizedEmail)
-      .single();
-
-    if (!user) {
-      const newId = crypto.randomUUID();
-      const { data: created, error: createError } = await supabase
-        .from('User')
-        .insert({
-          id: newId,
-          name: name || email.split('@')[0],
-          email: normalizedEmail,
-          password: '',
-          isAdmin: false,
-          emailVerified: true,
-          authVersion: 0,
-          picture: picture || null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .select('id, name, email, isAdmin, picture, authVersion')
-        .single();
-
-      if (createError) throw new Error(createError.message);
-      user = created;
-    } else {
-      // Ensure existing Google-linked users are verified and picture is updated
-      await supabase
-        .from('User')
-        .update({ emailVerified: true, picture: picture || null, updatedAt: now })
-        .eq('id', user.id);
-      if (user && picture) (user as Record<string, unknown>).picture = picture;
-    }
-
-    if (!user) throw new Error('Failed to find or create user');
+    const user = await signInOAuthAccount(email, name || email.split('@')[0], picture || null);
 
     const token = signToken({ userId: user.id, authVersion: user.authVersion });
     const response = redirect('/auth/callback');

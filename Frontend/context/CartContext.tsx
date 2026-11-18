@@ -1,9 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import toast from 'react-hot-toast';
+import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { addCartItem, sanitizeCart, setCartQuantity } from '@/lib/cart';
+import { createCartStore, type CartAddition } from '@/lib/cart';
 
 export interface CartItem {
   product: string;
@@ -16,7 +15,7 @@ export interface CartItem {
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (item: CartItem) => void;
+  addToCart: (item: CartItem) => CartAddition;
   removeFromCart: (id: string) => void;
   updateQty: (id: string, qty: number) => void;
   clearCart: () => void;
@@ -30,40 +29,21 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [cartReady, setCartReady] = useState(false);
+  const [store] = useState(() => createCartStore(() => localStorage));
+  const { items: cartItems, ready: cartReady } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('cartItems');
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- storage is only readable after hydration
-      if (stored) setCartItems(sanitizeCart(JSON.parse(stored)));
-    } catch { /* corrupted storage — start with an empty cart */ }
-    setCartReady(true);
-  }, []);
-
-  // Only persist once the saved cart is loaded, otherwise the initial [] overwrites it
-  useEffect(() => {
-    if (cartReady) {
-      try { localStorage.setItem('cartItems', JSON.stringify(cartItems)); } catch { /* keep the current cart if browser storage is unavailable */ }
-    }
-  }, [cartItems, cartReady]);
-
-  const addToCart = (item: CartItem) => {
-    if (user?.isAdmin) {
-      toast.error('Admin accounts cannot add items to cart.');
-      return;
-    }
-    setCartItems((prev) => addCartItem(prev, item));
+  const addToCart = (item: CartItem): CartAddition => {
+    if (user?.isAdmin) return { addedQty: 0, requestedQty: item.qty, reason: 'admin' };
+    return store.add(item);
   };
 
   const removeFromCart = (id: string) =>
-    setCartItems((prev) => prev.filter((x) => x.product !== id));
+    store.remove(id);
 
   const updateQty = (id: string, qty: number) =>
-    setCartItems((prev) => setCartQuantity(prev, id, qty));
+    store.setQuantity(id, qty);
 
-  const clearCart = () => setCartItems([]);
+  const clearCart = () => store.clear();
 
   const itemCount = cartItems.reduce((a, c) => a + c.qty, 0);
   const totalPrice = cartItems.reduce((a, c) => a + c.price * c.qty, 0);

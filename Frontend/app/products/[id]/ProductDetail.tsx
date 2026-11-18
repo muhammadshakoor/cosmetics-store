@@ -10,6 +10,7 @@ import ProductCard from '@/components/ProductCard';
 import ProductImage from '@/components/ProductImage';
 import type { Product } from '@/types/api';
 import toast from 'react-hot-toast';
+import { cartAdditionFeedback } from '@/lib/cart';
 
 interface Review { _id: string; name?: string; userName?: string; rating: number; comment: string; createdAt: string }
 
@@ -33,8 +34,11 @@ export default function ProductDetail({ product }: { product: Product }) {
 
   function handleAddToCart() {
     if (user?.isAdmin) { toast.error('Use a customer account to shop.'); return; }
-    addToCart({ product: product._id, name: product.name, image: product.image, price: product.price, qty, countInStock: product.countInStock });
-    toast.success(`${product.name} added to cart`);
+    const addition = addToCart({ product: product._id, name: product.name, image: product.image, price: product.price, qty, countInStock: product.countInStock });
+    const feedback = cartAdditionFeedback(addition, product.name);
+    if (feedback.kind === 'success') toast.success(feedback.message);
+    else if (feedback.kind === 'partial') toast(feedback.message);
+    else toast.error(feedback.message);
   }
 
   async function handleRestockNotify(event: React.FormEvent) {

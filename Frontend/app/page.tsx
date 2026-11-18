@@ -85,7 +85,7 @@ export default function HomePage() {
             <div className="space-y-7">
               <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-rose-100 dark:border-gray-700 px-4 py-2 rounded-full shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-[#C2185B] animate-pulse" />
-                <span className="text-xs font-semibold text-[#C2185B] tracking-widest uppercase">Everyday Beauty Rituals</span>
+                <span className="text-xs font-semibold text-brand tracking-widest uppercase">Everyday Beauty Rituals</span>
               </div>
 
               <h1 className="text-5xl sm:text-6xl xl:text-7xl font-extrabold text-[#1A0A0E] dark:text-gray-100 leading-[1.05] tracking-tight">
@@ -173,18 +173,18 @@ export default function HomePage() {
       <section className="py-10 sm:py-14 lg:py-20 px-4 bg-[#FFF8F5] dark:bg-gray-950">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8 sm:mb-12">
-            <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-2">Explore Our Range</p>
+            <p className="text-xs font-bold tracking-[0.2em] text-brand uppercase mb-2">Explore Our Range</p>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Shop by Category</h2>
           </div>
           <div className="flex overflow-x-auto scrollbar-none snap-x snap-mandatory gap-4 -mx-4 px-4 pb-4 md:mx-0 md:px-0 md:pb-0 md:grid md:grid-cols-5">
             {categories.map((cat) => (
               <Link key={cat.slug} href={`/products?category=${cat.slug}`} className="group relative overflow-hidden rounded-3xl aspect-[3/4] block shrink-0 snap-center w-[65%] sm:w-[45%] md:w-auto">
                 <ProductImage src={cat.image} alt={cat.name} sizes="(max-width: 640px) 65vw, (max-width: 768px) 45vw, 20vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/45 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-5">
                   <p className="text-xs text-rose-300 font-medium mb-1">{cat.desc}</p>
                   <h3 className="text-xl font-extrabold text-white">{cat.name}</h3>
-                  <div className="flex items-center gap-1 mt-2 text-white/70 text-xs font-medium group-hover:gap-2 transition-all">
+                  <div className="flex items-center gap-1 mt-2 text-white text-xs font-medium group-hover:gap-2 transition-all">
                     Shop Now <ArrowRight size={12} />
                   </div>
                 </div>
@@ -199,10 +199,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
-              <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-2">From Our Catalog</p>
+              <p className="text-xs font-bold tracking-[0.2em] text-brand uppercase mb-2">From Our Catalog</p>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Latest Arrivals</h2>
             </div>
-            <Link href="/products" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-[#C2185B] hover:gap-2.5 transition-all">
+            <Link href="/products" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-brand hover:gap-2.5 transition-all">
               View All <ArrowRight size={14} />
             </Link>
           </div>
@@ -239,7 +239,7 @@ export default function HomePage() {
             <div key={title} className="bg-white dark:bg-gray-800 rounded-3xl p-6 text-center shadow-sm border border-rose-50 dark:border-gray-700 hover:shadow-md hover:-translate-y-1 transition-all">
               <div className="text-3xl mb-3" aria-hidden="true">{icon}</div>
               <h3 className="font-bold text-[#1A0A0E] dark:text-gray-100 text-sm mb-1">{title}</h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">{desc}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
@@ -249,7 +249,7 @@ export default function HomePage() {
       <section className="py-10 sm:py-14 lg:py-20 px-4 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8 sm:mb-12">
-            <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-2">A Little Shopping Inspiration</p>
+            <p className="text-xs font-bold tracking-[0.2em] text-brand uppercase mb-2">A Little Shopping Inspiration</p>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Make Room for Your Ritual</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -259,24 +259,25 @@ export default function HomePage() {
       </section>
 
       {/* ── Newsletter ── */}
-      <section className="py-10 sm:py-14 lg:py-20 px-4 bg-linear-to-r from-[#C2185B] to-pink-500">
+      <section className="py-10 sm:py-14 lg:py-20 px-4 bg-linear-to-r from-[#C2185B] to-pink-800">
         <div className="max-w-xl mx-auto text-center">
           <h2 className="text-3xl font-extrabold text-white mb-3">Stay in the Loop</h2>
           <p className="text-rose-100 text-sm mb-8">Sign up for Lumina store news and new arrivals.</p>
           {newsletterStatus === 'success' ? (
-            <div role="status" className="bg-white/20 border border-white/30 rounded-2xl px-6 py-4 text-white font-semibold">
+            <div role="status" className="bg-white/10 border border-white/30 rounded-2xl px-6 py-4 text-white font-semibold">
               {newsletterMessage}
             </div>
           ) : (
             <form onSubmit={handleNewsletter} className="space-y-4 text-left">
+              <label htmlFor="newsletter-email" className="block text-sm font-semibold text-white">Email address for store updates</label>
               <div className="flex flex-col sm:flex-row gap-3">
-              <label htmlFor="newsletter-email" className="sr-only">Email address for store updates</label>
               <input
                 id="newsletter-email" name="email" type="email" autoComplete="email" required
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="Enter your email address"
-                className="flex-1 px-5 py-3.5 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-white"
+                className="min-w-0 flex-1 border border-gray-600 bg-white px-5 py-3.5 rounded-2xl text-sm text-gray-900 placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-white dark:bg-white dark:text-gray-900"
+                style={{ colorScheme: 'light' }}
               />
               <button
                 type="submit" disabled={newsletterStatus === 'loading' || !newsletterConsent}

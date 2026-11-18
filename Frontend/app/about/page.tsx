@@ -18,13 +18,14 @@ const PROCESS = [
 ];
 
 export default function AboutPage() {
+  const whatsapp = whatsappLink();
   return (
     <div className="min-h-screen bg-[#FFF8F5] dark:bg-gray-950">
 
       {/* Hero */}
       <section className="bg-white dark:bg-gray-900 py-14 sm:py-20 px-4 border-b border-rose-50 dark:border-gray-800">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Our Story</p>
+          <p className="text-xs font-bold tracking-[0.2em] text-brand uppercase mb-3">Our Story</p>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-[#1A0A0E] dark:text-gray-100 mb-6 leading-tight">
             Handmade in Pakistan,<br className="hidden sm:block" /> Pure by Nature
           </h1>
@@ -68,7 +69,7 @@ export default function AboutPage() {
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
               So we started making our own — rose soaps, charcoal detox bars, almond lotions — using time-honoured herbal recipes and pure natural ingredients. Today we share them with families across the country.
             </p>
-            <div className="flex items-center gap-2 text-sm font-semibold text-[#C2185B] dark:text-rose-400">
+            <div className="flex items-center gap-2 text-sm font-semibold text-brand">
               <Heart size={16} className="fill-current" /> Made with love in Pakistan
             </div>
           </div>
@@ -82,7 +83,7 @@ export default function AboutPage() {
           <ol className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {PROCESS.map(({ step, title, desc }) => (
               <li key={step} className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-rose-50 dark:border-gray-700 shadow-sm">
-                <span className="text-3xl font-black text-rose-200 dark:text-rose-900">{step}</span>
+                <span className="text-3xl font-black text-rose-700 dark:text-rose-300">{step}</span>
                 <h3 className="font-bold text-[#1A0A0E] dark:text-gray-100 mt-2 mb-2">{title}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p>
               </li>
@@ -94,7 +95,7 @@ export default function AboutPage() {
       {/* CTA */}
       <section className="py-14 sm:py-16 px-4 text-center bg-white dark:bg-gray-900">
         <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1A0A0E] dark:text-gray-100 mb-3">Ready to Glow Naturally?</h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">Explore the full range, or ask us anything on WhatsApp.</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">Explore the full range, or contact our support team.</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/products"
@@ -102,14 +103,15 @@ export default function AboutPage() {
           >
             Shop the Collection <ArrowRight size={16} />
           </Link>
-          <a
-            href={whatsappLink()}
+          {whatsapp && <a
+            href={whatsapp}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-[#C2185B] dark:text-rose-400 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 transition-all text-sm"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 text-brand font-bold rounded-2xl border border-rose-200 dark:border-rose-900/40 transition-all text-sm"
           >
             <MessageCircle size={16} /> Chat on WhatsApp
-          </a>
+          </a>}
+          {!whatsapp && <Link href="/contact" className="button-secondary text-sm">Contact our team</Link>}
         </div>
       </section>
     </div>

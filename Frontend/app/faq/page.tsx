@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { whatsappLink, PHONE_DISPLAY, SUPPORT_EMAIL, BUSINESS_HOURS } from '@/lib/site';
 
 const faqs = [
   {
@@ -11,7 +10,7 @@ const faqs = [
     items: [
       { q: 'How long does delivery take?', a: 'Standard delivery takes 2–5 business days across Pakistan. Major cities like Lahore, Karachi, and Islamabad usually receive orders within 1–3 days.' },
       { q: 'Do you offer Cash on Delivery (COD)?', a: 'Yes! We offer Cash on Delivery nationwide. You pay when your order arrives at your door.' },
-      { q: 'How much does shipping cost?', a: 'Shipping is FREE on all orders over Rs. 2,000. For orders below Rs. 2,000, a flat shipping fee of Rs. 200 applies.' },
+      { q: 'How much does shipping cost?', a: 'Shipping is FREE on orders of Rs. 2,000 or more. For orders below Rs. 2,000, a flat shipping fee of Rs. 200 applies.' },
       { q: 'Can I track my order?', a: 'Yes. Open My Account → My Orders to see live status for every order. Once it\'s dispatched, the courier name and tracking number appear on the order page with a direct tracking link.' },
       { q: 'Can I cancel my order after placing it?', a: 'You can cancel your order from your profile page as long as the status is "Order Placed" or "Confirmed". Once it\'s picked up by the courier, cancellation is no longer possible.' },
     ],
@@ -35,7 +34,7 @@ const faqs = [
   {
     category: 'Account',
     items: [
-      { q: 'I forgot my password. What should I do?', a: 'Click "Forgot password?" on the sign-in page and enter your email. We\'ll send you a link to choose a new password — it\'s valid for 1 hour.' },
+      { q: 'I forgot my password. What should I do?', a: 'Click "Forgot password?" on the sign-in page and enter your email. We\'ll send you a link to choose a new password — it\'s valid for 30 minutes.' },
       { q: 'I didn\'t receive my verification email.', a: 'Check your spam or promotions folder first. If it\'s not there, try signing in — you\'ll see a button to resend the verification email.' },
     ],
   },
@@ -58,17 +57,16 @@ function FAQItem({ q, a }: { q: string; a: string }) {
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls={id}
-        className="w-full flex items-center justify-between py-4 text-left gap-4 hover:text-[#C2185B] transition-colors"
+        className="w-full flex items-center justify-between py-4 text-left gap-4 hover:underline underline-offset-4 transition-colors"
       >
         <span className="text-sm font-semibold text-[#1A0A0E] dark:text-gray-100 leading-snug">{q}</span>
         <ChevronDown
           size={16}
-          className={`text-gray-400 dark:text-gray-500 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+          className={`text-gray-600 dark:text-gray-300 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
-      {open && (
-        <p id={id} className="pb-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{a}</p>
-      )}
+      <p id={id} hidden={!open} className="pb-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{a}</p>
     </div>
   );
 }
@@ -91,16 +89,16 @@ export default function FAQPage() {
 
         {/* Header */}
         <div className="text-center mb-14">
-          <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Help Center</p>
+          <p className="text-xs font-bold tracking-[0.2em] text-brand uppercase mb-3">Help Center</p>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100 mb-4">Frequently Asked Questions</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Can&apos;t find your answer? <Link href="/contact" className="text-[#C2185B] font-semibold hover:underline">Contact us</Link></p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Can&apos;t find your answer? <Link href="/contact" className="text-brand font-semibold hover:underline">Contact us</Link></p>
         </div>
 
         {/* FAQ Sections */}
         <div className="space-y-6">
           {faqs.map((section) => (
             <div key={section.category} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 px-6 py-2">
-              <h2 className="text-xs font-bold text-[#C2185B] uppercase tracking-widest py-4 border-b border-rose-50 dark:border-gray-700">
+              <h2 className="text-xs font-bold text-brand uppercase tracking-widest py-4 border-b border-rose-50 dark:border-gray-700">
                 {section.category}
               </h2>
               {section.items.map((item) => (

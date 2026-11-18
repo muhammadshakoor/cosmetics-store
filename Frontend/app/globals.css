@@ -12,6 +12,14 @@
 }
 
 :root {
+  color-scheme: light;
+  --brand:         #C2185B;
+  --brand-hover:   #A31555;
+  --brand-text:    #C2185B;
+  --brand-text-hover: #A31555;
+  --focus-ring:    #C2185B;
+  --field-border:  #6B7280;
+  --field-bg:      #FFFFFF;
   --background:    #FFF8F5;
   --foreground:    #1A0A0E;
   --surface:       #FFFFFF;
@@ -22,6 +30,12 @@
 }
 
 .dark {
+  color-scheme: dark;
+  --brand-text:    #FDA4AF;
+  --brand-text-hover: #FECDD3;
+  --focus-ring:    #FDA4AF;
+  --field-border:  #9CA3AF;
+  --field-bg:      #111827;
   --background:    #0F0A0B;
   --foreground:    #F5ECF0;
   --surface:       #1C1317;
@@ -52,9 +66,58 @@ html {
 }
 
 *:focus-visible {
-  outline: 2px solid #C2185B;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
+
+.text-brand { color: var(--brand-text); }
+a.text-brand:hover, button.text-brand:hover { color: var(--brand-text-hover); }
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  background: var(--brand);
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+.button-primary:hover:not(:disabled) { background: var(--brand-hover); }
+.button-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--field-border);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--brand-text);
+  font-weight: 600;
+}
+.button-secondary:hover:not(:disabled) { background: var(--surface-hover); }
+.button-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.form-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--field-border);
+  border-radius: 1rem;
+  background: var(--field-bg);
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.form-input-with-action { padding-right: 3.25rem; }
+.form-input::placeholder { color: var(--muted); opacity: 1; }
 
 /* Respect users who ask the OS for less motion */
 @media (prefers-reduced-motion: reduce) {

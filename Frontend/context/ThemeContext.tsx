@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react';
+import { resolveTheme } from '@/lib/theme';
 type Theme = 'light' | 'dark';
 interface ThemeContextValue { theme: Theme; isDark: boolean; toggleTheme: () => void; }
 const ThemeContext = createContext<ThemeContextValue>({ theme: 'light', isDark: false, toggleTheme: () => {} });
@@ -21,12 +22,12 @@ function subscribe(listener: () => void) {
   listeners.add(listener);
   const media = window.matchMedia('(prefers-color-scheme: dark)');
   preference = readPreference();
-  applyTheme(preference || (media.matches ? 'dark' : 'light'));
-  const onSystemChange = () => { if (!preference) applyTheme(media.matches ? 'dark' : 'light'); };
+  applyTheme(resolveTheme(preference, media.matches));
+  const onSystemChange = () => { if (!preference) applyTheme(resolveTheme(null, media.matches)); };
   const onStorage = (event: StorageEvent) => {
     if (event.key !== 'lumina-theme' && event.key !== null) return;
     preference = readPreference();
-    applyTheme(preference || (media.matches ? 'dark' : 'light'));
+    applyTheme(resolveTheme(preference, media.matches));
   };
   media.addEventListener('change', onSystemChange);
   window.addEventListener('storage', onStorage);

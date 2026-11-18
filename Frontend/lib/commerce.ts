@@ -43,11 +43,14 @@ export function commerceError(error: unknown): { status: number; message: string
     ORDER_NOT_FOUND: { status: 404, message: 'Order not found' },
     ORDER_FORBIDDEN: { status: 403, message: 'You cannot update this order' },
     ORDER_TRANSITION: { status: 409, message: 'This order can no longer be changed to that status. Refresh the order and try again.' },
+    REVIEW_FORBIDDEN: { status: 403, message: 'You can only review products from your delivered orders' },
+    REVIEW_DUPLICATE: { status: 409, message: 'You already reviewed this product' },
+    REVIEW_INPUT: { status: 400, message: 'Enter a rating from 1 to 5 and a review between 3 and 500 characters' },
   };
   for (const [code, result] of Object.entries(businessErrors)) if (detail.includes(code)) return result;
   const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
   if (code === 'PGRST202' || code === '42883') {
-    return { status: 503, message: 'Checkout is not configured. The store administrator must apply the checkout database migration.' };
+    return { status: 503, message: 'The store database is not configured. The administrator must apply all database migrations.' };
   }
   return { status: 503, message: 'The store database is temporarily unavailable. Please try again shortly.' };
 }

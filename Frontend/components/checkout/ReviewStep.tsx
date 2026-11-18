@@ -47,14 +47,14 @@ export default function ReviewStep({
       <div className="mb-5 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-1">
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">
               Shipping To
             </p>
             <p className="text-sm text-gray-700 dark:text-gray-200">
               {shipping.address}, {shipping.city}, {shipping.postalCode}, {shipping.country}
             </p>
             {shipping.phone && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
                 📱 {shipping.phone}
               </p>
             )}
@@ -64,7 +64,7 @@ export default function ReviewStep({
             aria-label="Edit shipping address"
             disabled={loading}
             onClick={onEditShipping}
-            className="text-xs text-rose-500 hover:text-rose-700 font-medium"
+            className="text-sm text-brand min-h-11 min-w-11 underline underline-offset-4 font-medium"
           >
             Edit
           </button>
@@ -75,7 +75,7 @@ export default function ReviewStep({
       <div className="mb-5 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-1">
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">
               Payment Method
             </p>
             <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{paymentMethod}</p>
@@ -85,7 +85,7 @@ export default function ReviewStep({
             aria-label="Edit payment method"
             disabled={loading}
             onClick={onEditPayment}
-            className="text-xs text-rose-500 hover:text-rose-700 font-medium"
+            className="text-sm text-brand min-h-11 min-w-11 underline underline-offset-4 font-medium"
           >
             Edit
           </button>
@@ -101,7 +101,7 @@ export default function ReviewStep({
               <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
                 {item.name}
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Qty: {item.qty}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300">Qty: {item.qty}</p>
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {formatPrice(item.price * item.qty)}
@@ -116,7 +116,7 @@ export default function ReviewStep({
           type="button"
           disabled={loading}
           onClick={onBack}
-          className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-medium rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="button-secondary flex-1"
         >
           Back
         </button>
@@ -124,7 +124,7 @@ export default function ReviewStep({
           type="button"
           onClick={onPlaceOrder}
           disabled={loading || disabled}
-          className="flex-1 flex items-center justify-center gap-2 py-3 bg-linear-to-r from-rose-500 to-pink-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-rose-200 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          className="button-primary flex-1 shadow-lg"
         >
           <Lock size={14} />
           {loading ? 'Placing Order...' : 'Place Order'}

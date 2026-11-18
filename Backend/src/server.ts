@@ -4,8 +4,10 @@ import cors from 'cors';
 import userRoutes from './routes/user.routes';
 import productRoutes from './routes/product.routes';
 import orderRoutes from './routes/order.routes';
+import { getJwtSecret } from './config/auth';
 
 dotenv.config();
+getJwtSecret();
 
 const app: Express = express();
 

@@ -5,7 +5,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-[#FFF8F5] dark:bg-gray-950 py-10 sm:py-16 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 sm:p-12">
-          <p className="text-xs font-bold tracking-[0.2em] text-[#C2185B] uppercase mb-3">Legal</p>
+          <p className="text-xs font-bold tracking-[0.2em] text-brand uppercase mb-3">Legal</p>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1A0A0E] dark:text-gray-100 mb-2">Privacy Policy</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-10">Last updated: October 2026</p>
 
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
               </p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li>Courier services (PostEx, TCS, Leopards) solely for delivery purposes</li>
-                <li>Payment processors (JazzCash, EasyPaisa) to complete transactions</li>
+                <li>Email delivery providers for account, order and requested stock notifications</li>
                 <li>Cloud hosting providers who store data securely</li>
               </ul>
             </section>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
                 <li>Unsubscribe from marketing emails at any time</li>
                 <li>Request a copy of your data</li>
               </ul>
-              <p className="leading-relaxed mt-3">To exercise any of these rights, use our <Link href="/contact" className="text-[#C2185B] hover:underline">Contact page</Link>.</p>
+              <p className="leading-relaxed mt-3">To exercise any of these rights, use our <Link href="/contact" className="text-brand hover:underline">Contact page</Link>.</p>
             </section>
 
             <section>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
               <h2 className="text-lg font-bold text-[#1A0A0E] dark:text-gray-100 mb-3">8. Contact</h2>
               <p className="leading-relaxed">
                 For any privacy-related questions, visit our{' '}
-                <Link href="/contact" className="text-[#C2185B] hover:underline">Contact page</Link>.
+                <Link href="/contact" className="text-brand hover:underline">Contact page</Link>.
               </p>
             </section>
           </div>

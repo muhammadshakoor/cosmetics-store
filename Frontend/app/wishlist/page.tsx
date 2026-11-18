@@ -10,13 +10,13 @@ import type { Product } from '@/types/api';
 
 export default function WishlistPage() {
   const { user, authReady } = useAuth();
-  const { wishlistIds, wishlistReady, wishlistError, reloadWishlist } = useWishlist();
+  const { wishlistIds, wishlistReady, wishlistError, wishlistNotice, reloadWishlist } = useWishlist();
   const owner = user?._id || 'guest';
   const token = user?.token;
   const [catalog, setCatalog] = useState<{ owner: string; products: Product[]; error: string }>({ owner: '', products: [], error: '' });
   const [reload, setReload] = useState(0);
   useEffect(() => {
-    if (!authReady) return;
+    if (!authReady || !wishlistReady) return;
     const controller = new AbortController();
     const url = token ? '/api/wishlist' : '/api/products';
     fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {}, signal: controller.signal, cache: 'no-store' })
@@ -29,7 +29,7 @@ export default function WishlistPage() {
       })
       .catch((error) => { if (!controller.signal.aborted) setCatalog({ owner, products: [], error: error instanceof Error ? error.message : 'Saved products could not be loaded.' }); });
     return () => controller.abort();
-  }, [authReady, owner, token, reload]);
+  }, [authReady, wishlistReady, owner, token, reload]);
   const loading = !authReady || !wishlistReady || catalog.owner !== owner;
   const error = wishlistError || (catalog.owner === owner ? catalog.error : '');
   const products = catalog.owner === owner ? catalog.products.filter((product) => wishlistIds.has(product._id)) : [];
@@ -37,7 +37,8 @@ export default function WishlistPage() {
     <div className="min-h-screen bg-[#FFF8F5] dark:bg-gray-950 py-10 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-6"><Heart size={24} className="fill-rose-500 text-rose-500" /><h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">My Wishlist</h1>{!loading && <span className="text-gray-500">({products.length})</span>}</div>
-        {authReady && !user && <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">Your favorites are saved in this browser. <Link href="/login?redirect=wishlist" className="text-rose-600 font-semibold underline">Sign in</Link> to manage your account wishlist.</p>}
+        {authReady && !user && <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">Your favorites are saved in this browser. <Link href="/login?redirect=wishlist" className="text-rose-600 font-semibold underline">Sign in</Link> to add them to your account wishlist.</p>}
+        {wishlistNotice && <div role="status" className="mb-6 rounded-2xl border border-amber-300 p-4 text-sm"><p>{wishlistNotice}</p><button onClick={() => { reloadWishlist(); setReload(value => value + 1); }} className="mt-3 font-semibold text-rose-700 underline dark:text-rose-400">Retry adding browser favorites</button></div>}
         {error ? <div role="alert" className="p-8 bg-white dark:bg-gray-800 rounded-2xl text-gray-700 dark:text-gray-200"><p>{error}</p><button onClick={() => { reloadWishlist(); setReload((value) => value + 1); }} className="mt-4 text-rose-600 font-semibold">Try again</button></div>
           : loading ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" role="status" aria-label="Loading saved products">{[1, 2, 3, 4].map((id) => <div key={id} className="h-72 bg-white dark:bg-gray-800 rounded-3xl animate-pulse" />)}</div>
             : products.length ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">{products.map((product) => <ProductCard key={product._id} product={product} />)}</div>

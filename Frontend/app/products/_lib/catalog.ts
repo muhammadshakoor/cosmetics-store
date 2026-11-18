@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { supabase, isSupabaseAvailable } from '@/lib/supabase';
 import { filterLocalProducts, getLocalProductById } from '@/lib/localProducts';
 import type { Product } from '@/types/api';
+import { readAllRows } from '@/lib/pagination';
 
 const productColumns = 'id,name,image,brand,category,description,price,countInStock,rating,numReviews,createdAt,updatedAt';
 
@@ -14,8 +15,10 @@ function toProduct(record: { id: string } & Omit<Product, '_id'>): Product {
 
 export const getCatalog = cache(async (): Promise<Product[]> => {
   if (await isSupabaseAvailable()) {
-    const { data, error } = await supabase.from('Product').select(productColumns).order('createdAt', { ascending: false });
-    if (!error && data) return data.map(toProduct);
+    try {
+      const data = await readAllRows((from, to) => supabase.from('Product').select(productColumns, { count: 'exact' }).order('createdAt', { ascending: false }).order('id', { ascending: false }).range(from, to));
+      return data.map(toProduct);
+    } catch { /* The production error or development fallback below remains explicit. */ }
   }
   if (process.env.NODE_ENV === 'production') throw new Error('The product catalog is temporarily unavailable.');
   return filterLocalProducts({}).map(toProduct);

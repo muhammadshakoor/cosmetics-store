@@ -5,7 +5,7 @@ import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, Bar
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
 import SkinQuizModal from '@/components/SkinQuizModal';
@@ -47,43 +47,44 @@ function UserAvatar({ name, picture, size = 'sm' }: { name: string; picture?: st
   }
 
   return (
-    <div className={`${sz} bg-linear-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm select-none leading-none`}>
+    <span className={`${sz} bg-linear-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm select-none leading-none`}>
       {initials}
-    </div>
+    </span>
   );
 }
 
+const subscribeHydration = () => () => {};
+const clientHydrationSnapshot = () => true;
+const serverHydrationSnapshot = () => false;
+
 export default function Navbar() {
+  const pathname = usePathname();
+  return <NavbarContent key={pathname} pathname={pathname} />;
+}
+
+function NavbarContent({ pathname }: { pathname: string }) {
   const { itemCount } = useCart();
   const { user, logout } = useAuth();
   const { count: wishlistCount } = useWishlist();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeHydration, clientHydrationSnapshot, serverHydrationSnapshot);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<ProductType[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchResult, setSearchResult] = useState<{ query: string; products: ProductType[] } | null>(null);
+  const searchKey = searchQuery.trim();
+  const suggestions = searchKey.length >= 2 && searchResult?.query === searchKey ? searchResult.products : [];
+  const isSearching = searchKey.length >= 2 && searchResult?.query !== searchKey;
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
   const router = useRouter();
-  const pathname = usePathname();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const categoryMenuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMobileOpen(false);
-    setUserMenuOpen(false);
-    setCategoryMenuOpen(false);
-    setSearchOpen(false);
-    setShowSuggestions(false);
-  }, [pathname]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -92,31 +93,24 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim().length < 2) {
-      setSuggestions([]);
-      setIsSearching(false);
-      setShowSuggestions(false);
-      return;
-    }
-
+    if (searchKey.length < 2) return;
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
-      setIsSearching(true);
       try {
-        const res = await fetch(`${API_URL}/products?keyword=${encodeURIComponent(searchQuery.trim())}&limit=5`);
-        if (res.ok) {
-          const data = await res.json();
-          setSuggestions(Array.isArray(data) ? data : []);
+        const res = await fetch(`${API_URL}/products?keyword=${encodeURIComponent(searchKey)}&limit=5`, { signal: controller.signal });
+        if (!res.ok) throw new Error('Search unavailable');
+        const data = await res.json();
+        if (!controller.signal.aborted) {
+          setSearchResult({ query: searchKey, products: Array.isArray(data) ? data : [] });
           setShowSuggestions(true);
         }
       } catch {
-        setSuggestions([]);
-      } finally {
-        setIsSearching(false);
+        if (!controller.signal.aborted) setSearchResult({ query: searchKey, products: [] });
       }
     }, 200);
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [searchKey]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -181,17 +175,17 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+          <Link href="/" aria-label="Lumina home" className="flex items-center gap-2.5 group shrink-0">
             <div className="w-9 h-9 rounded-full bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-md group-hover:shadow-rose-200 transition-shadow">
               <span className="text-white text-sm font-bold">L</span>
             </div>
-            <span className="text-xl font-bold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent leading-tight">
+            <span className="hidden sm:inline text-xl font-bold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent leading-tight">
               Lumina
             </span>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-7">
+          <nav className="hidden lg:flex items-center gap-7" aria-label="Main navigation">
             <Link href="/" className={navLinkCls(isHome)}>
               Home
             </Link>
@@ -208,6 +202,7 @@ export default function Navbar() {
                 onClick={() => setCategoryMenuOpen(!categoryMenuOpen)}
                 className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-rose-600 dark:hover:text-rose-400 transition-colors py-2 cursor-pointer"
                 aria-expanded={categoryMenuOpen}
+                aria-controls="ritual-menu"
               >
                 <span>Rituals</span>
                 <ChevronDown
@@ -217,7 +212,7 @@ export default function Navbar() {
               </button>
 
               {categoryMenuOpen && (
-                <div className="absolute top-full left-0 w-72 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-2.5 z-50">
+                <div id="ritual-menu" className="absolute top-full left-0 w-72 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-2.5 z-50">
                   <p className="px-2.5 pt-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Shop by Ritual</p>
                   <div className="space-y-1">
                     <Link
@@ -300,10 +295,13 @@ export default function Navbar() {
             </Link>
 
             <button
+              type="button"
               onClick={() => setQuizOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-linear-to-r from-rose-500 to-pink-600 text-white text-xs font-bold rounded-full shadow-sm hover:opacity-95 hover:shadow-md transition-all cursor-pointer"
+              className="group inline-flex h-11 items-center justify-center rounded-full cursor-pointer"
             >
-              <Sparkles size={13} className="text-amber-300 animate-pulse" /> Skin Quiz
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#C2185B] px-3.5 text-xs font-bold leading-none text-white shadow-sm transition-colors group-hover:bg-[#A31555]">
+                <Sparkles aria-hidden="true" size={13} className="text-amber-300" /> Skin Quiz
+              </span>
             </button>
           </nav>
 
@@ -319,6 +317,8 @@ export default function Navbar() {
               }`}
               title="Search store"
               aria-label="Search store"
+              aria-expanded={searchOpen}
+              aria-controls="store-search"
             >
               {searchOpen ? <X size={20} /> : <Search size={20} />}
             </button>
@@ -326,20 +326,20 @@ export default function Navbar() {
             <ThemeToggle />
 
             {/* Wishlist */}
-            <Link href="/wishlist" className="relative p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
+            <Link href="/wishlist" aria-label={`View wishlist (${wishlistCount} ${wishlistCount === 1 ? 'product' : 'products'})`} className="relative p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
               <Heart size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
               {mounted && wishlistCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
+                <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-700 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
                   {wishlistCount > 9 ? '9+' : wishlistCount}
                 </span>
               )}
             </Link>
 
             {/* Cart */}
-            <Link href="/cart" className="relative p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
+            <Link href="/cart" aria-label={`View cart (${itemCount} ${itemCount === 1 ? 'item' : 'items'})`} className="relative p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
               <ShoppingBag size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
               {itemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
+                <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-700 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
                   {itemCount > 9 ? '9+' : itemCount}
                 </span>
               )}
@@ -351,14 +351,20 @@ export default function Navbar() {
             ) : user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
+                  type="button"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-1.5 sm:pr-3 rounded-full bg-rose-50 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
+                  aria-label={`Account menu for ${user.name}`}
+                  aria-expanded={userMenuOpen}
+                  aria-controls="account-menu"
+                  className="group flex h-11 min-w-11 items-center justify-center rounded-full cursor-pointer"
                 >
-                  <UserAvatar name={user.name} picture={user.picture} />
-                  <span className="text-sm font-semibold text-rose-700 dark:text-rose-300 hidden sm:block max-w-20 truncate">{user.name.split(' ')[0]}</span>
+                  <span aria-hidden="true" className="flex h-9 items-center gap-2 rounded-full bg-rose-50 px-1 transition-colors group-hover:bg-rose-100 dark:bg-rose-900/30 dark:group-hover:bg-rose-900/50 sm:pr-3">
+                    <UserAvatar name={user.name} picture={user.picture} />
+                    <span className="hidden max-w-20 truncate text-sm font-semibold text-rose-700 dark:text-rose-300 sm:block">{user.name.split(' ')[0]}</span>
+                  </span>
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 z-50">
+                  <div id="account-menu" className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 z-50">
                     <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                       <UserAvatar name={user.name} picture={user.picture} size="md" />
                       <div className="min-w-0">
@@ -418,18 +424,23 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium rounded-full transition-colors shadow-sm"
+                aria-label="Sign in to your account"
+                className="group inline-flex h-11 min-w-11 items-center justify-center rounded-full"
               >
-                <User size={14} />
-                <span className="hidden sm:block">Sign in</span>
+                <span className="inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-full bg-[#C2185B] px-3 text-sm font-medium leading-none text-white shadow-sm transition-colors group-hover:bg-[#A31555]">
+                  <User aria-hidden="true" size={14} />
+                  <span className="hidden sm:block">Sign in</span>
+                </span>
               </Link>
             )}
 
             {/* Hamburger */}
             <button
-              className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
             >
               {mobileOpen ? <X size={20} className="text-gray-700 dark:text-gray-200" /> : <Menu size={20} className="text-gray-700 dark:text-gray-200" />}
             </button>
@@ -438,13 +449,14 @@ export default function Navbar() {
 
         {/* Floating/Collapsible Search Overlay (Only visible when user clicks search icon) */}
         {searchOpen && (
-          <div className="border-t border-gray-100 dark:border-gray-700 py-3 relative" ref={searchContainerRef}>
-            <form onSubmit={handleSearch} className="relative">
+          <div id="store-search" className="border-t border-gray-100 dark:border-gray-700 py-3 relative" ref={searchContainerRef}>
+            <form onSubmit={handleSearch} role="search" className="relative">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 type="text"
                 autoFocus
                 placeholder="Search organic skincare, handmade soaps, body care..."
+                aria-label="Search store products"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
@@ -454,7 +466,7 @@ export default function Navbar() {
                 <button
                   type="submit"
                   aria-label="Search"
-                  className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                  className="min-h-11 min-w-11 p-1.5 bg-[#C2185B] hover:bg-[#A31555] text-white rounded-xl transition-colors flex items-center justify-center cursor-pointer"
                 >
                   <ArrowRight size={14} />
                 </button>
@@ -494,7 +506,7 @@ export default function Navbar() {
                           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
                           <p className="text-xs text-gray-400 dark:text-gray-500 capitalize">{item.category} · {item.brand}</p>
                         </div>
-                        <span className="text-xs font-bold text-[#C2185B]">Rs. {Math.round(item.price).toLocaleString()}</span>
+                        <span className="text-xs font-bold text-brand">Rs. {Math.round(item.price).toLocaleString()}</span>
                       </Link>
                     ))}
                     <button
@@ -516,11 +528,13 @@ export default function Navbar() {
 
         {/* Mobile Nav Drawer */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-gray-100 dark:border-gray-700 py-3 space-y-1 pb-4">
+          <nav id="mobile-navigation" aria-label="Mobile navigation"
+            onClick={(event) => { if (event.target instanceof Element && event.target.closest('a[href]')) setMobileOpen(false); }}
+            className={`lg:hidden overflow-y-auto overscroll-contain border-t border-gray-100 dark:border-gray-700 py-3 space-y-1 pb-4 ${searchOpen ? 'max-h-[calc(100dvh-8rem)]' : 'max-h-[calc(100dvh-4rem)]'}`}>
             <Link href="/" className="block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Home</Link>
             <Link href="/products" className="block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Shop All</Link>
             
-            <div className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-rose-500 dark:text-rose-400">Rituals</div>
+            <div className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand">Rituals</div>
             <Link href="/products?category=skincare" className="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">🌿 Skincare</Link>
             <Link href="/products?category=soaps" className="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">🧼 Handmade Soaps</Link>
             <Link href="/products?category=bodycare" className="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">🧴 Body Care</Link>
@@ -529,7 +543,7 @@ export default function Navbar() {
 
             <button
               onClick={() => { setMobileOpen(false); setQuizOpen(true); }}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 mt-2 bg-linear-to-r from-rose-500 to-pink-600 text-white text-xs font-bold rounded-2xl shadow-sm"
+              className="w-full min-h-11 flex items-center justify-center gap-1.5 px-3 py-2.5 mt-2 bg-[#C2185B] hover:bg-[#A31555] text-white text-xs font-bold rounded-2xl shadow-sm"
             >
               <Sparkles size={12} className="text-amber-300 animate-pulse" /> Skin Quiz
             </button>
@@ -564,7 +578,7 @@ export default function Navbar() {
                 </button>
               </>
             )}
-          </div>
+          </nav>
         )}
       </div>
 

@@ -47,7 +47,7 @@ function rankProducts(products: Product[], answers: Record<number, string>) {
 export default function SkinQuizModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const titleId = useId();
   const questionId = useId();
-  const { addToCart, cartItems } = useCart();
+  const { addToCart, cartItems, cartReady } = useCart();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -78,10 +78,12 @@ export default function SkinQuizModal({ isOpen, onClose }: { isOpen: boolean; on
 
   function addRecommendations() {
     if (user?.isAdmin) { toast.error('Use a customer account to shop.'); return; }
+    if (!cartReady) { toast.error('Your cart is still loading. Please try again.'); return; }
     const available = recommendations.filter(({ product }) => (cartItems.find((item) => item.product === product._id)?.qty || 0) < product.countInStock);
     if (available.length === 0) { toast.error('These products are already at their stock limit in your cart.'); return; }
-    available.forEach(({ product }) => addToCart({ product: product._id, name: product.name, image: product.image, price: product.price, qty: 1, countInStock: product.countInStock }));
-    toast.success(`${available.length} product${available.length === 1 ? '' : 's'} added at current catalog prices`);
+    const addedCount = available.reduce((count, { product }) => count + addToCart({ product: product._id, name: product.name, image: product.image, price: product.price, qty: 1, countInStock: product.countInStock }).addedQty, 0);
+    if (!addedCount) { toast.error('These products are already at their stock limit in your cart.'); return; }
+    toast.success(`${addedCount} product${addedCount === 1 ? '' : 's'} added at current catalog prices`);
     close();
   }
 

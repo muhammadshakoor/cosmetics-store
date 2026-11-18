@@ -7,7 +7,7 @@ import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { 
   User, Package, ArrowRight, Truck,
-  Sparkles, Heart, ShieldCheck,
+  Heart, ShieldCheck,
   MessageSquareWarning, Clock, HelpCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -19,8 +19,12 @@ import type { Order, OrderStatus } from '@/types/api';
 export default function ProfilePage() {
   const { user, authReady, logout } = useAuth();
   const router = useRouter();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [ordersResult, setOrdersResult] = useState<{ key: string; orders: Order[]; error: string } | null>(null);
+  const [retry, setRetry] = useState(0);
+  const requestKey = JSON.stringify([user?._id, user?.token, retry]);
+  const loading = ordersResult?.key !== requestKey;
+  const orders = ordersResult?.key === requestKey ? ordersResult.orders : [];
+  const loadError = ordersResult?.key === requestKey ? ordersResult.error : '';
   const [signOutOpen, setSignOutOpen] = useState(false);
   const signingOut = useRef(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -32,7 +36,7 @@ export default function ProfilePage() {
     try {
       await apiFetch(`/orders/${orderId}/cancel`, { method: 'PUT', body: JSON.stringify({ reason: 'Cancelled by customer' }) }, user.token);
       toast.success('Order cancelled successfully');
-      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: 'cancelled' as OrderStatus } : o));
+      setOrdersResult(prev => prev?.key === requestKey ? { ...prev, orders: prev.orders.map(o => o._id === orderId ? { ...o, status: 'cancelled' as OrderStatus } : o) } : prev);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to cancel order');
     } finally {
@@ -43,15 +47,20 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!authReady) return;
     if (!user) { if (!signingOut.current) router.replace('/login?redirect=profile'); return; }
-    apiFetch<Order[]>('/orders/myorders', {}, user.token)
-      .then(data => setOrders(Array.isArray(data) ? data : [])).catch(() => setOrders([]))
-      .finally(() => setLoading(false));
-  }, [user, authReady, router]);
+    const controller = new AbortController();
+    apiFetch<Order[]>('/orders/myorders', { signal: controller.signal, cache: 'no-store' }, user.token)
+      .then(data => {
+        if (!Array.isArray(data)) throw new Error('Your order history could not be loaded.');
+        if (!controller.signal.aborted) setOrdersResult({ key: requestKey, orders: data, error: '' });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setOrdersResult({ key: requestKey, orders: [], error: 'Your order history could not be loaded. Retry before placing another order if your last checkout needs confirmation.' });
+      });
+    return () => controller.abort();
+  }, [user, authReady, router, requestKey]);
 
   if (!user) return null;
 
-  const validOrders = orders.filter(o => o.status !== 'cancelled');
-  const beautyPoints = validOrders.reduce((sum, o) => sum + Math.floor(o.totalPrice / 100), 0);
   const activeOrdersCount = orders.filter(o => ['placed', 'confirmed', 'picked_up', 'on_the_way'].includes(o.status)).length;
 
   return (
@@ -59,14 +68,14 @@ export default function ProfilePage() {
       <div className="max-w-7xl mx-auto">
         
         {/* Welcome Header Banner */}
-        <div className="bg-linear-to-r from-rose-500 via-pink-500 to-rose-600 rounded-3xl p-6 sm:p-8 text-white shadow-lg mb-8 relative overflow-hidden">
+        <div className="bg-linear-to-r from-[#C2185B] via-[#A31555] to-[#6B123D] rounded-3xl p-6 sm:p-8 text-white shadow-lg mb-8 relative overflow-hidden">
           <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none" />
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="px-3 py-0.5 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur-xs flex items-center gap-1.5">
-                  <Sparkles size={12} className="text-amber-200" /> Lumina Beauty Club
+                <span className="px-3 py-0.5 rounded-full bg-white/10 text-white text-xs font-semibold backdrop-blur-xs flex items-center gap-1.5">
+                  <User size={12} /> Your Lumina Account
                 </span>
                 {user.isAdmin && (
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-gray-950 text-xs font-bold">
@@ -77,24 +86,20 @@ export default function ProfilePage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Welcome back, {user.name}!
               </h1>
-              <p className="text-white/80 text-sm mt-1 max-w-xl">
-                Manage your account orders, track packages, and redeem your Lumina beauty rewards.
+              <p className="text-white text-sm mt-1 max-w-xl">
+                Manage your account orders and track your packages.
               </p>
             </div>
 
             {/* Quick Metrics */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 shrink-0 bg-white/10 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-white/20">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 shrink-0 bg-white/10 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-white/20">
               <div className="text-center px-2">
-                <p className="text-xl sm:text-2xl font-black">{orders.length}</p>
-                <p className="text-[11px] font-medium text-white/80 uppercase tracking-wider mt-0.5">Orders</p>
-              </div>
-              <div className="text-center px-2 border-x border-white/20">
-                <p className="text-xl sm:text-2xl font-black text-amber-200">{beautyPoints}</p>
-                <p className="text-[11px] font-medium text-white/80 uppercase tracking-wider mt-0.5">Points</p>
+                <p className="text-xl sm:text-2xl font-black">{loading || loadError ? '—' : orders.length}</p>
+                <p className="text-[11px] font-medium text-white uppercase tracking-wider mt-0.5">Orders</p>
               </div>
               <div className="text-center px-2">
-                <p className="text-xl sm:text-2xl font-black">{activeOrdersCount}</p>
-                <p className="text-[11px] font-medium text-white/80 uppercase tracking-wider mt-0.5">Active</p>
+                <p className="text-xl sm:text-2xl font-black">{loading || loadError ? '—' : activeOrdersCount}</p>
+                <p className="text-[11px] font-medium text-white uppercase tracking-wider mt-0.5">Active</p>
               </div>
             </div>
           </div>
@@ -103,7 +108,7 @@ export default function ProfilePage() {
         {/* Main Content Grid: Balanced 12-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: Profile Card, Rewards & Navigation (4 columns) */}
+          {/* Left Column: Profile Card & Navigation (4 columns) */}
           <div className="lg:col-span-4 space-y-6">
             
             {/* User Profile Card */}
@@ -116,29 +121,10 @@ export default function ProfilePage() {
               
               <div className="text-center mb-6">
                 <h2 className="font-extrabold text-gray-900 dark:text-gray-100 text-xl">{user.name}</h2>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{user.email}</p>
-                <div className="flex items-center justify-center gap-1.5 mt-2.5 text-xs text-green-600 dark:text-green-400 font-medium">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{user.email}</p>
+                <div className="flex items-center justify-center gap-1.5 mt-2.5 text-xs text-green-700 dark:text-green-300 font-medium">
                   <ShieldCheck size={14} /> Verified Customer Account
                 </div>
-              </div>
-
-              {/* Lumina Beauty Club Card */}
-              <div className="p-4 bg-linear-to-br from-amber-50/80 to-rose-50/80 dark:from-gray-700/60 dark:to-gray-700/40 border border-amber-200/70 dark:border-gray-600 rounded-2xl mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 flex items-center gap-1.5">
-                    <Sparkles size={13} /> Reward Club
-                  </p>
-                  <span className="text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-300 font-bold px-2.5 py-0.5 rounded-full">
-                    Rs. {beautyPoints} Value
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-3xl font-black text-gray-900 dark:text-gray-100">{beautyPoints}</span>
-                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Available Points</span>
-                </div>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
-                  Earn 1 point for every PKR 100 spent. Redeem points on future checkouts!
-                </p>
               </div>
 
               {/* Navigation Links */}
@@ -210,11 +196,11 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Order History</h2>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Track shipments and view past receipts</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">Track shipments and view past receipts</p>
                 </div>
               </div>
               <span className="px-3.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-700 dark:text-gray-200">
-                {orders.length} Total {orders.length === 1 ? 'Order' : 'Orders'}
+                {loading || loadError ? 'History unavailable' : `${orders.length} Total ${orders.length === 1 ? 'Order' : 'Orders'}`}
               </span>
             </div>
 
@@ -224,6 +210,12 @@ export default function ProfilePage() {
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl p-6 h-36 border border-gray-100 dark:border-gray-700 animate-pulse" />
                 ))}
+              </div>
+            ) : loadError ? (
+              <div role="alert" className="bg-white dark:bg-gray-800 rounded-3xl border border-red-200 dark:border-red-900 p-8 text-center">
+                <h3 className="text-lg font-bold mb-3">Order history is temporarily unavailable</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-5">{loadError}</p>
+                <button onClick={() => setRetry(value => value + 1)} className="rounded-xl bg-rose-700 px-5 py-3 font-semibold text-white">Retry loading orders</button>
               </div>
             ) : orders.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-12 text-center">
@@ -259,7 +251,7 @@ export default function ProfilePage() {
                             </span>
                             <OrderStatusBadge status={statusKey} />
                           </div>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1.5">
+                          <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 flex items-center gap-1.5">
                             <Clock size={12} />
                             Placed on {new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </p>
@@ -268,7 +260,7 @@ export default function ProfilePage() {
                           <p className="text-base sm:text-lg font-black text-gray-900 dark:text-gray-100">
                             Rs. {Math.round(order.totalPrice).toLocaleString()}
                           </p>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                          <p className="text-[11px] text-gray-600 dark:text-gray-300">
                             {order.paymentMethod || 'Cash on Delivery'}
                           </p>
                         </div>
@@ -296,7 +288,7 @@ export default function ProfilePage() {
                             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
                               {order.orderItems.map(i => i.name).join(', ')}
                             </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
                               {order.orderItems.reduce((acc, it) => acc + (it.qty || 1), 0)} total units
                             </p>
                           </div>

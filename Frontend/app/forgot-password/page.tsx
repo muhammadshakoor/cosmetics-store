@@ -40,12 +40,12 @@ function ForgotPasswordForm() {
               <div className="w-16 h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
                 <Mail size={28} className="text-green-500" />
               </div>
-              <h2 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Check Your Email</h2>
+              <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Check Your Email</h1>
               <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
-                If <span className="font-semibold text-gray-700 dark:text-gray-200">{email}</span> has a Lumina account, you will receive a password reset link.
+                If <span className="font-semibold text-gray-700 dark:text-gray-200 break-all">{email}</span> has a Lumina account, you will receive a password reset link.
                 Check your inbox and spam folder. If it does not arrive, try again later or contact support.
               </p>
-              <Link href="/login" className="inline-flex items-center gap-2 text-sm text-[#C2185B] font-semibold hover:underline">
+              <Link href="/login" className="inline-flex items-center gap-2 text-sm text-brand font-semibold hover:underline">
                 <ArrowLeft size={14} /> Back to Sign In
               </Link>
             </div>
@@ -62,7 +62,7 @@ function ForgotPasswordForm() {
               </div>
 
               {error && (
-                <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm text-center mb-6">
+                <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-2xl text-sm text-center mb-6">
                   {error}
                 </div>
               )}
@@ -74,19 +74,19 @@ function ForgotPasswordForm() {
                     id="reset-email" type="email" autoComplete="email" required value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all"
+                    className="form-input text-sm"
                   />
                 </div>
                 <button
                   type="submit" disabled={status === 'loading'}
-                  className="w-full py-3 bg-[#C2185B] hover:bg-[#A31555] disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed"
+                  className="button-primary w-full shadow-md"
                 >
                   {status === 'loading' ? 'Sending...' : 'Send Reset Link'}
                 </button>
               </form>
 
               <div className="text-center mt-6">
-                <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-rose-600 transition-colors">
+                <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:underline transition-colors">
                   <ArrowLeft size={14} /> Back to Sign In
                 </Link>
               </div>

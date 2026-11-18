@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Trash2, ArrowRight, ShoppingBag, Tag, X, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { persistCheckoutCoupon } from '@/lib/cart';
 
 interface CouponResult {
   valid: boolean; code: string; type: string; value: number;
@@ -23,6 +24,7 @@ export default function CartPage() {
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setCoupon] = useState<{ result: CouponResult; cartKey: string } | null>(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   const cartKey = JSON.stringify(cartItems.map(({ product, qty }) => ({ productId: product, qty })));
   const coupon = appliedCoupon?.cartKey === cartKey ? appliedCoupon.result : null;
@@ -76,39 +78,39 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-[#FFF8F5] dark:bg-gray-950 py-10 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
           <h1 className="text-3xl font-extrabold text-[#1A0A0E] dark:text-gray-100">
             Shopping Cart <span className="text-lg font-medium text-gray-400 dark:text-gray-500">({itemCount} items)</span>
           </h1>
-          <button onClick={clearCart} className="text-sm text-red-400 hover:text-red-600 transition-colors">Clear cart</button>
+          <button onClick={clearCart} className="shrink-0 whitespace-nowrap text-sm text-red-400 hover:text-red-600 transition-colors">Clear cart</button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {cartItems.map((item) => (
-              <div key={item.product} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 flex gap-4 hover:border-rose-100 dark:hover:border-rose-900/40 transition-colors">
-                <Link href={`/products/${item.product}`}>
-                  <ProductImage src={item.image} alt={item.name} width={96} height={96} sizes="96px"
-                    className="w-24 h-24 object-cover rounded-2xl shrink-0 bg-gray-100 dark:bg-gray-700 hover:opacity-90 transition-opacity" />
+              <div key={item.product} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 grid grid-cols-[4rem_minmax(0,1fr)_2rem] gap-3 sm:grid-cols-[6rem_minmax(0,1fr)_2rem] hover:border-rose-100 dark:hover:border-rose-900/40 transition-colors">
+                <Link href={`/products/${item.product}`} className="shrink-0">
+                  <ProductImage src={item.image} alt={item.name} width={96} height={96} sizes="(max-width: 639px) 64px, 96px"
+                    className="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-2xl bg-gray-100 dark:bg-gray-700 hover:opacity-90 transition-opacity" />
                 </Link>
                 <div className="flex-1 min-w-0">
                   <Link href={`/products/${item.product}`}>
-                    <h3 className="font-semibold text-[#1A0A0E] dark:text-gray-100 text-sm leading-tight mb-1 line-clamp-2 hover:text-[#C2185B] transition-colors">{item.name}</h3>
+                    <h3 className="break-words font-semibold text-[#1A0A0E] dark:text-gray-100 text-sm leading-tight mb-1 line-clamp-2 hover:text-[#C2185B] transition-colors">{item.name}</h3>
                   </Link>
-                  <p className="text-[#C2185B] font-bold text-lg mb-3">{formatPrice(item.price)}</p>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden">
-                      <button aria-label={`Decrease quantity of ${item.name}`} disabled={item.qty <= 1} onClick={() => updateQty(item.product, item.qty - 1)} className="px-3 py-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-bold disabled:opacity-40">−</button>
-                      <span className="px-3 py-1.5 text-sm font-semibold border-x border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">{item.qty}</span>
-                      <button aria-label={`Increase quantity of ${item.name}`} disabled={item.qty >= item.countInStock} onClick={() => updateQty(item.product, item.qty + 1)} className="px-3 py-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-bold disabled:opacity-40">+</button>
-                    </div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">= {formatPrice(item.price * item.qty)}</span>
-                  </div>
+                  <p className="text-brand font-bold text-lg mb-3">{formatPrice(item.price)}</p>
                 </div>
                 <button aria-label={`Remove ${item.name} from cart`} onClick={() => removeFromCart(item.product)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors self-start">
                   <Trash2 size={16} />
                 </button>
+                  <div className="col-span-3 flex flex-wrap items-center justify-between gap-3 sm:col-start-2 sm:col-span-2">
+                    <div className="shrink-0 flex items-center border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden">
+                      <button aria-label={`Decrease quantity of ${item.name}`} disabled={item.qty <= 1} onClick={() => updateQty(item.product, item.qty - 1)} className="px-3 py-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-bold disabled:opacity-40">−</button>
+                      <span className="px-3 py-1.5 text-sm font-semibold border-x border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">{item.qty}</span>
+                      <button aria-label={`Increase quantity of ${item.name}`} disabled={item.qty >= item.countInStock} onClick={() => updateQty(item.product, item.qty + 1)} className="px-3 py-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-bold disabled:opacity-40">+</button>
+                    </div>
+                    <span className="min-w-0 break-words text-sm text-gray-500 dark:text-gray-400 font-medium">Line total: {formatPrice(item.price * item.qty)}</span>
+                  </div>
               </div>
             ))}
           </div>
@@ -120,7 +122,7 @@ export default function CartPage() {
 
               {totalPrice < freeShippingThreshold && (
                 <div className="bg-rose-50 dark:bg-rose-900/20 rounded-2xl px-4 py-3">
-                  <p className="text-xs text-[#C2185B] font-semibold mb-2">
+                  <p className="text-xs text-brand font-semibold mb-2">
                     Add Rs. {Math.round(freeShippingThreshold - totalPrice).toLocaleString()} more for FREE shipping! 🚚
                   </p>
                   <div className="h-2 bg-rose-100 dark:bg-rose-900/40 rounded-full overflow-hidden">
@@ -143,7 +145,7 @@ export default function CartPage() {
                       onChange={e => setCouponInput(e.target.value.toUpperCase())}
                       onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
                       placeholder="e.g. LUMINA10"
-                      className="flex-1 px-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300"
+                      className="min-w-0 flex-1 px-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300"
                     />
                     <button
                       onClick={handleApplyCoupon} disabled={checkingCoupon || !couponInput.trim()}
@@ -187,17 +189,19 @@ export default function CartPage() {
 
               <button
                 onClick={() => {
-                  if (coupon) sessionStorage.setItem('coupon', JSON.stringify(coupon));
-                  else sessionStorage.removeItem('coupon');
+                  const error = persistCheckoutCoupon(() => sessionStorage, coupon);
+                  setCheckoutError(error || '');
+                  if (error) return;
                   router.push(user ? '/checkout' : '/login?redirect=checkout');
                 }}
                 className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-bold rounded-2xl shadow-lg hover:-translate-y-0.5 transition-all"
               >
                 Proceed to Checkout <ArrowRight size={16} />
               </button>
+              {checkoutError && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{checkoutError}</p>}
               <p className="text-xs text-gray-500 dark:text-gray-400">Current prices, stock, and any coupon are verified again at checkout.</p>
 
-              <Link href="/products" className="block text-center text-sm text-[#C2185B] hover:underline">
+              <Link href="/products" className="block text-center text-sm text-brand hover:underline">
                 Continue shopping
               </Link>
 

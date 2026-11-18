@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { toClient } from '@/lib/auth';
+import { readAllRows } from '@/lib/pagination';
+import { commerceError } from '@/lib/commerce';
 
 export async function GET(
   _req: NextRequest,
@@ -8,15 +10,16 @@ export async function GET(
 ) {
   try {
     const { productId } = await params;
-    const { data, error } = await supabase
+    const data = await readAllRows((from, to) => supabase
       .from('Review')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('productId', productId)
-      .order('createdAt', { ascending: false });
+      .order('createdAt', { ascending: false })
+      .order('id', { ascending: false }).range(from, to));
 
-    if (error) throw new Error(error.message);
     return NextResponse.json((data || []).map(toClient));
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : 'Server error' }, { status: 500 });
+    const result = commerceError(e);
+    return NextResponse.json({ message: result.message }, { status: result.status });
   }
 }

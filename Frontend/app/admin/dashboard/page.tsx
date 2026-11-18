@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { TrendingUp, ShoppingBag, Package, ArrowLeft, BarChart2, Tag, Clock, ShieldAlert } from 'lucide-react';
 
@@ -39,22 +40,23 @@ const CAT_META: Record<string, { label: string; color: string }> = {
 export default function AdminDashboard() {
   const { user, authReady } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<{ key: string; stats: Stats | null; error: string } | null>(null);
+  const [retry, setRetry] = useState(0);
+  const requestKey = JSON.stringify([user?._id, user?.token, retry]);
+  const stats = result?.key === requestKey ? result.stats : null;
+  const error = result?.key === requestKey ? result.error : '';
+  const loading = result?.key !== requestKey;
 
   useEffect(() => {
     if (!authReady) return;
     if (!user) { router.replace('/login'); return; }
     if (!user.isAdmin) return;
-    fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${user.token}` } })
-      .then(async (r) => {
-        if (!r.ok) throw new Error('Failed to fetch stats');
-        return r.json();
-      })
-      .then(setStats)
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
-  }, [user, router, authReady]);
+    const controller = new AbortController();
+    apiFetch<Stats>('/admin/stats', { signal: controller.signal, cache: 'no-store' }, user.token)
+      .then(stats => { if (!controller.signal.aborted) setResult({ key: requestKey, stats, error: '' }); })
+      .catch(cause => { if (!controller.signal.aborted) setResult({ key: requestKey, stats: null, error: cause instanceof Error ? cause.message : 'Please try again shortly.' }); });
+    return () => controller.abort();
+  }, [user, router, authReady, requestKey]);
 
   if (!user) return null;
 
@@ -92,7 +94,7 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto">
 
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-colors">
+          <Link href="/admin" aria-label="Back to admin" className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-colors">
             <ArrowLeft size={18} className="text-gray-500 dark:text-gray-400" />
           </Link>
           <div>
@@ -247,7 +249,7 @@ export default function AdminDashboard() {
                         <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{p.name}</p>
                         <p className="text-[10px] text-gray-400 dark:text-gray-500">{p.sold} units sold</p>
                       </div>
-                      <span className="text-xs font-bold text-[#C2185B] shrink-0">
+                      <span className="text-xs font-bold text-brand shrink-0">
                         Rs. {Math.round(p.revenue / 1000)}K
                       </span>
                     </div>
@@ -281,7 +283,11 @@ export default function AdminDashboard() {
 
           </div>
         ) : (
-          <div className="text-center py-24 text-gray-400 dark:text-gray-500">Failed to load stats</div>
+          <div role="alert" className="rounded-2xl border border-rose-200 bg-white p-8 text-center dark:border-rose-900/40 dark:bg-gray-800">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Sales statistics could not be loaded.</h2>
+            <p className="mx-auto mt-2 mb-5 max-w-xl text-sm text-gray-600 dark:text-gray-300">{error || 'Please try again shortly.'}</p>
+            <button type="button" onClick={() => setRetry(value => value + 1)} className="button-secondary">Try again</button>
+          </div>
         )}
       </div>
     </div>

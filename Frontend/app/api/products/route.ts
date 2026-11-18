@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseAvailable } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
 import { filterLocalProducts, addLocalProduct } from '@/lib/localProducts';
-import { ProductInputSchema } from '@/types/api';
+import { ManagedProductInputSchema } from '@/lib/productInput';
+import { readAllRows } from '@/lib/pagination';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -12,13 +13,12 @@ export async function GET(request: NextRequest) {
 
   if (await isSupabaseAvailable()) {
     try {
-      let query = supabase.from('Product').select('*').order('createdAt', { ascending: false });
-      if (keyword) query = query.ilike('name', `%${keyword}%`);
-      if (category) query = query.ilike('category', category);
-      if (limit > 0) query = query.limit(limit);
-
-      const { data, error } = await query;
-      if (error) throw new Error(error.message);
+      const data = await readAllRows((from, to) => {
+        let query = supabase.from('Product').select('*', { count: 'exact' }).order('createdAt', { ascending: false }).order('id', { ascending: false });
+        if (keyword) query = query.ilike('name', `%${keyword}%`);
+        if (category) query = query.ilike('category', category);
+        return query.range(from, to);
+      }, limit || Number.POSITIVE_INFINITY);
 
       // Database returned results
       if (data) {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (!user?.isAdmin) return NextResponse.json({ message: 'Not authorized as admin' }, { status: 401 });
 
     const rawBody = await request.json();
-    const parseResult = ProductInputSchema.safeParse(rawBody);
+    const parseResult = ManagedProductInputSchema.safeParse(rawBody);
 
     if (!parseResult.success) {
       const firstError = parseResult.error.issues[0]?.message || 'Invalid product data';

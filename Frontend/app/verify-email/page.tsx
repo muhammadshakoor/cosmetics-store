@@ -1,192 +1,69 @@
 'use client';
 
-import { useEffect, useRef, useState, Suspense } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/context/AuthContext';
 import Link from 'next/link';
-import { CheckCircle, XCircle, Loader2, Mail, RefreshCw } from 'lucide-react';
-
-type Status = 'loading' | 'success' | 'already' | 'expired' | 'error' | 'no-token';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import ResendVerificationButton from '@/components/ResendVerificationButton';
+import { verifyEmailToken, type VerificationResult } from '@/lib/accountUi';
 
 function VerifyEmailContent() {
-  const searchParams = useSearchParams();
+  const token = useSearchParams().get('token') || '';
   const router = useRouter();
   const { login } = useAuth();
-
-  const [status, setStatus] = useState<Status>('loading');
-  const [message, setMessage] = useState('');
-  const [expiredEmail, setExpiredEmail] = useState('');
-  const [resending, setResending] = useState(false);
-  const [resent, setResent] = useState(false);
-
-  const token = searchParams.get('token');
-  const started = useRef(false);
+  const [saved, setSaved] = useState<{ token: string; result: VerificationResult } | null>(null);
+  const [retry, setRetry] = useState(0);
+  const requests = useRef(new Map<string, Promise<VerificationResult>>());
+  const result = saved?.token === token ? saved.result : null;
+  const status = !token ? 'no-token' : result?.status || 'loading';
+  const finishSignIn = useEffectEvent((profile: User) => login(profile));
 
   useEffect(() => {
-    // Tokens are single-use, and `login` changes identity after signing in — only verify once
-    if (started.current) return;
-    started.current = true;
-    if (!token) {
-      setStatus('no-token');
-      return;
+    if (!token) return;
+    for (const key of requests.current.keys()) if (key !== token) requests.current.delete(key);
+    let cancelled = false;
+    let redirect: ReturnType<typeof setTimeout> | undefined;
+    let request = requests.current.get(token);
+    if (!request) {
+      request = verifyEmailToken(token);
+      requests.current.set(token, request);
     }
-    fetch(`/api/users/verify?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.verified) {
-          setStatus('success');
-          // Auto-login the user after verification
-          login(data as User);
-          setTimeout(() => router.push('/'), 3000);
-        } else if (data.alreadyVerified) {
-          setStatus('already');
-        } else if (data.expired) {
-          setStatus('expired');
-          setExpiredEmail(data.email || '');
-          setMessage(data.message);
-        } else {
-          setStatus('error');
-          setMessage(data.message || 'Invalid verification link');
-        }
-      })
-      .catch(() => {
-        setStatus('error');
-        setMessage('Something went wrong. Please try again.');
-      });
-  }, [token, login, router]);
+    request.then(next => {
+      if (cancelled) return;
+      if (next.status === 'error' && next.retryable) requests.current.delete(token);
+      setSaved({ token, result: next });
+      if (next.status === 'success') {
+        finishSignIn(next.user);
+        redirect = setTimeout(() => router.replace('/'), 3000);
+      }
+    }).catch(() => {
+      requests.current.delete(token);
+      if (!cancelled) setSaved({ token, result: { status: 'error', message: 'Verification is temporarily unavailable. Please try again.', retryable: true } });
+    });
+    return () => { cancelled = true; if (redirect) clearTimeout(redirect); };
+  }, [token, router, retry]);
 
-  const handleResend = async () => {
-    if (!expiredEmail) return;
-    setResending(true);
-    try {
-      const res = await fetch('/api/users/resend-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: expiredEmail }),
-      });
-      const data = await res.json();
-      setResent(true);
-      setMessage(data.message);
-    } catch {
-      setMessage('Failed to resend. Please try again.');
-    } finally {
-      setResending(false);
-    }
-  };
-
+  const titles = { loading: 'Verifying your email?', success: 'Email verified!', already: 'Already verified', expired: 'Link expired', error: 'Verification failed', 'no-token': 'Verification link missing' };
   return (
-    <div className="min-h-screen bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-3xl shadow-xl p-8 sm:p-10 border border-gray-100 text-center">
-
-          {/* Logo */}
-          <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center mx-auto mb-6 shadow-md">
-            <span className="text-white font-bold text-xl">L</span>
+    <div className="min-h-screen bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4 py-16">
+      <section className="w-full max-w-md bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 sm:p-10 border border-gray-100 dark:border-gray-700 text-center" aria-labelledby="verification-title">
+        <div className="w-12 h-12 rounded-2xl bg-[#C2185B] flex items-center justify-center mx-auto mb-6 shadow-md" aria-hidden="true"><span className="text-white font-bold text-xl">L</span></div>
+        {status === 'loading' ? <Loader2 size={48} aria-hidden="true" className="text-brand mx-auto mb-4 animate-spin" /> : status === 'success' || status === 'already' ? <CheckCircle size={56} aria-hidden="true" className="text-green-700 dark:text-green-300 mx-auto mb-4" /> : <XCircle size={56} aria-hidden="true" className="text-rose-700 dark:text-rose-300 mx-auto mb-4" />}
+        <h1 id="verification-title" className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mb-3">{titles[status]}</h1>
+        {status === 'loading' ? <p role="status" className="text-gray-600 dark:text-gray-300 text-sm">Please wait while we confirm your email address.</p> : status === 'success' ? <><p role="status" className="text-gray-600 dark:text-gray-300 mb-6">Your email is verified and you are signed in. We will take you to the store shortly.</p><Link href="/" className="button-primary">Go to Home</Link></> : status === 'expired' ? <><p className="text-gray-600 dark:text-gray-300 mb-4">{result?.message}</p>{result && 'email' in result && result.email ? <ResendVerificationButton email={result.email} /> : <Link href="/login" className="button-primary">Request another verification email</Link>}</> : <>
+          <p role={status === 'error' ? 'alert' : undefined} className="text-gray-600 dark:text-gray-300 mb-6">{status === 'no-token' ? 'Open the full verification link from your email, or sign in to request a new one.' : result?.message}</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {result?.status === 'error' && result.retryable && <button type="button" className="button-primary" onClick={() => { setSaved(null); setRetry(value => value + 1); }}>Retry verification</button>}
+            <Link href="/login" className={result?.status === 'error' && result.retryable ? 'button-secondary' : 'button-primary'}>Sign In</Link>
           </div>
-
-          {/* Loading */}
-          {status === 'loading' && (
-            <>
-              <Loader2 size={48} className="text-rose-400 mx-auto mb-4 animate-spin" />
-              <h1 className="text-xl font-bold text-gray-800 mb-2">Verifying your email...</h1>
-              <p className="text-gray-400 text-sm">Please wait a moment.</p>
-            </>
-          )}
-
-          {/* Success */}
-          {status === 'success' && (
-            <>
-              <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
-              <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Email verified!</h1>
-              <p className="text-gray-500 mb-6">
-                Your email has been verified successfully. You are now logged in and will be redirected shortly.
-              </p>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-2xl transition-colors shadow-md"
-              >
-                Go to Home
-              </Link>
-            </>
-          )}
-
-          {/* Already verified */}
-          {status === 'already' && (
-            <>
-              <CheckCircle size={56} className="text-blue-400 mx-auto mb-4" />
-              <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Already verified</h1>
-              <p className="text-gray-500 mb-6">Your email address is already verified. You can log in normally.</p>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-2xl transition-colors shadow-md"
-              >
-                Sign In
-              </Link>
-            </>
-          )}
-
-          {/* Expired */}
-          {status === 'expired' && (
-            <>
-              <XCircle size={56} className="text-amber-400 mx-auto mb-4" />
-              <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Link expired</h1>
-              <p className="text-gray-500 mb-6">{message}</p>
-              {!resent ? (
-                <button
-                  onClick={handleResend}
-                  disabled={resending}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-colors shadow-md"
-                >
-                  <RefreshCw size={16} className={resending ? 'animate-spin' : ''} />
-                  {resending ? 'Sending...' : 'Resend Verification Email'}
-                </button>
-              ) : (
-                <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-2xl text-sm">
-                  <Mail size={16} className="inline mr-2" />
-                  {message}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* No token or error */}
-          {(status === 'error' || status === 'no-token') && (
-            <>
-              <XCircle size={56} className="text-red-400 mx-auto mb-4" />
-              <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
-                {status === 'no-token' ? 'No token provided' : 'Verification failed'}
-              </h1>
-              <p className="text-gray-500 mb-6">
-                {message || 'This verification link is invalid. Please register again or request a new link.'}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link
-                  href="/register"
-                  className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-2xl transition-colors text-sm"
-                >
-                  Create Account
-                </Link>
-                <Link
-                  href="/login"
-                  className="px-5 py-2.5 border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold rounded-2xl transition-colors text-sm"
-                >
-                  Sign In
-                </Link>
-              </div>
-            </>
-          )}
-
-        </div>
-      </div>
+        </>}
+      </section>
     </div>
   );
 }
 
 export default function VerifyEmailPage() {
-  return (
-    <Suspense>
-      <VerifyEmailContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<p role="status" className="p-8 text-center">Loading verification?</p>}><VerifyEmailContent /></Suspense>;
 }

@@ -14,7 +14,7 @@ export default function NotFound() {
           <Link href="/products" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl transition-colors">
             <Search size={16} /> Browse products
           </Link>
-          <Link href="/" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-rose-200 dark:border-rose-900/40 text-[#C2185B] dark:text-rose-400 font-semibold rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+          <Link href="/" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-rose-200 dark:border-rose-900/40 text-brand font-semibold rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
             Home <ArrowRight size={16} />
           </Link>
         </div>

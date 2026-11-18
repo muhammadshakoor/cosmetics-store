@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, CreditCard, MapPin } from 'lucide-react';
@@ -23,22 +23,57 @@ interface Quote {
 }
 interface RecoveryState { userId: string; attempt: CheckoutAttempt | null; error: boolean }
 
+const subscribeHydration = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
+const emptyShipping = (): ShippingAddress => ({ address: '', city: '', postalCode: '', country: 'Pakistan', phone: '' });
+
+function readShippingDraft(): ShippingAddress {
+  try {
+    const data = JSON.parse(sessionStorage.getItem('shippingAddress') || 'null');
+    if (data && typeof data === 'object') return {
+      address: String(data.address || ''), city: String(data.city || ''), postalCode: String(data.postalCode || ''),
+      country: 'Pakistan', phone: String(data.phone || ''),
+    };
+  } catch { /* A shipping draft is optional. */ }
+  return emptyShipping();
+}
+
+function readCouponDraft(): string | null {
+  try {
+    const coupon = JSON.parse(sessionStorage.getItem('coupon') || 'null');
+    return typeof coupon?.code === 'string' ? coupon.code : null;
+  } catch { return null; }
+}
+
+function readRecovery(userId: string): RecoveryState {
+  try { return { userId, attempt: userId ? loadCheckoutAttempt(sessionStorage, userId) : null, error: false }; }
+  catch { return { userId, attempt: null, error: true }; }
+}
+
 export default function CheckoutPage() {
+  const { user, authReady } = useAuth();
+  const hydrated = useSyncExternalStore(subscribeHydration, clientSnapshot, serverSnapshot);
+  if (!hydrated || !authReady) return <div className="flex min-h-[50vh] items-center justify-center" role="status">Preparing checkout…</div>;
+  // Storage-backed initial state is read once after hydration and reset when the
+  // account changes. A saved attempt is never briefly treated as an empty cart.
+  return <CheckoutContent key={user?._id || 'guest'} />;
+}
+
+function CheckoutContent() {
   const router = useRouter();
   const { cartItems, removeFromCart, updateQty, cartReady } = useCart();
   const { user, authReady, logout } = useAuth();
   const userId = user?._id || '';
   const [step, setStep] = useState<Step>('shipping');
   const [loading, setLoading] = useState(false);
-  const [shippingReady, setShippingReady] = useState(false);
-  const [shipping, setShipping] = useState<ShippingAddress>({ address: '', city: '', postalCode: '', country: 'Pakistan', phone: '' });
-  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [shipping, setShipping] = useState<ShippingAddress>(readShippingDraft);
+  const [couponCode, setCouponCode] = useState<string | null>(readCouponDraft);
   const [quoteResult, setQuoteResult] = useState<{ key: string; quote: Quote | null; error: string } | null>(null);
   const [submissionError, setSubmissionError] = useState('');
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [quoteRefresh, setQuoteRefresh] = useState(0);
-  const [recoveryRefresh, setRecoveryRefresh] = useState(0);
-  const [recovery, setRecovery] = useState<RecoveryState | null>(null);
+  const [recovery, setRecovery] = useState<RecoveryState>(() => readRecovery(userId));
   const [confirmedOrderId, setConfirmedOrderId] = useState<string | null>(null);
   const submitting = useRef(false);
   const latestCart = useRef(cartItems);
@@ -52,7 +87,7 @@ export default function CheckoutPage() {
   const recoveryReady = !userId || recovery?.userId === userId;
   const pendingAttempt = recovery?.userId === userId ? recovery.attempt : null;
   const recoveryError = recovery?.userId === userId && recovery.error;
-  const canQuote = Boolean(authReady && cartReady && shippingReady && recoveryReady && user && !user.isAdmin && cartItems.length && !pendingAttempt && !recoveryError && !confirmedOrderId);
+  const canQuote = Boolean(authReady && cartReady && recoveryReady && user && !user.isAdmin && cartItems.length && !pendingAttempt && !recoveryError && !confirmedOrderId);
   const quote = quoteResult?.key === quoteRequestKey ? quoteResult.quote : null;
   const quoteError = quoteResult?.key === quoteRequestKey ? quoteResult.error : '';
   const quoteLoading = canQuote && quoteResult?.key !== quoteRequestKey;
@@ -60,30 +95,8 @@ export default function CheckoutPage() {
   useEffect(() => { latestCart.current = cartItems; }, [cartItems]);
 
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem('shippingAddress');
-      if (saved) {
-        const data = JSON.parse(saved);
-        setShipping({ address: String(data.address || ''), city: String(data.city || ''), postalCode: String(data.postalCode || ''), country: 'Pakistan', phone: String(data.phone || '') });
-      }
-      const coupon = JSON.parse(sessionStorage.getItem('coupon') || 'null');
-      if (typeof coupon?.code === 'string') setCouponCode(coupon.code);
-    } catch { /* ignore damaged address/coupon drafts */ }
-    setShippingReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!authReady || !userId) return;
-    try {
-      const attempt = loadCheckoutAttempt(sessionStorage, userId);
-      setRecovery({ userId, attempt, error: false });
-    } catch { setRecovery({ userId, attempt: null, error: true }); }
-  }, [authReady, userId, recoveryRefresh]);
-
-  useEffect(() => {
-    if (!shippingReady) return;
     try { sessionStorage.setItem('shippingAddress', JSON.stringify(shipping)); } catch { /* a draft is optional; order-attempt storage is checked before POST */ }
-  }, [shipping, shippingReady]);
+  }, [shipping]);
 
   useEffect(() => {
     if (authReady && !user) router.replace('/login?redirect=checkout');
@@ -172,7 +185,7 @@ export default function CheckoutPage() {
     await submitAttempt(attempt);
   }
 
-  if (!authReady || !cartReady || !shippingReady || !user || !recoveryReady) return <div className="flex min-h-[50vh] items-center justify-center" role="status">Preparing checkout…</div>;
+  if (!authReady || !cartReady || !user || !recoveryReady) return <div className="flex min-h-[50vh] items-center justify-center" role="status">Preparing checkout…</div>;
   if (user.isAdmin) return <div className="mx-auto max-w-lg px-4 py-20 text-center"><h1 className="mb-4 text-2xl font-bold">Use a customer account to place an order</h1><Link href="/admin" className="text-rose-600 underline">Return to admin</Link></div>;
   if (confirmedOrderId) return <div role="status" className="px-4 py-20 text-center"><h1 className="mb-4 text-2xl font-bold">Your order is confirmed</h1><Link href={`/order/${confirmedOrderId}`} className="font-semibold text-rose-700 underline dark:text-rose-400">View your order</Link></div>;
 
@@ -184,7 +197,7 @@ export default function CheckoutPage() {
     <Link href="/cart" className="mb-8 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-rose-600 dark:text-gray-400"><ArrowLeft size={14} /> Back to Cart</Link>
     <h1 className="mb-8 text-3xl font-extrabold">Checkout</h1>
     {submissionError && <div ref={errorRef} tabIndex={-1} role="alert" className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800 focus:outline-none dark:bg-red-950 dark:text-red-200"><p>{submissionError}</p>{needsSignIn && <button onClick={() => { logout(); router.push('/login?redirect=checkout'); }} className="mt-3 font-semibold underline">Sign in again to confirm this order</button>}</div>}
-    {recoveryError ? <section className="rounded-3xl border border-amber-300 bg-white p-6 dark:bg-gray-800"><h2 className="mb-3 text-xl font-bold">Check your last checkout</h2><p className="mb-4 text-sm leading-relaxed">Your browser&apos;s saved checkout details could not be read. Check your order history before starting another order.</p><Link href="/profile" className="mr-4 font-semibold text-rose-700 underline dark:text-rose-400">View my orders</Link><button onClick={() => setRecoveryRefresh((value) => value + 1)} className="font-semibold underline">Retry reading saved checkout</button><button onClick={() => { try { clearCheckoutAttempt(sessionStorage, user._id); setRecovery({ userId: user._id, attempt: null, error: false }); } catch { setSubmissionError('Browser storage is unavailable. Allow site storage to continue checkout.'); } }} className="mt-5 block rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold dark:border-gray-600">I checked my orders; start a new checkout</button></section>
+    {recoveryError ? <section className="rounded-3xl border border-amber-300 bg-white p-6 dark:bg-gray-800"><h2 className="mb-3 text-xl font-bold">Check your last checkout</h2><p className="mb-4 text-sm leading-relaxed">Your browser&apos;s saved checkout details could not be read. Check your order history before starting another order.</p><Link href="/profile" className="mr-4 font-semibold text-rose-700 underline dark:text-rose-400">View my orders</Link><button onClick={() => setRecovery(readRecovery(userId))} className="font-semibold underline">Retry reading saved checkout</button><button onClick={() => { try { clearCheckoutAttempt(sessionStorage, user._id); setRecovery({ userId: user._id, attempt: null, error: false }); } catch { setSubmissionError('Browser storage is unavailable. Allow site storage to continue checkout.'); } }} className="mt-5 block rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold dark:border-gray-600">I checked my orders; start a new checkout</button></section>
     : pendingAttempt ? <div ref={recoveryRef} tabIndex={-1} role="region" aria-labelledby="recovery-title" className="rounded-3xl border border-amber-300 bg-white p-6 focus:outline-none dark:bg-gray-800"><h2 id="recovery-title" className="mb-3 text-xl font-bold">{loading ? 'Confirming your order…' : 'Your last checkout needs confirmation'}</h2><p className="mb-5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">Retry with the saved details to confirm the same order. Finish this confirmation before starting another checkout.</p><ul className="mb-4 space-y-2 text-sm">{pendingAttempt.items.map((item) => <li key={item.productId}>{item.name} × {item.qty}</li>)}</ul><p className="mb-2 text-sm">Delivery: {pendingAttempt.payload.shippingAddress.address}, {pendingAttempt.payload.shippingAddress.city}</p><p className="mb-5 font-bold">Total: {formatPrice(pendingAttempt.payload.expectedTotalPrice || 0)} · {COD_PAYMENT_METHOD}</p><button disabled={loading} onClick={() => submitAttempt(pendingAttempt)} className="rounded-xl bg-rose-700 px-5 py-3 font-bold text-white disabled:opacity-60">{loading ? 'Confirming order…' : 'Retry order confirmation'}</button><Link href="/profile" className="ml-4 inline-block py-3 font-semibold text-rose-700 underline dark:text-rose-400">View my orders</Link><p className="mt-4 text-xs text-gray-600 dark:text-gray-400">Saved {new Date(pendingAttempt.createdAt).toLocaleString('en-PK', { timeZone: 'Asia/Karachi' })}. Your current cart and any new prices do not change this saved request.</p></div>
     : !cartItems.length ? <div className="py-12 text-center"><h2 className="mb-3 text-xl font-bold">Your cart is empty</h2><Link href="/products" className="font-semibold text-rose-700 underline dark:text-rose-400">Browse products</Link></div> : <>
       <ol aria-label="Checkout progress" className="mb-8 flex gap-2">{steps.map(({ key, label, icon: Icon }, index) => <li key={key} aria-current={step === key ? 'step' : undefined} className={`flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium sm:px-4 sm:text-sm ${index <= stepIndex ? 'bg-rose-600 text-white' : 'bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}><Icon size={16} aria-hidden="true" />{label}</li>)}</ol>

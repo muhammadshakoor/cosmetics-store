@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { MessageSquareWarning, CheckCircle, ArrowLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
@@ -17,6 +17,12 @@ const CATEGORIES = [
 ];
 
 export default function ComplaintsPage() {
+  const { user, authReady } = useAuth();
+  if (!authReady) return <div role="status" className="px-4 py-20 text-center">Loading your account…</div>;
+  return <ComplaintsForm key={JSON.stringify([user?._id, user?.token, user?.isAdmin])} />;
+}
+
+function ComplaintsForm() {
   const { user } = useAuth();
 
   const [form, setForm] = useState({
@@ -29,13 +35,23 @@ export default function ComplaintsPage() {
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ id: string; emailSent: boolean } | null>(null);
   const [error, setError] = useState('');
+  const submissionController = useRef<AbortController | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const confirmationRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => () => submissionController.current?.abort(), []);
+  useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
+  useEffect(() => { if (submitted) confirmationRef.current?.focus(); }, [submitted]);
 
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
+    if (submissionController.current) return;
+    const controller = new AbortController();
+    submissionController.current = controller;
     setError('');
     setLoading(true);
     try {
@@ -46,18 +62,22 @@ export default function ComplaintsPage() {
         method: 'POST',
         headers,
         body: JSON.stringify(form),
+        signal: controller.signal,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Submission failed');
+      if (controller.signal.aborted) return;
+      setConfirmation({ id: typeof data.id === 'string' ? data.id : '', emailSent: data.emailSent === true });
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
+      if (submissionController.current === controller) submissionController.current = null;
     }
   };
 
-  const inputCls = 'w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent text-sm transition-all';
+  const inputCls = 'form-input';
 
   if (user?.isAdmin) {
     return (
@@ -90,11 +110,13 @@ export default function ComplaintsPage() {
           <div className="w-16 h-16 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mx-auto mb-5">
             <CheckCircle size={32} className="text-green-500" />
           </div>
-          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Complaint Submitted!</h2>
+          <h1 ref={confirmationRef} tabIndex={-1} className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Complaint submitted</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-2">
-            We&apos;ve received your complaint and sent a confirmation to <strong>{form.email}</strong>.
+            Your complaint has been saved for our support team.
           </p>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mb-8">Our team will respond within 24–48 hours.</p>
+          {confirmation?.id && <p className="my-3 break-all text-xs font-medium text-gray-700 dark:text-gray-200">Reference: {confirmation.id}</p>}
+          <p className="mb-6 text-sm text-gray-600 dark:text-gray-300">{confirmation?.emailSent ? <>A confirmation email was sent to <strong>{form.email}</strong>.</> : 'Keep this reference. Email confirmation is currently unavailable; your complaint is still saved.'}</p>
+          {user && <Link href="/complaints/my" className="text-brand mb-5 inline-flex min-h-11 items-center font-semibold underline">View my complaints</Link>}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/"
@@ -103,7 +125,7 @@ export default function ComplaintsPage() {
               Back to Home
             </Link>
             <button
-              onClick={() => { setSubmitted(false); setForm({ name: user?.name || '', email: user?.email || '', orderId: '', category: '', subject: '', message: '' }); }}
+              onClick={() => { setSubmitted(false); setConfirmation(null); setForm({ name: user?.name || '', email: user?.email || '', orderId: '', category: '', subject: '', message: '' }); }}
               className="px-5 py-2.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl transition-colors text-sm"
             >
               Submit Another
@@ -123,19 +145,19 @@ export default function ComplaintsPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           {/* Header */}
-          <div className="bg-linear-to-r from-rose-500 to-pink-600 px-8 py-8">
+          <div className="bg-linear-to-r from-rose-800 to-pink-800 px-6 py-8 sm:px-8">
             <div className="flex items-center gap-3 mb-2">
               <MessageSquareWarning size={26} className="text-white/80" />
               <h1 className="text-2xl font-extrabold text-white">Submit a Complaint</h1>
             </div>
-            <p className="text-white/70 text-sm">
-              We take every complaint seriously. Fill out the form below and we&apos;ll get back to you within 24–48 hours.
+            <p className="text-white text-sm">
+              Tell us what happened so our support team can review your request.
             </p>
           </div>
 
           <div className="p-8">
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl text-sm mb-6">
+              <div ref={errorRef} tabIndex={-1} role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-2xl text-sm mb-6">
                 {error}
               </div>
             )}
@@ -145,7 +167,7 @@ export default function ComplaintsPage() {
                 <div>
                   <label htmlFor="complaints-full-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name *</label>
                   <input id="complaints-full-name"
-                    required type="text"
+                    required type="text" minLength={2} maxLength={100} autoComplete="name"
                     value={form.name}
                     onChange={(e) => set('name', e.target.value)}
                     placeholder="Jane Doe"
@@ -155,7 +177,7 @@ export default function ComplaintsPage() {
                 <div>
                   <label htmlFor="complaints-email-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Address *</label>
                   <input id="complaints-email-address"
-                    required type="email"
+                    required type="email" maxLength={254} autoComplete="email"
                     value={form.email}
                     onChange={(e) => set('email', e.target.value)}
                     placeholder="you@gmail.com"
@@ -186,7 +208,7 @@ export default function ComplaintsPage() {
                     Order ID <span className="text-gray-400 font-normal">(optional)</span>
                   </label>
                   <input id="complaints-order-id"
-                    type="text"
+                    type="text" maxLength={120}
                     value={form.orderId}
                     onChange={(e) => set('orderId', e.target.value)}
                     placeholder="e.g. 3F9A1B2C"
@@ -198,7 +220,7 @@ export default function ComplaintsPage() {
               <div>
                 <label htmlFor="complaints-subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Subject *</label>
                 <input id="complaints-subject"
-                  required type="text"
+                  required type="text" minLength={3} maxLength={160}
                   value={form.subject}
                   onChange={(e) => set('subject', e.target.value)}
                   placeholder="Brief description of your issue"
@@ -211,6 +233,7 @@ export default function ComplaintsPage() {
                 <textarea id="complaints-your-message"
                   required
                   rows={5}
+                  minLength={10} maxLength={5000}
                   value={form.message}
                   onChange={(e) => set('message', e.target.value)}
                   placeholder="Describe your issue in detail. The more information you provide, the faster we can help you."
@@ -220,13 +243,13 @@ export default function ComplaintsPage() {
 
               <button
                 type="submit" disabled={loading}
-                className="w-full py-3.5 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed text-sm"
+              className="button-primary w-full text-sm"
               >
                 {loading ? 'Submitting...' : 'Submit Complaint'}
               </button>
 
-              <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-                You will receive a confirmation email after submission.
+              <p className="text-center text-xs text-gray-600 dark:text-gray-300">
+                Your request is saved before confirmation is shown. Email confirmation depends on availability.
               </p>
             </form>
           </div>

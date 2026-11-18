@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthUser, toClient } from '@/lib/auth';
 import { getLocalProductById, updateLocalProduct, deleteLocalProduct } from '@/lib/localProducts';
-import { ProductInputSchema } from '@/types/api';
+import { UpdateProductInputSchema } from '@/lib/productInput';
 import { deliverRestockAlerts } from '@/lib/restock';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -19,17 +19,22 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(request);
   if (!user?.isAdmin) return NextResponse.json({ message: 'Not authorized as admin' }, { status: 401 });
-  const parsed = ProductInputSchema.safeParse(await request.json().catch(() => null));
+  const parsed = UpdateProductInputSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0].message }, { status: 400 });
   const { id } = await params;
-  const { data, error } = await supabase.from('Product').update({ ...parsed.data, updatedAt: new Date().toISOString() }).eq('id', id).select().maybeSingle();
+  const { expectedInventoryVersion, ...changes } = parsed.data;
+  // Checkout and cancellations increment this version in the database. A stale
+  // form must never restore stock consumed while the administrator was editing.
+  const { data, error } = await supabase.from('Product').update({ ...changes, updatedAt: new Date().toISOString() }).eq('id', id).eq('inventoryVersion', expectedInventoryVersion).select().maybeSingle();
   if (!error && data) {
     await deliverRestockAlerts(data);
     return NextResponse.json(toClient(data));
   }
-  if (!error) return NextResponse.json({ message: 'Product not found' }, { status: 404 });
+  if (!error) return NextResponse.json({ message: 'This product changed while you were editing. Reload it and review the latest stock before saving.' }, { status: 409 });
   if (process.env.NODE_ENV !== 'production') {
-    const local = updateLocalProduct(id, parsed.data);
+    const existing = getLocalProductById(id);
+    if (existing && (existing.inventoryVersion || 0) !== expectedInventoryVersion) return NextResponse.json({ message: 'This product changed while you were editing. Reload it before saving.' }, { status: 409 });
+    const local = updateLocalProduct(id, { ...changes, inventoryVersion: expectedInventoryVersion + (existing?.countInStock !== changes.countInStock ? 1 : 0) });
     if (local) return NextResponse.json(toClient(local));
   }
   return NextResponse.json({ message: 'The product could not be saved. Please try again.' }, { status: 503 });

@@ -29,18 +29,16 @@ export async function POST(request: NextRequest) {
     const parsed = input.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ message: 'Choose a valid product.' }, { status: 400 });
     const { productId } = parsed.data;
-    let desired = parsed.data.wishlisted;
-    if (desired === undefined) {
-      const { data, error } = await supabase.from('Wishlist').select('id').eq('userId', user.id).eq('productId', productId).maybeSingle();
-      if (error) return NextResponse.json({ message: 'Your wishlist could not be updated.' }, { status: 503 });
-      desired = !data;
+    const { data, error } = await supabase.rpc('set_account_wishlist', {
+      p_user_id: user.id, p_product_id: productId, p_wishlisted: parsed.data.wishlisted ?? null,
+    });
+    if (error) {
+      if (error.message === 'WISHLIST_PRODUCT') return NextResponse.json({ message: 'This product is no longer available.' }, { status: 404 });
+      if (error.message === 'WISHLIST_FULL') return NextResponse.json({ message: 'Your wishlist can hold up to 200 products.' }, { status: 409 });
+      return NextResponse.json({ message: 'Your wishlist could not be saved. Please try again.' }, { status: 503 });
     }
-    const operation = desired
-      ? supabase.from('Wishlist').upsert({ id: crypto.randomUUID(), userId: user.id, productId }, { onConflict: 'userId,productId', ignoreDuplicates: true })
-      : supabase.from('Wishlist').delete().eq('userId', user.id).eq('productId', productId);
-    const { error } = await operation;
-    if (error) return NextResponse.json({ message: error.code === '23503' ? 'This product is no longer available.' : 'Your wishlist could not be saved. Please try again.' }, { status: error.code === '23503' ? 404 : 503 });
-    return NextResponse.json({ wishlisted: desired });
+    if (typeof data?.wishlisted !== 'boolean') return NextResponse.json({ message: 'Your wishlist could not be saved. Please try again.' }, { status: 503 });
+    return NextResponse.json(data);
   } catch {
     return NextResponse.json({ message: 'Your wishlist could not be saved. Please try again.' }, { status: 503 });
   }

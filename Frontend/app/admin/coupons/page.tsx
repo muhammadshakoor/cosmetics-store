@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Trash2, X, Tag, ToggleLeft, ToggleRight, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
+import AccessibleDialog from '@/components/AccessibleDialog';
 
 interface Coupon {
   _id: string; code: string; type: 'percent' | 'flat'; value: number;
@@ -19,31 +20,39 @@ export default function AdminCouponsPage() {
   const { user, authReady } = useAuth();
   const router = useRouter();
 
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<{ key: string; coupons: Coupon[]; error: boolean } | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const requestKey = JSON.stringify([user?._id, user?.token, refresh]);
+  const coupons = result?.key === requestKey ? result.coupons : [];
+  const loading = result?.key !== requestKey;
+  const loadError = result?.key === requestKey && result.error;
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const fetchCoupons = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const res = await fetch('/api/coupon', { headers: { Authorization: `Bearer ${user.token}` } });
-      if (!res.ok) throw new Error('Failed to load');
-      setCoupons(await res.json());
-    } catch { toast.error('Failed to load coupons'); }
-    finally { setLoading(false); }
-  }, [user]);
-
   useEffect(() => {
     if (!authReady) return;
     if (!user) { router.replace('/login'); return; }
     if (!user.isAdmin) { router.replace('/'); return; }
-    fetchCoupons();
-  }, [user, authReady, router, fetchCoupons]);
+    const controller = new AbortController();
+    fetch('/api/coupon', { headers: { Authorization: `Bearer ${user.token}` }, signal: controller.signal, cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error('Failed to load coupons');
+        const coupons: unknown = await response.json();
+        if (!Array.isArray(coupons)) throw new Error('Failed to load coupons');
+        return coupons as Coupon[];
+      })
+      .then(coupons => { if (!controller.signal.aborted) setResult({ key: requestKey, coupons, error: false }); })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setResult({ key: requestKey, coupons: [], error: true });
+          toast.error('Failed to load coupons');
+        }
+      });
+    return () => controller.abort();
+  }, [user, authReady, router, requestKey]);
 
   const handleCreate = async (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -57,7 +66,7 @@ export default function AdminCouponsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      toast.success('Coupon created!'); setShowForm(false); setForm(EMPTY_FORM); fetchCoupons();
+      toast.success('Coupon created!'); setShowForm(false); setForm(EMPTY_FORM); setRefresh(value => value + 1);
     } catch (err) { toast.error(err instanceof Error ? err.message : 'Failed to create'); }
     finally { setSaving(false); }
   };
@@ -67,7 +76,7 @@ export default function AdminCouponsPage() {
     try {
       const res = await fetch('/api/coupon/manage', { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user!.token}` }, body: JSON.stringify({ id: coupon._id, isActive: !coupon.isActive }) });
       if (!res.ok) throw new Error();
-      setCoupons(prev => prev.map(c => c._id === coupon._id ? { ...c, isActive: !c.isActive } : c));
+      setResult(prev => prev?.key === requestKey ? { ...prev, coupons: prev.coupons.map(c => c._id === coupon._id ? { ...c, isActive: !c.isActive } : c) } : prev);
       toast.success(coupon.isActive ? 'Coupon deactivated' : 'Coupon activated');
     } catch { toast.error('Failed to toggle coupon'); }
     finally { setTogglingId(null); }
@@ -79,7 +88,7 @@ export default function AdminCouponsPage() {
     try {
       const res = await fetch('/api/coupon/manage', { method: 'DELETE', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user!.token}` }, body: JSON.stringify({ id }) });
       if (!res.ok) throw new Error();
-      toast.success('Coupon deleted'); setCoupons(prev => prev.filter(c => c._id !== id));
+      toast.success('Coupon deleted'); setResult(prev => prev?.key === requestKey ? { ...prev, coupons: prev.coupons.filter(c => c._id !== id) } : prev);
     } catch { toast.error('Failed to delete coupon'); }
     finally { setDeletingId(null); }
   };
@@ -87,21 +96,21 @@ export default function AdminCouponsPage() {
   if (!user?.isAdmin) return null;
 
   const activeCoupons = coupons.filter(c => c.isActive).length;
-  const inputCls = 'w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-2xl text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300';
+  const inputCls = 'form-input';
 
   return (
     <div className="min-h-screen bg-[#FFF8F5] dark:bg-gray-950 py-10 px-4">
       <div className="max-w-5xl mx-auto">
 
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 rounded-xl transition-colors shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="flex flex-wrap items-center gap-4 mb-8">
+          <Link href="/admin" aria-label="Back to admin" className="p-2 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-gray-700 rounded-xl transition-colors shadow-sm border border-gray-100 dark:border-gray-700">
             <ArrowLeft size={18} className="text-gray-500 dark:text-gray-400" />
           </Link>
           <div className="flex-1">
             <h1 className="text-3xl font-extrabold text-[#1A0A0E] dark:text-gray-100">Coupon Management</h1>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">{coupons.length} coupons · {activeCoupons} active</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-5 py-2.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl shadow-md transition-all">
+          <button onClick={() => setShowForm(true)} className="button-primary w-full shadow-md sm:w-auto">
             <Plus size={16} /> Create Coupon
           </button>
         </div>
@@ -121,14 +130,18 @@ export default function AdminCouponsPage() {
           </div>
         </div>
 
-        {loading ? (
+        {loadError ? (
+          <div role="alert" className="rounded-2xl border border-rose-200 bg-white p-6 text-center dark:border-rose-900/40 dark:bg-gray-800">
+            Coupons could not be loaded. <button type="button" onClick={() => setRefresh(value => value + 1)} className="font-semibold underline">Try again</button>
+          </div>
+        ) : loading ? (
           <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl h-20 animate-pulse" />)}</div>
         ) : coupons.length === 0 ? (
           <div className="text-center py-24 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
             <Tag size={48} className="mx-auto text-gray-200 dark:text-gray-700 mb-4" />
             <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No coupons yet</h3>
             <p className="text-gray-400 dark:text-gray-500 mb-6">Create your first coupon to offer discounts to customers.</p>
-            <button onClick={() => setShowForm(true)} className="px-6 py-2.5 bg-[#C2185B] text-white rounded-2xl font-medium hover:bg-[#A31555] transition-colors">Create Coupon</button>
+            <button onClick={() => setShowForm(true)} className="button-primary">Create Coupon</button>
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -165,10 +178,10 @@ export default function AdminCouponsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleToggle(coupon)} disabled={togglingId === coupon._id} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors disabled:opacity-40">
+                          <button onClick={() => handleToggle(coupon)} disabled={togglingId === coupon._id} aria-label={`${coupon.isActive ? 'Deactivate' : 'Activate'} coupon ${coupon.code}`} className="inline-flex min-h-11 min-w-11 items-center justify-center p-2 text-brand hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors disabled:opacity-40">
                             {coupon.isActive ? <ToggleRight size={18} className="text-green-500 dark:text-green-400" /> : <ToggleLeft size={18} />}
                           </button>
-                          <button onClick={() => handleDelete(coupon._id)} disabled={deletingId === coupon._id} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-40">
+                          <button onClick={() => handleDelete(coupon._id)} disabled={deletingId === coupon._id} aria-label={`Delete coupon ${coupon.code}`} className="inline-flex min-h-11 min-w-11 items-center justify-center p-2 text-brand hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-40">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -212,12 +225,11 @@ export default function AdminCouponsPage() {
         )}
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4 py-8">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md">
+      <AccessibleDialog isOpen={showForm} onClose={() => setShowForm(false)} labelledBy="coupon-form-title" className="max-w-md">
+          <div>
             <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Create Coupon</h2>
-              <button onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"><X size={18} /></button>
+              <h2 id="coupon-form-title" className="text-lg font-bold text-gray-900 dark:text-gray-100">Create Coupon</h2>
+              <button type="button" aria-label="Close coupon form" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }} className="inline-flex min-h-11 min-w-11 items-center justify-center p-2 text-brand hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"><X size={18} /></button>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-5">
               <div>
@@ -252,15 +264,14 @@ export default function AdminCouponsPage() {
                 <input id="coupons-expiry-date" type="date" value={form.expiresAt} onChange={e => setForm({ ...form, expiresAt: e.target.value })} min={new Date().toISOString().split('T')[0]} className={inputCls} />
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }} className="flex-1 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-medium rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#C2185B] hover:bg-[#A31555] text-white font-semibold rounded-2xl shadow-md transition-all disabled:opacity-60">
+                <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }} className="button-secondary flex-1">Cancel</button>
+                <button type="submit" disabled={saving} className="button-primary flex-1 shadow-md">
                   <Save size={14} />{saving ? 'Creating...' : 'Create Coupon'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
+      </AccessibleDialog>
     </div>
   );
 }
