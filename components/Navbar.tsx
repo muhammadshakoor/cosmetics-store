@@ -64,7 +64,7 @@ export default function Navbar() {
 
 function NavbarContent({ pathname }: { pathname: string }) {
   const { itemCount } = useCart();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const { count: wishlistCount } = useWishlist();
   const mounted = useSyncExternalStore(subscribeHydration, clientHydrationSnapshot, serverHydrationSnapshot);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -148,8 +148,7 @@ function NavbarContent({ pathname }: { pathname: string }) {
 
   const confirmLogout = () => {
     setSignOutOpen(false);
-    logout();
-    router.push('/');
+    signOut();
   };
 
   const navLinkCls = (active: boolean) =>

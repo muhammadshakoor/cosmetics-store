@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
@@ -17,7 +17,7 @@ import SignOutDialog from '@/components/SignOutDialog';
 import type { Order, OrderStatus } from '@/types/api';
 
 export default function ProfilePage() {
-  const { user, authReady, logout } = useAuth();
+  const { user, authReady, signOut } = useAuth();
   const router = useRouter();
   const [ordersResult, setOrdersResult] = useState<{ key: string; orders: Order[]; error: string } | null>(null);
   const [retry, setRetry] = useState(0);
@@ -26,7 +26,6 @@ export default function ProfilePage() {
   const orders = ordersResult?.key === requestKey ? ordersResult.orders : [];
   const loadError = ordersResult?.key === requestKey ? ordersResult.error : '';
   const [signOutOpen, setSignOutOpen] = useState(false);
-  const signingOut = useRef(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const handleCancel = async (orderId: string) => {
@@ -46,7 +45,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!authReady) return;
-    if (!user) { if (!signingOut.current) router.replace('/login?redirect=profile'); return; }
+    if (!user) { router.replace('/login?redirect=profile'); return; }
     const controller = new AbortController();
     apiFetch<Order[]>('/orders/myorders', { signal: controller.signal, cache: 'no-store' }, user.token)
       .then(data => {
@@ -334,7 +333,7 @@ export default function ProfilePage() {
         </div>
 
       </div>
-      <SignOutDialog open={signOutOpen} onCancel={() => setSignOutOpen(false)} onConfirm={() => { signingOut.current = true; setSignOutOpen(false); logout(); router.push('/'); }} />
+      <SignOutDialog open={signOutOpen} onCancel={() => setSignOutOpen(false)} onConfirm={() => { setSignOutOpen(false); signOut(); }} />
     </div>
   );
 }

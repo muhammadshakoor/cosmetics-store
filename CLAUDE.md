@@ -28,7 +28,8 @@ Full-stack e-commerce app for a cosmetics brand called **Lumina**. Customers can
 2. Google OAuth → browser-bound state → provider callback → short HttpOnly handoff cookie → `/auth/callback` exchanges `/api/auth/session` → `login()` in AuthContext. Never put session tokens in URLs.
 3. Facebook OAuth → same pattern via `/api/auth/facebook/callback`
 4. Token stored in `localStorage` (remember me) or `sessionStorage` (session only), key: `userInfo`
-5. `useAuth()` hook from `AuthContext` provides `{ user, authReady, login, logout }`
+5. `useAuth()` hook from `AuthContext` provides `{ user, authReady, login, logout, signOut }`
+   - **Sign-out buttons must call `signOut()`**, never `logout()` + `router.push('/')`. `signOut()` clears storage and does `window.location.replace('/')` without setting `user` to null, so protected pages never run their `/login?redirect=<page>` guard during sign-out (otherwise the next account to sign in lands on the previous user's order/checkout/admin page). `logout()` is for expiry/revocation, where returning to the page after re-login is wanted. Covered by `tests/sign-out-ui.test.cjs`.
 6. `user` is `null` on the server **and** on the first client render (stored session is read in a `useEffect`, to avoid hydration mismatches). `authReady` flips to `true` once storage is read — any redirect-on-`!user` guard must wait for it. `useCart()` has the same `cartReady` flag.
 
 ### User Object Shape
