@@ -1,6 +1,6 @@
 # Lumina cosmetics store
 
-Next.js storefront and admin tools for a cosmetics shop in Pakistan. The active app is **Frontend/**. **Backend/** is a legacy Express implementation and is not needed for deployment.
+Next.js storefront and admin tools for a cosmetics shop in Pakistan. The whole application — pages and server API routes (`app/api/`) — is a single Next.js app at the repository root; there is no separate backend server. Business rules that must be atomic (checkout, stock, coupons, reviews, reporting) run as PostgreSQL functions defined by the migrations.
 
 ## Shopping and operations
 
@@ -22,14 +22,13 @@ Next.js storefront and admin tools for a cosmetics shop in Pakistan. The active 
 Use Node.js 24 or newer for the complete local development and UI-test toolchain. The Next.js runtime itself supports Node 20.9+, but the DOM test dependencies have a higher requirement.
 
 ```powershell
-cd Frontend
 npm ci
 Copy-Item .env.example .env.local
 ```
 
-Fill in the values described in `Frontend/.env.example`. Never expose the Supabase service-role key through a `NEXT_PUBLIC_` variable.
+Fill in the values described in `.env.example`. Never expose the Supabase service-role key through a `NEXT_PUBLIC_` variable.
 
-Apply all SQL migrations in **Frontend/supabase/migrations/** in filename order using the Supabase SQL editor or your database migration workflow:
+Apply all SQL migrations in **supabase/migrations/** in filename order with `npm run db:migrate` (check with `npm run db:status`; it reads `DIRECT_URL`/`DATABASE_URL` from `.env` — use Supabase's **Session pooler** URI on IPv4 networks):
 
 1. `202611040000_base.sql` — base tables, indexes, wishlist/review access.
 2. `202611040001_checkout.sql` — atomic checkout, idempotency, inventory, coupons, and order transitions.
@@ -50,7 +49,7 @@ For local sample accounts/products only, the seeders require `NODE_ENV=developme
 
 ## Vercel deployment
 
-Set the project root directory to **Frontend**, use the Next.js preset, and build with `npm run build`. No separate Express server is needed. The legacy Express API permits authenticated order reads and catalog browsing; registration and all commerce mutations are disabled.
+Leave the Vercel **Root Directory** empty (the repository root is the app), use the Next.js preset, and build with `npm run build`. No separate API server is needed.
 
 **Apply all database migrations before deploying this version.** Checkout, recovery, rate limits, and support forms fail safely when their database operations are unavailable.
 
@@ -71,7 +70,7 @@ Optional configuration:
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET` for durable product image uploads. Production uploads fail if storage is unavailable; they never write into the deployment filesystem.
 - Google/Facebook client IDs and secrets. Register each exact `/api/auth/google/callback` or `/api/auth/facebook/callback` URL with the provider.
 
-`Frontend/vercel.json` schedules a daily pending-restock batch. Updating a product also attempts a small immediate batch; failures remain pending. For an additional retry, an authenticated admin can POST `/api/notifications`. Restock emails include an unsubscribe link. Newsletter signup saves consent; it does not fabricate a coupon or automatically run marketing campaigns. Cart-recovery email remains explicitly unavailable.
+`vercel.json` schedules a daily pending-restock batch. Updating a product also attempts a small immediate batch; failures remain pending. For an additional retry, an authenticated admin can POST `/api/notifications`. Restock emails include an unsubscribe link. Newsletter signup saves consent; it does not fabricate a coupon or automatically run marketing campaigns. Cart-recovery email remains explicitly unavailable.
 
 Before accepting orders, check a customer registration/verification, password recovery, COD checkout, order cancellation/fulfilment, image upload, and support request against your configured preview environment. A successful build alone cannot verify provider configuration or your live database.
 
@@ -85,16 +84,14 @@ npm run build
 
 Tests use Node's built-in runner with the installed TypeScript loader. External email/provider calls are mocked. Database tests skip unless `CHECKOUT_TEST_DATABASE_URL` points to a disposable local `checkout_test` database on a non-default port. Never point tests at a real store database.
 
-The database bootstrap and SQL regression files in `Frontend/tests/` cover transaction rollback, prices, stock, coupons, idempotent retries, concurrent orders, status transitions, reset-token consumption, and database permissions.
+The database bootstrap and SQL regression files in `tests/` cover transaction rollback, prices, stock, coupons, idempotent retries, concurrent orders, status transitions, reset-token consumption, and database permissions.
 
-For database regression checks, create a fresh local PostgreSQL cluster on a non-default port, create `checkout_test`, apply `Frontend/tests/checkout.bootstrap.sql`, then all migrations in filename order. Set `CHECKOUT_TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:<test-port>/checkout_test` and `PSQL_PATH` to your psql executable before running `npm test`. These tests include real concurrent checkout, review, OAuth and wishlist operations; fixture changes are rolled back or cleaned up. `tests/accounts.integration.sql` and `tests/support.integration.sql` can also be run with `psql -X -v ON_ERROR_STOP=1 -f <file>` against that same disposable database. Never run regression fixtures on a store database.
+For database regression checks, create a fresh local PostgreSQL cluster on a non-default port, create `checkout_test`, apply `tests/checkout.bootstrap.sql`, then all migrations in filename order. Set `CHECKOUT_TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:<test-port>/checkout_test` and `PSQL_PATH` to your psql executable before running `npm test`. These tests include real concurrent checkout, review, OAuth and wishlist operations; fixture changes are rolled back or cleaned up. `tests/accounts.integration.sql` and `tests/support.integration.sql` can also be run with `psql -X -v ON_ERROR_STOP=1 -f <file>` against that same disposable database. Never run regression fixtures on a store database.
 
-The retained legacy backend has its own safety tests: run `npm test` and `npm run build` from `Backend/`.
-
-The backend retains targeted dependency overrides for the patched Express query parser and Nodemon glob matcher until their upstream version ranges include those fixes. Its safety suite checks parser and watcher compatibility.
+Server-only modules (`lib/supabase.ts`, `lib/auth.ts`, `lib/email.ts`, `lib/coupons.ts`, `lib/oauthAccount.ts`, `lib/rateLimit.ts`, `lib/restock.ts`) start with `import 'server-only'`, so `next build` fails if a client component imports one and would ship a secret to the browser. `npm test` preloads `tests/server-only-stub.cjs` so these modules can be unit-tested in plain Node.
 
 ## UI conventions and checks
 
-Shared theme tokens and `.text-brand`, `.button-primary`, `.button-secondary`, and `.form-input` live in `Frontend/app/globals.css`. Use these for new forms and actions so text, field boundaries, focus indicators, and touch targets remain consistent in both themes. Use `AccessibleDialog` for modal forms; it uses the browser's modal behavior and restores focus when closed. Keep loading, failed requests, and genuinely empty results distinct.
+Shared theme tokens and `.text-brand`, `.button-primary`, `.button-secondary`, and `.form-input` live in `app/globals.css`. Use these for new forms and actions so text, field boundaries, focus indicators, and touch targets remain consistent in both themes. Use `AccessibleDialog` for modal forms; it uses the browser's modal behavior and restores focus when closed. Keep loading, failed requests, and genuinely empty results distinct.
 
 `npm run test:ui` runs the DOM interaction regressions for navigation, complaint inbox identity changes, retries, email/reset feedback, admin dialogs, and order-review state. These tests do not replace browser checks of visual layout, screen-reader output, zoom, or native dialog focus containment. Before launch, verify the main journeys at narrow phone, landscape phone, tablet, and desktop sizes in light and dark themes.

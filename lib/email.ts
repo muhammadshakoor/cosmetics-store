@@ -1,3 +1,4 @@
+import 'server-only';
 export class EmailDeliveryError extends Error {
   constructor(message = 'Email delivery is temporarily unavailable. Please try again later.') {
     super(message);

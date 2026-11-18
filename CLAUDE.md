@@ -5,8 +5,10 @@ Full-stack e-commerce app for a cosmetics brand called **Lumina**. Customers can
 
 ## Tech Stack
 
-### Frontend (`/Frontend`)
-- **Framework**: Next.js 16 (App Router) with TypeScript
+### App (repository root — the whole application; there is no separate backend)
+> Until Nov 2026 the app lived in `/Frontend`; it was moved to the repo root. Vercel **Root Directory** must be empty.
+- **Framework**: Next.js 16 (App Router) with TypeScript; server logic lives in `app/api/` route handlers
+- **Database**: Supabase (PostgreSQL); atomic business rules are PostgreSQL functions in `supabase/migrations/`
 - **Styling**: Tailwind CSS v4 — uses `@import "tailwindcss"` in globals.css, no `tailwind.config.js`
 - **Icons**: lucide-react
 - **Toasts**: react-hot-toast
@@ -14,12 +16,8 @@ Full-stack e-commerce app for a cosmetics brand called **Lumina**. Customers can
 - **Auth**: JWT (jsonwebtoken + bcryptjs) handled in Next.js API routes
 - **Font**: Inter (Google Fonts)
 
-### Backend (`/Backend`)
-- **Runtime**: Node.js + Express + TypeScript (compiled to `/Backend/dist`)
-- **Database**: Supabase (PostgreSQL)
-- **Auth**: JWT tokens, bcryptjs password hashing
-
-> The app's primary data layer is through **Next.js API routes** (`/Frontend/app/api/`), not the Express backend. The Express backend (`/Backend`) is a legacy layer; most features use Next.js routes directly.
+> The legacy Express `/Backend` folder was removed (Nov 2026); nothing called it. Do not add a separate API server — add Next.js route handlers instead.
+> **Server-only modules**: `lib/supabase.ts`, `auth.ts`, `email.ts`, `coupons.ts`, `oauthAccount.ts`, `rateLimit.ts`, `restock.ts` begin with `import 'server-only'`. Any new `lib/` file that reads a secret env var or the service-role Supabase client must do the same. Tests preload `tests/server-only-stub.cjs` (wired into `npm test`).
 
 ---
 
@@ -84,9 +82,9 @@ interface User {
 
 ## File Structure
 
-### Key Frontend Files
+### Key Files (repository root)
 ```
-Frontend/
+./
 ├── app/
 │   ├── layout.tsx              # Root layout, flash-prevention script, Providers
 │   ├── globals.css             # Tailwind v4 imports, @variant dark, CSS variables
@@ -298,7 +296,7 @@ Blocking inline script in `<head>` reads `lumina-theme` from localStorage and ad
 
 ## Environment Variables
 
-### Frontend (`.env.local`)
+### App (`.env.local`)
 ```
 NEXT_PUBLIC_SITE_URL=http://localhost:3001
 SUPABASE_URL=...
@@ -315,11 +313,10 @@ CONTACT_EMAIL=...                # optional; overrides ADMIN_EMAIL for contact/n
 NEXT_PUBLIC_WHATSAPP_NUMBER=923157320217   # defaults to this in lib/site.ts
 ```
 
-### Backend (`.env`)
+### Migrations only (`.env`, never deployed)
 ```
-MONGO_URI=... (or Supabase connection string)
-JWT_SECRET=...
-PORT=5000
+DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
+DIRECT_URL=...same Session pooler URI...
 ```
 
 ---
@@ -332,7 +329,11 @@ PORT=5000
 - No fake features: don't show payment options, discounts or loyalty points that the backend doesn't actually implement.
 
 ## Dev Notes
-- **Database migrations**: `Frontend/supabase/migrations/` is authoritative. Apply every migration in filename order before deploying. Checkout writes are transactional RPCs and require the database; never substitute a local order in production.
+- **Database migrations**: `supabase/migrations/` is authoritative. Apply every migration in filename order before deploying.
+  - Runner: `npm run db:status` / `npm run db:migrate` (`scripts/migrate.mjs`, uses `pg`). History lives in `lumina_meta.schema_migrations` (outside `public`, so not exposed by the REST API). Each file + its history row runs in one transaction; top-level `begin;`/`commit;` lines in files are neutralised. Never edit an applied migration (checksum drift aborts the run) — add a new later-dated file. No `CREATE INDEX CONCURRENTLY`.
+  - Connection order: `MIGRATION_DATABASE_URL` → `DIRECT_URL` → `DATABASE_URL` (from `.env`). Supabase's direct `db.<ref>.supabase.co` host is IPv6-only, so on IPv4 networks use the **Session pooler** URI (`aws-1-ap-southeast-1.pooler.supabase.com:5432`, user `postgres.<ref>`).
+  - A DB migrated by hand needs a one-time `node scripts/migrate.mjs --baseline <last-applied-file>.sql` (records without executing); the runner refuses to start on a populated DB with empty history.
+- **Checkout** writes are transactional RPCs and require the database; never substitute a local order in production.
 - **Offline fallback**: sample catalog/local complaints are development-only. Production data mutations fail safely when durable storage is unavailable.
 - Product detail pages fetch data on the server for metadata, structured product information, and the initial render; interactive controls remain client components.
 - `mounted` state guards are used where needed to prevent hydration mismatches (e.g., cart count, user menu)

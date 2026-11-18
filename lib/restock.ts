@@ -1,3 +1,4 @@
+import 'server-only';
 import { supabase } from '@/lib/supabase';
 import { escapeHtml, sendEmail } from '@/lib/email';
 
