@@ -8,7 +8,10 @@ interface AuthContextType {
   user: User | null;
   authReady: boolean;
   login: (userData: User, remember?: boolean) => void;
+  /** Ends the session in place (expiry/revocation): guards may send the visitor to /login?redirect=… */
   logout: () => void;
+  /** User-initiated "Sign out": clears the session and reloads at the home page. */
+  signOut: () => void;
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -57,6 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthReady(true);
     removeStoredSession();
     setHints(null);
+  }, []);
+  // Deliberately does NOT set user to null first: a protected page re-rendering
+  // without a user would run its guard and replace the navigation with
+  // /login?redirect=<that page>, so the NEXT account to sign in would land on
+  // the previous user's order/checkout/admin page. A full page load also drops
+  // any of the previous user's data still held in memory.
+  const signOut = useCallback(() => {
+    generation.current++; // in-flight session checks must not re-persist the session
+    removeStoredSession();
+    setHints(null);
+    window.location.replace('/');
   }, []);
   const login = useCallback((userData: User, remember = true) => {
     const valid = parseStoredUser(userData);
@@ -124,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; clearTimeout(timer); window.removeEventListener('focus', revalidate); };
   }, [user, login, logout]);
 
-  const value = useMemo(() => ({ user, authReady, login, logout }), [user, authReady, login, logout]);
+  const value = useMemo(() => ({ user, authReady, login, logout, signOut }), [user, authReady, login, logout, signOut]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 export function useAuth() {
