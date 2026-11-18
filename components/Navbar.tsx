@@ -1,0 +1,589 @@
+'use client';
+
+import Link from 'next/link';
+import { ShoppingBag, User, Search, LogOut, Menu, X, LayoutDashboard, Heart, BarChart2, MessageSquareWarning, ArrowRight, Sparkles, ChevronDown } from 'lucide-react';
+import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/context/WishlistContext';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import ThemeToggle from '@/components/ThemeToggle';
+import SkinQuizModal from '@/components/SkinQuizModal';
+import SignOutDialog from '@/components/SignOutDialog';
+import { API_URL } from '@/lib/api';
+import type { ProductType } from '@/components/ProductCard';
+
+const AVATAR_GRADIENTS = [
+  'from-rose-400 to-pink-600',
+  'from-violet-400 to-purple-600',
+  'from-blue-400 to-indigo-600',
+  'from-teal-400 to-emerald-600',
+  'from-amber-400 to-orange-500',
+  'from-fuchsia-400 to-rose-500',
+  'from-sky-400 to-blue-600',
+  'from-green-400 to-teal-600',
+];
+
+function UserAvatar({ name, picture, size = 'sm' }: { name: string; picture?: string; size?: 'sm' | 'md' }) {
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+  const gradient = AVATAR_GRADIENTS[name.charCodeAt(0) % AVATAR_GRADIENTS.length];
+  const sz = size === 'md' ? 'w-10 h-10 text-sm' : 'w-7 h-7 text-xs';
+
+  if (picture) {
+    return (
+      <img
+        src={picture}
+        alt={name}
+        referrerPolicy="no-referrer"
+        className={`${sz} rounded-full object-cover shrink-0 shadow-sm ring-2 ring-white/30`}
+      />
+    );
+  }
+
+  return (
+    <span className={`${sz} bg-linear-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm select-none leading-none`}>
+      {initials}
+    </span>
+  );
+}
+
+const subscribeHydration = () => () => {};
+const clientHydrationSnapshot = () => true;
+const serverHydrationSnapshot = () => false;
+
+export default function Navbar() {
+  const pathname = usePathname();
+  return <NavbarContent key={pathname} pathname={pathname} />;
+}
+
+function NavbarContent({ pathname }: { pathname: string }) {
+  const { itemCount } = useCart();
+  const { user, logout } = useAuth();
+  const { count: wishlistCount } = useWishlist();
+  const mounted = useSyncExternalStore(subscribeHydration, clientHydrationSnapshot, serverHydrationSnapshot);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState<{ query: string; products: ProductType[] } | null>(null);
+  const searchKey = searchQuery.trim();
+  const suggestions = searchKey.length >= 2 && searchResult?.query === searchKey ? searchResult.products : [];
+  const isSearching = searchKey.length >= 2 && searchResult?.query !== searchKey;
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  const router = useRouter();
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const categoryMenuRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (searchKey.length < 2) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_URL}/products?keyword=${encodeURIComponent(searchKey)}&limit=5`, { signal: controller.signal });
+        if (!res.ok) throw new Error('Search unavailable');
+        const data = await res.json();
+        if (!controller.signal.aborted) {
+          setSearchResult({ query: searchKey, products: Array.isArray(data) ? data : [] });
+          setShowSuggestions(true);
+        }
+      } catch {
+        if (!controller.signal.aborted) setSearchResult({ query: searchKey, products: [] });
+      }
+    }, 200);
+
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [searchKey]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+      if (categoryMenuRef.current && !categoryMenuRef.current.contains(e.target as Node)) {
+        setCategoryMenuOpen(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearch = (e?: { preventDefault(): void }) => {
+    if (e) e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setShowSuggestions(false);
+      setSearchOpen(false);
+      setSearchQuery('');
+      setMobileOpen(false);
+    }
+  };
+
+  // Sign out buttons only open the confirmation popup; the session ends in confirmLogout
+  const handleLogout = () => {
+    setUserMenuOpen(false);
+    setMobileOpen(false);
+    setSignOutOpen(true);
+  };
+
+  const confirmLogout = () => {
+    setSignOutOpen(false);
+    logout();
+    router.push('/');
+  };
+
+  const navLinkCls = (active: boolean) =>
+    `relative text-sm font-semibold transition-colors py-2 after:absolute after:left-0 after:right-0 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-rose-500 after:transition-transform after:origin-left ${
+      active
+        ? 'text-rose-600 dark:text-rose-400 after:scale-x-100'
+        : 'text-gray-700 dark:text-gray-200 hover:text-rose-600 dark:hover:text-rose-400 after:scale-x-0'
+    }`;
+  const isHome = pathname === '/';
+  const isShop = pathname.startsWith('/products');
+
+  return (
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-md dark:shadow-gray-900'
+          : 'bg-white dark:bg-gray-900 shadow-xs'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8">
+
+        {/* Main row: Logo | Nav | Icons */}
+        <div className="flex items-center justify-between h-16">
+
+          {/* Logo */}
+          <Link href="/" aria-label="Lumina home" className="flex items-center gap-2.5 group shrink-0">
+            <div className="w-9 h-9 rounded-full bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-md group-hover:shadow-rose-200 transition-shadow">
+              <span className="text-white text-sm font-bold">L</span>
+            </div>
+            <span className="hidden sm:inline text-xl font-bold bg-linear-to-r from-rose-600 to-pink-500 bg-clip-text text-transparent leading-tight">
+              Lumina
+            </span>
+          </Link>
+
+          {/* Desktop Nav */}
+          <nav className="hidden lg:flex items-center gap-7" aria-label="Main navigation">
+            <Link href="/" className={navLinkCls(isHome)}>
+              Home
+            </Link>
+
+            {/* Category Dropdown Menu */}
+            <div
+              className="relative"
+              ref={categoryMenuRef}
+              onMouseEnter={() => setCategoryMenuOpen(true)}
+              onMouseLeave={() => setCategoryMenuOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={() => setCategoryMenuOpen(!categoryMenuOpen)}
+                className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-rose-600 dark:hover:text-rose-400 transition-colors py-2 cursor-pointer"
+                aria-expanded={categoryMenuOpen}
+                aria-controls="ritual-menu"
+              >
+                <span>Rituals</span>
+                <ChevronDown
+                  size={15}
+                  className={`transition-transform duration-200 ${categoryMenuOpen ? 'rotate-180 text-rose-500' : 'text-gray-400'}`}
+                />
+              </button>
+
+              {categoryMenuOpen && (
+                <div id="ritual-menu" className="absolute top-full left-0 w-72 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-2.5 z-50">
+                  <p className="px-2.5 pt-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Shop by Ritual</p>
+                  <div className="space-y-1">
+                    <Link
+                      href="/products?category=skincare"
+                      onClick={() => setCategoryMenuOpen(false)}
+                      className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 group transition-colors"
+                    >
+                      <span className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 flex items-center justify-center text-base shadow-xs group-hover:scale-105 transition-transform">🌿</span>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Skincare</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Glow serums, toners & creams</p>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/products?category=soaps"
+                      onClick={() => setCategoryMenuOpen(false)}
+                      className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 group transition-colors"
+                    >
+                      <span className="w-9 h-9 rounded-xl bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 flex items-center justify-center text-base shadow-xs group-hover:scale-105 transition-transform">🧼</span>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Handmade Soaps</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Organic cold process bars</p>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/products?category=bodycare"
+                      onClick={() => setCategoryMenuOpen(false)}
+                      className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 group transition-colors"
+                    >
+                      <span className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 flex items-center justify-center text-base shadow-xs group-hover:scale-105 transition-transform">🧴</span>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Body Care</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Hydrating lotions & butters</p>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/products?category=haircare"
+                      onClick={() => setCategoryMenuOpen(false)}
+                      className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 group transition-colors"
+                    >
+                      <span className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 flex items-center justify-center text-base shadow-xs group-hover:scale-105 transition-transform">💆</span>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Hair Care</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Herbal oils & cleansers</p>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/products?category=fragrance"
+                      onClick={() => setCategoryMenuOpen(false)}
+                      className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/20 group transition-colors"
+                    >
+                      <span className="w-9 h-9 rounded-xl bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-600 dark:text-fuchsia-300 flex items-center justify-center text-base shadow-xs group-hover:scale-105 transition-transform">🌸</span>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Fragrance</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Botanical mists & extracts</p>
+                      </div>
+                    </Link>
+                  </div>
+
+                  <div className="border-t border-gray-100 dark:border-gray-700 mt-2 pt-2 px-1">
+                    <Link
+                      href="/products"
+                      onClick={() => setCategoryMenuOpen(false)}
+                      className="flex items-center justify-between px-3 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors"
+                    >
+                      <span>Explore All Products</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link href="/products" className={navLinkCls(isShop)}>
+              Shop All
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setQuizOpen(true)}
+              className="group inline-flex h-11 items-center justify-center rounded-full cursor-pointer"
+            >
+              <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#C2185B] px-3.5 text-xs font-bold leading-none text-white shadow-sm transition-colors group-hover:bg-[#A31555]">
+                <Sparkles aria-hidden="true" size={13} className="text-amber-300" /> Skin Quiz
+              </span>
+            </button>
+          </nav>
+
+          {/* Right icons */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Quick Search Toggle Button */}
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
+              className={`p-2 rounded-full transition-colors cursor-pointer ${
+                searchOpen
+                  ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-600'
+                  : 'hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-600 dark:text-gray-300 hover:text-rose-600'
+              }`}
+              title="Search store"
+              aria-label="Search store"
+              aria-expanded={searchOpen}
+              aria-controls="store-search"
+            >
+              {searchOpen ? <X size={20} /> : <Search size={20} />}
+            </button>
+
+            <ThemeToggle />
+
+            {/* Wishlist */}
+            <Link href="/wishlist" aria-label={`View wishlist (${wishlistCount} ${wishlistCount === 1 ? 'product' : 'products'})`} className="relative p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
+              <Heart size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
+              {mounted && wishlistCount > 0 && (
+                <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-700 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Cart */}
+            <Link href="/cart" aria-label={`View cart (${itemCount} ${itemCount === 1 ? 'item' : 'items'})`} className="relative p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors group">
+              <ShoppingBag size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-rose-500 transition-colors" />
+              {itemCount > 0 && (
+                <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-rose-700 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold shadow">
+                  {itemCount > 9 ? '9+' : itemCount}
+                </span>
+              )}
+            </Link>
+
+            {/* User Menu */}
+            {!mounted ? (
+              <div className="w-9 h-9 rounded-full" />
+            ) : user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-label={`Account menu for ${user.name}`}
+                  aria-expanded={userMenuOpen}
+                  aria-controls="account-menu"
+                  className="group flex h-11 min-w-11 items-center justify-center rounded-full cursor-pointer"
+                >
+                  <span aria-hidden="true" className="flex h-9 items-center gap-2 rounded-full bg-rose-50 px-1 transition-colors group-hover:bg-rose-100 dark:bg-rose-900/30 dark:group-hover:bg-rose-900/50 sm:pr-3">
+                    <UserAvatar name={user.name} picture={user.picture} />
+                    <span className="hidden max-w-20 truncate text-sm font-semibold text-rose-700 dark:text-rose-300 sm:block">{user.name.split(' ')[0]}</span>
+                  </span>
+                </button>
+                {userMenuOpen && (
+                  <div id="account-menu" className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 z-50">
+                    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                      <UserAvatar name={user.name} picture={user.picture} size="md" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                    >
+                      <User size={14} /> My Profile
+                    </Link>
+                    {user.isAdmin && (
+                      <>
+                        <Link
+                          href="/admin"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                        >
+                          <LayoutDashboard size={14} /> Admin Panel
+                        </Link>
+                        <Link
+                          href="/admin/dashboard"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                        >
+                          <BarChart2 size={14} /> Sales Dashboard
+                        </Link>
+                      </>
+                    )}
+                    {!user.isAdmin && (
+                      <>
+                        <Link
+                          href="/complaints/my"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                        >
+                          <MessageSquareWarning size={14} /> My Complaints
+                        </Link>
+                        <Link
+                          href="/complaints"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                        >
+                          <MessageSquareWarning size={14} /> Submit Complaint
+                        </Link>
+                      </>
+                    )}
+                    <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                      >
+                        <LogOut size={14} /> Sign out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                aria-label="Sign in to your account"
+                className="group inline-flex h-11 min-w-11 items-center justify-center rounded-full"
+              >
+                <span className="inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-full bg-[#C2185B] px-3 text-sm font-medium leading-none text-white shadow-sm transition-colors group-hover:bg-[#A31555]">
+                  <User aria-hidden="true" size={14} />
+                  <span className="hidden sm:block">Sign in</span>
+                </span>
+              </Link>
+            )}
+
+            {/* Hamburger */}
+            <button
+              className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
+            >
+              {mobileOpen ? <X size={20} className="text-gray-700 dark:text-gray-200" /> : <Menu size={20} className="text-gray-700 dark:text-gray-200" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Floating/Collapsible Search Overlay (Only visible when user clicks search icon) */}
+        {searchOpen && (
+          <div id="store-search" className="border-t border-gray-100 dark:border-gray-700 py-3 relative" ref={searchContainerRef}>
+            <form onSubmit={handleSearch} role="search" className="relative">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search organic skincare, handmade soaps, body care..."
+                aria-label="Search store products"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                className="w-full pl-10 pr-24 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent focus:bg-white dark:focus:bg-gray-700 transition-all"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <button
+                  type="submit"
+                  aria-label="Search"
+                  className="min-h-11 min-w-11 p-1.5 bg-[#C2185B] hover:bg-[#A31555] text-white rounded-xl transition-colors flex items-center justify-center cursor-pointer"
+                >
+                  <ArrowRight size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer"
+                  title="Close search"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </form>
+
+            {/* Autocomplete Dropdown */}
+            {showSuggestions && searchQuery.trim().length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
+                {isSearching ? (
+                  <div className="p-4 text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-2">
+                    <div className="w-3.5 h-3.5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                    Searching products...
+                  </div>
+                ) : suggestions.length > 0 ? (
+                  <div className="py-2">
+                    <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Suggested Products
+                    </div>
+                    {suggestions.map((item) => (
+                      <Link
+                        key={item._id}
+                        href={`/products/${item._id}`}
+                        onClick={() => { setShowSuggestions(false); setSearchOpen(false); setSearchQuery(''); }}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-rose-50 dark:hover:bg-gray-700/60 transition-colors"
+                      >
+                        <img src={item.image || `https://picsum.photos/seed/${item._id}/80/80`} alt={item.name} className="w-9 h-9 rounded-xl object-cover shrink-0 bg-gray-100 dark:bg-gray-700" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 capitalize">{item.category} · {item.brand}</p>
+                        </div>
+                        <span className="text-xs font-bold text-brand">Rs. {Math.round(item.price).toLocaleString()}</span>
+                      </Link>
+                    ))}
+                    <button
+                      onClick={() => handleSearch()}
+                      className="w-full text-center py-2.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 border-t border-gray-100 dark:border-gray-700 transition-colors cursor-pointer"
+                    >
+                      View all results for &ldquo;{searchQuery}&rdquo; →
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 text-xs text-gray-400 dark:text-gray-500 text-center">
+                    No products found matching &ldquo;{searchQuery}&rdquo;
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mobile Nav Drawer */}
+        {mobileOpen && (
+          <nav id="mobile-navigation" aria-label="Mobile navigation"
+            onClick={(event) => { if (event.target instanceof Element && event.target.closest('a[href]')) setMobileOpen(false); }}
+            className={`lg:hidden overflow-y-auto overscroll-contain border-t border-gray-100 dark:border-gray-700 py-3 space-y-1 pb-4 ${searchOpen ? 'max-h-[calc(100dvh-8rem)]' : 'max-h-[calc(100dvh-4rem)]'}`}>
+            <Link href="/" className="block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Home</Link>
+            <Link href="/products" className="block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Shop All</Link>
+            
+            <div className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand">Rituals</div>
+            <Link href="/products?category=skincare" className="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">🌿 Skincare</Link>
+            <Link href="/products?category=soaps" className="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">🧼 Handmade Soaps</Link>
+            <Link href="/products?category=bodycare" className="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">🧴 Body Care</Link>
+            <Link href="/products?category=haircare" className="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">💆 Hair Care</Link>
+            <Link href="/products?category=fragrance" className="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">🌸 Fragrance</Link>
+
+            <button
+              onClick={() => { setMobileOpen(false); setQuizOpen(true); }}
+              className="w-full min-h-11 flex items-center justify-center gap-1.5 px-3 py-2.5 mt-2 bg-[#C2185B] hover:bg-[#A31555] text-white text-xs font-bold rounded-2xl shadow-sm"
+            >
+              <Sparkles size={12} className="text-amber-300 animate-pulse" /> Skin Quiz
+            </button>
+
+            {user && (
+              <>
+                <div className="border-t border-gray-100 dark:border-gray-700 my-2" />
+                <div className="flex items-center gap-3 px-3 py-2">
+                  <UserAvatar name={user.name} picture={user.picture} size="md" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{user.email}</p>
+                  </div>
+                </div>
+                <Link href="/profile" className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">My Profile</Link>
+                {user.isAdmin ? (
+                  <>
+                    <Link href="/admin" className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Admin Panel</Link>
+                    <Link href="/admin/dashboard" className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Sales Dashboard</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/complaints/my" className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">My Complaints</Link>
+                    <Link href="/complaints" className="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl">Submit Complaint</Link>
+                  </>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl cursor-pointer"
+                >
+                  <LogOut size={14} /> Sign out
+                </button>
+              </>
+            )}
+          </nav>
+        )}
+      </div>
+
+      <SkinQuizModal isOpen={quizOpen} onClose={() => setQuizOpen(false)} />
+      <SignOutDialog open={signOutOpen} onCancel={() => setSignOutOpen(false)} onConfirm={confirmLogout} />
+    </header>
+  );
+}

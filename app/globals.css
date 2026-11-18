@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode for Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
+
+/* Only devices with a real hover pointer (mouse/trackpad) — touch screens skip hover-only UI */
+@custom-variant can-hover (@media (hover: hover) and (pointer: fine));
+
+/* Custom breakpoints */
+@theme {
+  --breakpoint-xs: 375px;
+}
+
+:root {
+  color-scheme: light;
+  --brand:         #C2185B;
+  --brand-hover:   #A31555;
+  --brand-text:    #C2185B;
+  --brand-text-hover: #A31555;
+  --focus-ring:    #C2185B;
+  --field-border:  #6B7280;
+  --field-bg:      #FFFFFF;
+  --background:    #FFF8F5;
+  --foreground:    #1A0A0E;
+  --surface:       #FFFFFF;
+  --surface-hover: #F9F0F2;
+  --border:        #E5E7EB;
+  --muted:         #6B7280;
+  --muted-bg:      #F9FAFB;
+}
+
+.dark {
+  color-scheme: dark;
+  --brand-text:    #FDA4AF;
+  --brand-text-hover: #FECDD3;
+  --focus-ring:    #FDA4AF;
+  --field-border:  #9CA3AF;
+  --field-bg:      #111827;
+  --background:    #0F0A0B;
+  --foreground:    #F5ECF0;
+  --surface:       #1C1317;
+  --surface-hover: #251A1E;
+  --border:        #2D2025;
+  --muted:         #9CA3AF;
+  --muted-bg:      #1C1317;
+}
+
+body {
+  min-width: 320px;
+  background: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-33.333%); }
+}
+
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.text-brand { color: var(--brand-text); }
+a.text-brand:hover, button.text-brand:hover { color: var(--brand-text-hover); }
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  background: var(--brand);
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+.button-primary:hover:not(:disabled) { background: var(--brand-hover); }
+.button-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--field-border);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--brand-text);
+  font-weight: 600;
+}
+.button-secondary:hover:not(:disabled) { background: var(--surface-hover); }
+.button-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.form-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--field-border);
+  border-radius: 1rem;
+  background: var(--field-bg);
+  color: var(--foreground);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.form-input-with-action { padding-right: 3.25rem; }
+.form-input::placeholder { color: var(--muted); opacity: 1; }
+
+/* Respect users who ask the OS for less motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Hide scrollbars on horizontal carousels while keeping them scrollable */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }

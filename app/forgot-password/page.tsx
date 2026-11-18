@@ -1,0 +1,107 @@
+'use client';
+
+import { useState, Suspense } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Mail } from 'lucide-react';
+
+function ForgotPasswordForm() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'sent'>('idle');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/users/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Something went wrong');
+      }
+      setStatus('sent');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send reset email');
+      setStatus('idle');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-linear-to-br from-rose-50 via-pink-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4 py-16">
+      <div className="w-full max-w-md">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 sm:p-10 border border-gray-100 dark:border-gray-700">
+
+          {status === 'sent' ? (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+                <Mail size={28} className="text-green-500" />
+              </div>
+              <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 mb-2">Check Your Email</h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
+                If <span className="font-semibold text-gray-700 dark:text-gray-200 break-all">{email}</span> has a Lumina account, you will receive a password reset link.
+                Check your inbox and spam folder. If it does not arrive, try again later or contact support.
+              </p>
+              <Link href="/login" className="inline-flex items-center gap-2 text-sm text-brand font-semibold hover:underline">
+                <ArrowLeft size={14} /> Back to Sign In
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="text-center mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center mx-auto mb-4 shadow-md">
+                  <span className="text-white font-bold text-xl">L</span>
+                </div>
+                <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">Forgot Password?</h1>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                  Enter your email and we&apos;ll send you a reset link.
+                </p>
+              </div>
+
+              {error && (
+                <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-2xl text-sm text-center mb-6">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label htmlFor="reset-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
+                  <input
+                    id="reset-email" type="email" autoComplete="email" required value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="form-input text-sm"
+                  />
+                </div>
+                <button
+                  type="submit" disabled={status === 'loading'}
+                  className="button-primary w-full shadow-md"
+                >
+                  {status === 'loading' ? 'Sending...' : 'Send Reset Link'}
+                </button>
+              </form>
+
+              <div className="text-center mt-6">
+                <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:underline transition-colors">
+                  <ArrowLeft size={14} /> Back to Sign In
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense>
+      <ForgotPasswordForm />
+    </Suspense>
+  );
+}
